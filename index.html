@@ -43,7 +43,7 @@
         <div class="p-5 border-t border-gray-700/60 space-y-6 text-sm text-gray-300 bg-gray-900/40">
           <div class="bg-gray-900 p-3.5 rounded-lg border-l-4 border-red-600 text-xs">
             <strong class="text-white block mb-1">🌍 Conversión Automática de Horarios:</strong>
-            El sistema detecta automáticamente la zona horaria de tu navegador. Todos los horarios seleccionados o mostrados se adaptan a tu **hora local**.
+            El sistema detecta automáticamente tu zona horaria. Todos los horarios seleccionados o mostrados se adaptan a tu **hora local**.
           </div>
 
           <div class="space-y-2">
@@ -51,9 +51,8 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, la fecha/hora, tu Nick, la plataforma (**Lackey** o **Succubus Club**) y opcionalmente una **Contraseña**.</li>
-              <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span> para anotar tu Nick (máximo 5 jugadores).</li>
-              <li><strong class="text-white">Ver Contraseña:</strong> Haz clic en <span class="text-gray-300 font-semibold">"👁️ Ver Password"</span> para revelarla.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**) y opcionalmente una **Contraseña**.</li>
+              <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
             </ul>
           </div>
 
@@ -62,8 +61,8 @@
               <span>🩸</span> 2. Registrar tu Disponibilidad Individual
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li>Ingresa tu Nick, fecha/hora y selecciona la plataforma donde jugarás (**Lackey** / **Succubus Club**).</li>
-              <li>El sistema agrupará a los jugadores coincidentes en tiempo real, dividirá en mesas de máximo 5 e incluirá un campo para definir la clave de la sala.</li>
+              <li>Ingresa tu Nick, fecha/hora y tu plataforma elegida (**LackeyCCG** o **Succubus Club**).</li>
+              <li>El sistema agrupará a los jugadores coincidentes por **mismo horario Y misma plataforma** por separado.</li>
             </ul>
           </div>
         </div>
@@ -76,7 +75,7 @@
         <h2 class="text-xl font-bold text-amber-500 flex items-center gap-2">
           <span>⚔️</span> Abrir Nueva Mesa de Juego
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Crea una mesa con horario fijo para que otros jugadores se vayan sumando.</p>
+        <p class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
       </div>
 
       <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
@@ -128,7 +127,7 @@
           <input type="text" id="localDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-red-600">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma Preferida</label>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma Elegida</label>
           <select id="playerPlatform" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
             <option value="Lackey">LackeyCCG</option>
             <option value="Succubus Club">Succubus Club</option>
@@ -142,13 +141,13 @@
       </form>
     </section>
 
-    <!-- MATCHMAKING AUTOMÁTICO -->
+    <!-- MATCHMAKING AUTOMÁTICO (SEPARADO POR PLATAFORMA) -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
       <div class="border-b border-gray-700 pb-3">
         <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
-          <span>🏰</span> Coincidencias Automáticas por Horario Libre
+          <span>🏰</span> Coincidencias Automáticas (Separadas por Plataforma)
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Máximo 5 jugadores por mesa con clave compartida.</p>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado estrictamente por Horario y Plataforma (Lackey vs Succubus Club).</p>
       </div>
       <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
@@ -191,13 +190,14 @@
       appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
     };
 
-    // Inicializar Firebase Realtime Database
+    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const recordsRef = db.ref('vtes_records');
     const autoPassRef = db.ref('vtes_auto_passwords');
 
     let autoPasswords = {};
+    let currentGlobalData = [];
 
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
@@ -216,22 +216,19 @@
     // Escuchar contraseñas de mesas automáticas
     autoPassRef.on('value', (snapshot) => {
       autoPasswords = snapshot.val() || {};
-      // Forzar re-render si hay datos cargados
-      recordsRef.get().then(snap => {
-        const dataObj = snap.val() || {};
-        const allData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
-        renderAll(allData);
-      });
+      if (currentGlobalData.length > 0) {
+        renderAll(currentGlobalData);
+      }
     });
 
-    // Escuchar cambios de registros en tiempo real
+    // Escuchar registros en tiempo real
     recordsRef.on('value', (snapshot) => {
       const dataObj = snapshot.val() || {};
-      const allData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
-      renderAll(allData);
+      currentGlobalData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
+      renderAll(currentGlobalData);
     });
 
-    // Guardar disponibilidad individual
+    // Guardar disponibilidad individual (Validando Nick duplicado)
     document.getElementById('availabilityForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const nick = document.getElementById('playerNick').value.trim();
@@ -240,11 +237,24 @@
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
+      const utcISO = new Date(localInput.replace(' ', 'T')).toISOString();
+
+      // VALIDACIÓN 1: Evitar que el mismo nick registre duplicados en el mismo horario
+      const isDuplicate = currentGlobalData.some(item => {
+        return (item.type === 'individual' || !item.type) &&
+               item.nick.toLowerCase() === nick.toLowerCase() &&
+               item.utcTime === utcISO;
+      });
+
+      if (isDuplicate) {
+        return alert(`El jugador "${nick}" ya tiene una disponibilidad registrada exactamente para esta misma fecha y hora.`);
+      }
+
       recordsRef.push({
         type: 'individual',
         nick: nick,
         platform: platform,
-        utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
+        utcTime: utcISO,
         originTz: userTimezone
       });
 
@@ -285,6 +295,7 @@
       }
     }
 
+    // Unirse a Mesa Abierta (Validando Nombres Duplicados)
     function joinTable(tableId) {
       const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
       if (!playerNick || !playerNick.trim()) return;
@@ -297,8 +308,16 @@
         const table = snapshot.val();
         const players = table.players || [];
 
-        if (players.length >= 5) return alert('La mesa ya está llena (máximo 5 jugadores).');
-        if (players.includes(cleanNick)) return alert('Ya estás anotado en esta mesa.');
+        // VALIDACIÓN 2: Evitar que se repita el nick en la misma mesa (Sin importar mayúsculas/minúsculas)
+        const nameExists = players.some(p => p.toLowerCase() === cleanNick.toLowerCase());
+
+        if (nameExists) {
+          return alert(`El jugador "${cleanNick}" ya está registrado en esta mesa.`);
+        }
+
+        if (players.length >= 5) {
+          return alert('La mesa ya está llena (máximo 5 jugadores).');
+        }
 
         players.push(cleanNick);
         tableRef.update({ players: players });
@@ -375,20 +394,31 @@
         }).join('');
       }
 
-      // 2. Coincidencias automáticas
+      // 2. Coincidencias automáticas (SEPARADAS POR PLATAFORMA)
       renderAutoMatches(individuals, autoTablesContainer);
 
       // 3. Mesas abiertas
       renderCustomTables(customTables, customTablesContainer);
     }
 
+    // RENDERIZADO DE MESAS AUTOMÁTICAS AGRUPANDO POR HORARIO + PLATAFORMA
     function renderAutoMatches(individuals, container) {
       const groups = {};
       
       individuals.forEach(entry => {
-        const key = new Date(entry.utcTime).toISOString().slice(0, 16); 
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(entry);
+        const timeKey = new Date(entry.utcTime).toISOString().slice(0, 16); 
+        const platformKey = (entry.platform || 'Lackey').toLowerCase();
+        // Clave compuesta: HORARIO + PLATAFORMA
+        const groupKey = `${timeKey}_${platformKey}`;
+
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            timeIso: timeKey,
+            platform: entry.platform || 'Lackey',
+            players: []
+          };
+        }
+        groups[groupKey].players.push(entry);
       });
 
       const keys = Object.keys(groups);
@@ -400,8 +430,11 @@
       let html = '';
 
       keys.forEach(key => {
-        const allPlayersInSlot = groups[key];
-        const dateObj = new Date(key + ':00Z');
+        const groupData = groups[key];
+        const allPlayersInSlot = groupData.players;
+        const platformName = groupData.platform;
+
+        const dateObj = new Date(groupData.timeIso + ':00Z');
         const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
         const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
@@ -440,7 +473,10 @@
             <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md space-y-3">
               <div class="flex justify-between items-start">
                 <div>
-                  <p class="text-xs text-red-400 uppercase font-semibold tracking-wider">${formattedDate}${tableLabel}</p>
+                  <div class="flex items-center gap-2 mb-1">
+                    <p class="text-xs text-red-400 uppercase font-semibold tracking-wider">${formattedDate}${tableLabel}</p>
+                    ${getPlatformBadge(platformName)}
+                  </div>
                   <p class="text-xl font-mono font-bold text-white">${formattedTime}</p>
                 </div>
                 <div>${statusBadge}</div>
@@ -449,12 +485,11 @@
               ${pwdHtml}
 
               <div class="space-y-1.5">
-                <p class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Jugadores & Plataforma:</p>
+                <p class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Jugadores en esta mesa:</p>
                 <div class="flex flex-wrap gap-1.5">
                   ${tablePlayers.map(p => `
-                    <span class="inline-flex items-center gap-1 bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2 py-1 rounded font-medium">
+                    <span class="inline-flex items-center bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2.5 py-1 rounded font-medium">
                       ${escapeHtml(p.nick)}
-                      ${getPlatformBadge(p.platform || 'Lackey')}
                     </span>
                   `).join('')}
                 </div>
