@@ -51,9 +51,9 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, la fecha/hora y tu Nick.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, la fecha/hora, tu Nick y opcionalmente una **Contraseña de Mesa** para plataformas online.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span> para anotar tu Nick (máximo 5 jugadores).</li>
-              <li><strong class="text-white">Salir de una Mesa:</strong> Haz clic en la <strong>"X"</strong> junto a tu nombre para liberar el lugar.</li>
+              <li><strong class="text-white">Ver Contraseña:</strong> Haz clic en <span class="text-gray-300 font-semibold">"👁️ Ver Password"</span> en la tarjeta de la mesa para revelarla.</li>
             </ul>
           </div>
 
@@ -78,21 +78,25 @@
         <p class="text-xs text-gray-400 mt-1">Crea una mesa con horario fijo para que otros jugadores se vayan sumando.</p>
       </div>
 
-      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre / Título de la Mesa</label>
-          <input type="text" id="tableName" required placeholder="ej. Liga Chile / Práctica Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de la Mesa</label>
+          <input type="text" id="tableName" required placeholder="ej. Liga Chile / Lackey" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
-          <input type="text" id="tableDateTime" required placeholder="Seleccionar fecha y hora..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
+          <input type="text" id="tableDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick (Creador)</label>
           <input type="text" id="tableCreator" required placeholder="ej. Hardestadt_MX" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
         </div>
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">🔑 Password / Clave</label>
+          <input type="text" id="tablePassword" placeholder="ej. vtes2026" class="w-full bg-gray-800 border border-amber-700/60 rounded-lg px-3 py-1.5 text-amber-300 text-sm font-mono focus:outline-none focus:border-amber-400">
+        </div>
         <div class="flex items-end">
-          <button type="submit" id="createTableBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-4 rounded-lg text-sm transition">
+          <button type="submit" id="createTableBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition">
             Abrir Mesa
           </button>
         </div>
@@ -216,12 +220,13 @@
       pickerAvailability.clear();
     });
 
-    // Abrir una Mesa de Juego
+    // Abrir una Mesa de Juego (con campo Password opcional)
     document.getElementById('customTableForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('tableName').value.trim();
       const localInput = document.getElementById('tableDateTime').value;
       const creator = document.getElementById('tableCreator').value.trim();
+      const password = document.getElementById('tablePassword').value.trim();
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
@@ -230,6 +235,7 @@
         name: name,
         utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         players: [creator],
+        password: password || '',
         originTz: userTimezone
       });
 
@@ -275,6 +281,13 @@
           tableRef.update({ players: players });
         }
       });
+    }
+
+    function togglePasswordView(elementId) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.classList.toggle('hidden');
+      }
     }
 
     function deleteEntry(id) {
@@ -399,6 +412,18 @@
           ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Completa (${count}/5)</span>`
           : `<span class="bg-amber-900/60 text-amber-300 border border-amber-700/60 text-xs px-2.5 py-1 rounded-full font-bold">⏳ Faltan ${5 - count} jugador(es)</span>`;
 
+        const pwdHtml = t.password ? `
+          <div class="bg-gray-800/80 border border-gray-700/80 rounded-lg p-2 flex items-center justify-between text-xs">
+            <span class="text-gray-400 font-medium flex items-center gap-1">🔑 Password:</span>
+            <div class="flex items-center gap-2">
+              <span id="pwd-${t.id}" class="hidden font-mono font-bold text-amber-400 bg-gray-900 px-2 py-0.5 rounded border border-amber-500/30 select-all">${escapeHtml(t.password)}</span>
+              <button onclick="togglePasswordView('pwd-${t.id}')" class="text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition text-[11px]">
+                👁️ Ver Password
+              </button>
+            </div>
+          </div>
+        ` : '';
+
         return `
           <div class="bg-gray-900 border ${isReady ? 'border-green-600/60' : 'border-amber-600/40'} rounded-xl p-4 shadow-md space-y-4">
             <div class="flex justify-between items-start border-b border-gray-800 pb-2">
@@ -411,6 +436,8 @@
                 <button onclick="deleteEntry('${t.id}')" class="text-[10px] text-gray-500 hover:text-red-400 transition mt-1">Cerrar Mesa</button>
               </div>
             </div>
+
+            ${pwdHtml}
 
             <div class="space-y-2">
               <p class="text-xs font-semibold text-gray-400">Jugadores confirmados (${count}/5):</p>
