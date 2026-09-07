@@ -65,6 +65,13 @@
               <li>El sistema agrupará a los jugadores coincidentes por **mismo horario Y misma plataforma** por separado.</li>
             </ul>
           </div>
+
+          <div class="space-y-2">
+            <h3 class="text-red-400 font-bold flex items-center gap-1.5 text-base">
+              <span>🛡️</span> 3. Confirmación de Eliminación
+            </h3>
+            <p class="text-xs text-gray-400 pl-2">Para evitar eliminaciones por error, para borrar cualquier registro o abandonar una mesa deberás escribir la clave temática: <strong class="text-red-400 font-mono">BANISHMENT</strong>.</p>
+          </div>
         </div>
       </details>
     </section>
@@ -239,7 +246,6 @@
 
       const utcISO = new Date(localInput.replace(' ', 'T')).toISOString();
 
-      // VALIDACIÓN 1: Evitar que el mismo nick registre duplicados en el mismo horario
       const isDuplicate = currentGlobalData.some(item => {
         return (item.type === 'individual' || !item.type) &&
                item.nick.toLowerCase() === nick.toLowerCase() &&
@@ -295,7 +301,7 @@
       }
     }
 
-    // Unirse a Mesa Abierta (Validando Nombres Duplicados)
+    // Unirse a Mesa Abierta
     function joinTable(tableId) {
       const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
       if (!playerNick || !playerNick.trim()) return;
@@ -308,7 +314,6 @@
         const table = snapshot.val();
         const players = table.players || [];
 
-        // VALIDACIÓN 2: Evitar que se repita el nick en la misma mesa (Sin importar mayúsculas/minúsculas)
         const nameExists = players.some(p => p.toLowerCase() === cleanNick.toLowerCase());
 
         if (nameExists) {
@@ -324,8 +329,14 @@
       });
     }
 
+    // SEGURIDAD OPCIÓN 3: Remover Jugador con Confirmación VTES "BANISHMENT"
     function leaveTable(tableId, playerNick) {
-      if (!confirm(`¿Quieres remover a "${playerNick}" de esta mesa?`)) return;
+      const confirmCode = prompt(`Para remover a "${playerNick}" de esta mesa, escribe BANISHMENT para confirmar:`);
+      if (!confirmCode) return;
+
+      if (confirmCode.trim().toUpperCase() !== 'BANISHMENT') {
+        return alert('❌ Confirmación incorrecta. No se realizaron cambios.');
+      }
 
       const tableRef = db.ref(`vtes_records/${tableId}`);
 
@@ -334,7 +345,7 @@
         const table = snapshot.val();
         let players = table.players || [];
 
-        players = players.filter(p => p !== playerNick);
+        players = players.filter(p => p.toLowerCase() !== playerNick.toLowerCase());
 
         if (players.length === 0) {
           tableRef.remove();
@@ -351,9 +362,15 @@
       }
     }
 
+    // SEGURIDAD OPCIÓN 3: Eliminar Registro Individual o Mesa Completa con Confirmación VTES "BANISHMENT"
     function deleteEntry(id) {
-      if (confirm('¿Seguro que quieres eliminar este elemento?')) {
+      const confirmCode = prompt('Para eliminar este elemento de forma permanente, escribe BANISHMENT para confirmar:');
+      if (!confirmCode) return;
+
+      if (confirmCode.trim().toUpperCase() === 'BANISHMENT') {
         db.ref(`vtes_records/${id}`).remove();
+      } else {
+        alert('❌ Confirmación incorrecta. El elemento no fue eliminado.');
       }
     }
 
@@ -401,14 +418,12 @@
       renderCustomTables(customTables, customTablesContainer);
     }
 
-    // RENDERIZADO DE MESAS AUTOMÁTICAS AGRUPANDO POR HORARIO + PLATAFORMA
     function renderAutoMatches(individuals, container) {
       const groups = {};
       
       individuals.forEach(entry => {
         const timeKey = new Date(entry.utcTime).toISOString().slice(0, 16); 
         const platformKey = (entry.platform || 'Lackey').toLowerCase();
-        // Clave compuesta: HORARIO + PLATAFORMA
         const groupKey = `${timeKey}_${platformKey}`;
 
         if (!groups[groupKey]) {
