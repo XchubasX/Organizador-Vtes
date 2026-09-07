@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VTES Matchmaking & Mesas Ad-hoc</title>
+  <!-- Tailwind CSS para el diseño -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Flatpickr (Librería de Calendario Desplegable) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
 
@@ -31,7 +37,7 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
-          <input type="datetime-local" id="localDateTime" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
+          <input type="text" id="localDateTime" required placeholder="Seleccionar fecha y hora..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-red-600">
         </div>
         <div class="flex items-end">
           <button type="submit" id="submitBtn" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
@@ -59,7 +65,7 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
-          <input type="datetime-local" id="tableDateTime" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+          <input type="text" id="tableDateTime" required placeholder="Seleccionar fecha y hora..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Jugadores (separados por coma)</label>
@@ -131,22 +137,39 @@
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
 
+    // Inicializar el calendario desplegable Flatpickr
+    const configFlatpickr = {
+      enableTime: true,
+      dateFormat: "Y-m-d H:i",
+      time_24hr: true,
+      locale: "es",
+      minDate: "today"
+    };
+
+    let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
+    let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
+
     document.addEventListener('DOMContentLoaded', loadData);
 
     // Guardar disponibilidad individual
     document.getElementById('availabilityForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-
       const nick = document.getElementById('playerNick').value.trim();
       const localInput = document.getElementById('localDateTime').value;
+
+      if (!localInput) {
+        alert('Por favor selecciona una fecha y hora del calendario.');
+        return;
+      }
+
+      submitBtn.disabled = true;
 
       const newEntry = {
         id: 'user_' + Date.now().toString(),
         type: 'individual',
         nick: nick,
-        utcTime: new Date(localInput).toISOString(),
+        utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         originTz: userTimezone
       };
 
@@ -156,6 +179,7 @@
         await saveData(currentData);
 
         document.getElementById('availabilityForm').reset();
+        pickerAvailability.clear();
         await loadData();
       } catch (err) {
         alert('Error al guardar.');
@@ -168,11 +192,16 @@
     document.getElementById('customTableForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const createBtn = document.getElementById('createTableBtn');
-      createBtn.disabled = true;
-
       const name = document.getElementById('tableName').value.trim();
       const localInput = document.getElementById('tableDateTime').value;
       const rawPlayers = document.getElementById('tablePlayers').value;
+
+      if (!localInput) {
+        alert('Por favor selecciona una fecha y hora del calendario.');
+        return;
+      }
+
+      createBtn.disabled = true;
 
       const playersArray = rawPlayers.split(',').map(p => p.trim()).filter(p => p.length > 0);
 
@@ -180,7 +209,7 @@
         id: 'table_' + Date.now().toString(),
         type: 'custom_table',
         name: name,
-        utcTime: new Date(localInput).toISOString(),
+        utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         players: playersArray,
         originTz: userTimezone
       };
@@ -191,6 +220,7 @@
         await saveData(currentData);
 
         document.getElementById('customTableForm').reset();
+        pickerCustomTable.clear();
         await loadData();
       } catch (err) {
         alert('Error al crear la mesa manual.');
