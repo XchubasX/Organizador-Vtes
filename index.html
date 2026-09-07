@@ -6,11 +6,14 @@
   <title>VTES Matchmaking & Mesas Abiertas</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Flatpickr (Calendario Desplegable) -->
+  <!-- Flatpickr (Calendario) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+  <!-- Firebase App & Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
 
@@ -25,7 +28,7 @@
       </div>
     </header>
 
-    <!-- MANUAL DE USUARIO (COLAPSABLE) -->
+    <!-- MANUAL DE USUARIO -->
     <section class="bg-gray-800/80 border border-red-900/50 rounded-xl overflow-hidden shadow-lg">
       <details class="group">
         <summary class="flex justify-between items-center font-bold cursor-pointer p-4 text-red-400 hover:text-red-300 transition bg-gray-800">
@@ -38,38 +41,30 @@
         </summary>
         
         <div class="p-5 border-t border-gray-700/60 space-y-6 text-sm text-gray-300 bg-gray-900/40">
-          
-          <!-- Nota de Zona Horaria -->
           <div class="bg-gray-900 p-3.5 rounded-lg border-l-4 border-red-600 text-xs">
             <strong class="text-white block mb-1">🌍 Conversión Automática de Horarios:</strong>
-            El sistema detecta automáticamente la zona horaria de tu navegador. Todos los horarios seleccionados o mostrados se adaptan a tu **hora local**, facilitando coordinar partidas internacionales sin confusión.
+            El sistema detecta automáticamente la zona horaria de tu navegador. Todos los horarios seleccionados o mostrados se adaptan a tu **hora local**.
           </div>
 
-          <!-- Opcion 1 -->
           <div class="space-y-2">
             <h3 class="text-amber-400 font-bold flex items-center gap-1.5 text-base">
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
-            <p class="text-xs text-gray-400">Es la forma más fácil de organizar una partida programada:</p>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida (ej. <em>"Liga Prince - Fecha 1"</em>), la fecha/hora y tu Nick. Serás el primer jugador confirmado.</li>
-              <li><strong class="text-white">Unirse a una Mesa:</strong> Revisa las mesas abiertas creadas por otros jugadores y haz clic en el botón <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span> para anotar tu Nick en uno de los lugares disponibles (máximo 5 jugadores).</li>
-              <li><strong class="text-white">Salir de una Mesa:</strong> Si ya estás anotado pero surge un imprevisto, haz clic en la <strong>"X"</strong> junto a tu nombre para liberar el espacio.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, la fecha/hora y tu Nick.</li>
+              <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span> para anotar tu Nick (máximo 5 jugadores).</li>
+              <li><strong class="text-white">Salir de una Mesa:</strong> Haz clic en la <strong>"X"</strong> junto a tu nombre para liberar el lugar.</li>
             </ul>
           </div>
 
-          <!-- Opcion 2 -->
           <div class="space-y-2">
             <h3 class="text-amber-400 font-bold flex items-center gap-1.5 text-base">
               <span>🩸</span> 2. Registrar tu Disponibilidad Individual
             </h3>
-            <p class="text-xs text-gray-400">Usa esta opción si no quieres crear una mesa fija, sino solo publicar a qué hora estás libre para jugar:</p>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li>Ingresa tu Nick y la fecha/hora local en la que puedes conectarte.</li>
-              <li>El sistema agrupará de forma automática a todos los jugadores que coincidan a esa misma hora en la sección <strong class="text-white">Coincidencias Automáticas</strong>.</li>
+              <li>Ingresa tu Nick y la fecha/hora local libre. El sistema agrupará a los jugadores coincidentes en tiempo real.</li>
             </ul>
           </div>
-
         </div>
       </details>
     </section>
@@ -93,7 +88,7 @@
           <input type="text" id="tableDateTime" required placeholder="Seleccionar fecha y hora..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick (Creador de la mesa)</label>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick (Creador)</label>
           <input type="text" id="tableCreator" required placeholder="ej. Hardestadt_MX" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
         </div>
         <div class="flex items-end">
@@ -103,13 +98,10 @@
         </div>
       </form>
 
-      <!-- TARJETAS DE MESAS ABIERTAS -->
-      <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-        <!-- Mesas abiertas dinámicas se renderizan aquí -->
-      </div>
+      <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"></div>
     </section>
 
-    <!-- REGISTRAR DISPONIBILIDAD INDIVIDUAL -->
+    <!-- DISPONIBILIDAD INDIVIDUAL -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
       <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
         <span>🩸</span> Registrar disponibilidad personal (Horario Libre)
@@ -131,29 +123,21 @@
       </form>
     </section>
 
-    <!-- MATCHMAKING AUTOMÁTICO POR HORARIO -->
+    <!-- MATCHMAKING AUTOMÁTICO -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
-      <div class="flex justify-between items-center border-b border-gray-700 pb-3">
-        <div>
-          <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
-            <span>🏰</span> Coincidencias Automáticas por Horario Libre
-          </h2>
-          <p class="text-xs text-gray-400 mt-1">Jugadores individuales agrupados por coincidencia exacta de hora local.</p>
-        </div>
-        <button onclick="loadData()" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-2 rounded-lg transition">
-          🔄 Actualizar
-        </button>
+      <div class="border-b border-gray-700 pb-3">
+        <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
+          <span>🏰</span> Coincidencias Automáticas por Horario Libre
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real mediante Firebase.</p>
       </div>
-
-      <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Coincidencias automáticas -->
-      </div>
+      <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
 
     <!-- REGISTROS INDIVIDUALES -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
       <h2 class="text-lg font-bold text-gray-300 mb-4 flex items-center gap-2">
-        <span>📜</span> Todos los registros de disponibilidad libre
+        <span>📜</span> Todos los registros individuales
       </h2>
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
@@ -167,9 +151,7 @@
             </tr>
           </thead>
           <tbody id="scheduleTable" class="divide-y divide-gray-700/50 text-sm">
-            <tr>
-              <td colspan="5" class="py-8 text-center text-gray-500">Cargando disponibilidades...</td>
-            </tr>
+            <tr><td colspan="5" class="py-8 text-center text-gray-500">Conectando a Firebase...</td></tr>
           </tbody>
         </table>
       </div>
@@ -178,14 +160,25 @@
   </div>
 
   <script>
-    const BIN_ID = '6a9ed406ac6210605ab0324a'; 
-    const MASTER_KEY = '$2a$10$/JMMumj5G/vmHkg5v6uFEuemVhsZoIwNArhwk5MYb.Oo0d8iPSZ7S'; 
-    const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+    // Configuración de tu proyecto en Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
+      authDomain: "vtes-scheduler.firebaseapp.com",
+      databaseURL: "https://vtes-scheduler-default-rtdb.firebaseio.com",
+      projectId: "vtes-scheduler",
+      storageBucket: "vtes-scheduler.firebasestorage.app",
+      messagingSenderId: "897608138023",
+      appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
+    };
+
+    // Inicializar Firebase Realtime Database
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const recordsRef = db.ref('vtes_records');
 
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
 
-    // Configuración de Calendarios
     const configFlatpickr = {
       enableTime: true,
       dateFormat: "Y-m-d H:i",
@@ -197,191 +190,133 @@
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
-    document.addEventListener('DOMContentLoaded', loadData);
+    // Escuchar cambios en tiempo real
+    recordsRef.on('value', (snapshot) => {
+      const dataObj = snapshot.val() || {};
+      const allData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
+      renderAll(allData);
+    });
 
     // Guardar disponibilidad individual
-    document.getElementById('availabilityForm').addEventListener('submit', async (e) => {
+    document.getElementById('availabilityForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const submitBtn = document.getElementById('submitBtn');
       const nick = document.getElementById('playerNick').value.trim();
       const localInput = document.getElementById('localDateTime').value;
 
-      if (!localInput) {
-        alert('Por favor selecciona una fecha y hora.');
-        return;
-      }
+      if (!localInput) return alert('Selecciona una fecha y hora.');
 
-      submitBtn.disabled = true;
-
-      const newEntry = {
-        id: 'user_' + Date.now().toString(),
+      recordsRef.push({
         type: 'individual',
         nick: nick,
         utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         originTz: userTimezone
-      };
+      });
 
-      try {
-        const currentData = await fetchCurrentData();
-        currentData.push(newEntry);
-        await saveData(currentData);
-
-        document.getElementById('availabilityForm').reset();
-        pickerAvailability.clear();
-        await loadData();
-      } catch (err) {
-        alert('Error al guardar.');
-      } finally {
-        submitBtn.disabled = false;
-      }
+      document.getElementById('availabilityForm').reset();
+      pickerAvailability.clear();
     });
 
     // Abrir una Mesa de Juego
-    document.getElementById('customTableForm').addEventListener('submit', async (e) => {
+    document.getElementById('customTableForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const createBtn = document.getElementById('createTableBtn');
       const name = document.getElementById('tableName').value.trim();
       const localInput = document.getElementById('tableDateTime').value;
       const creator = document.getElementById('tableCreator').value.trim();
 
-      if (!localInput) {
-        alert('Por favor selecciona una fecha y hora.');
-        return;
-      }
+      if (!localInput) return alert('Selecciona una fecha y hora.');
 
-      createBtn.disabled = true;
-
-      const newTable = {
-        id: 'table_' + Date.now().toString(),
+      recordsRef.push({
         type: 'custom_table',
         name: name,
         utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         players: [creator],
         originTz: userTimezone
-      };
+      });
 
-      try {
-        const currentData = await fetchCurrentData();
-        currentData.push(newTable);
-        await saveData(currentData);
-
-        document.getElementById('customTableForm').reset();
-        pickerCustomTable.clear();
-        await loadData();
-      } catch (err) {
-        alert('Error al abrir la mesa.');
-      } finally {
-        createBtn.disabled = false;
-      }
+      document.getElementById('customTableForm').reset();
+      pickerCustomTable.clear();
     });
 
-    // Sumarse a una Mesa Abierta
-    async function joinTable(tableId) {
+    function joinTable(tableId) {
       const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
       if (!playerNick || !playerNick.trim()) return;
 
       const cleanNick = playerNick.trim();
+      const tableRef = db.ref(`vtes_records/${tableId}`);
 
-      try {
-        let currentData = await fetchCurrentData();
-        const table = currentData.find(t => t.id === tableId);
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return alert('La mesa ya no existe.');
+        const table = snapshot.val();
+        const players = table.players || [];
 
-        if (!table) return alert('La mesa ya no existe.');
-        if (table.players.length >= 5) return alert('La mesa ya está llena (máximo 5 jugadores).');
-        if (table.players.includes(cleanNick)) return alert('Ya estás anotado en esta mesa.');
+        if (players.length >= 5) return alert('La mesa ya está llena (máximo 5 jugadores).');
+        if (players.includes(cleanNick)) return alert('Ya estás anotado en esta mesa.');
 
-        table.players.push(cleanNick);
-        await saveData(currentData);
-        await loadData();
-      } catch (err) {
-        alert('Error al unirse a la mesa.');
-      }
+        players.push(cleanNick);
+        tableRef.update({ players: players });
+      });
     }
 
-    // Salir de una Mesa Abierta
-    async function leaveTable(tableId, playerNick) {
+    function leaveTable(tableId, playerNick) {
       if (!confirm(`¿Quieres remover a "${playerNick}" de esta mesa?`)) return;
 
-      try {
-        let currentData = await fetchCurrentData();
-        const table = currentData.find(t => t.id === tableId);
+      const tableRef = db.ref(`vtes_records/${tableId}`);
 
-        if (!table) return;
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return;
+        const table = snapshot.val();
+        let players = table.players || [];
 
-        table.players = table.players.filter(p => p !== playerNick);
+        players = players.filter(p => p !== playerNick);
 
-        // Si la mesa se queda sin jugadores, se elimina automáticamente
-        if (table.players.length === 0) {
-          currentData = currentData.filter(t => t.id !== tableId);
+        if (players.length === 0) {
+          tableRef.remove();
+        } else {
+          tableRef.update({ players: players });
         }
+      });
+    }
 
-        await saveData(currentData);
-        await loadData();
-      } catch (err) {
-        alert('Error al modificar la mesa.');
+    function deleteEntry(id) {
+      if (confirm('¿Seguro que quieres eliminar este elemento?')) {
+        db.ref(`vtes_records/${id}`).remove();
       }
     }
 
-    async function fetchCurrentData() {
-      const res = await fetch(`${API_URL}/latest`, {
-        headers: { 'X-Master-Key': MASTER_KEY }
-      });
-      const data = await res.json();
-      return Array.isArray(data.record) ? data.record : [];
-    }
-
-    async function saveData(data) {
-      await fetch(API_URL, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': MASTER_KEY
-        },
-        body: JSON.stringify(data)
-      });
-    }
-
-    async function loadData() {
+    function renderAll(allData) {
       const tbody = document.getElementById('scheduleTable');
       const autoTablesContainer = document.getElementById('autoTablesContainer');
       const customTablesContainer = document.getElementById('customTablesContainer');
 
-      try {
-        const allData = await fetchCurrentData();
+      const individuals = allData.filter(d => d.type === 'individual' || !d.type);
+      const customTables = allData.filter(d => d.type === 'custom_table');
 
-        const individuals = allData.filter(d => d.type === 'individual' || !d.type);
-        const customTables = allData.filter(d => d.type === 'custom_table');
-
-        // 1. Renderizar Registros Individuales
-        if (individuals.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-500">No hay disponibilidades individuales guardadas.</td></tr>`;
-        } else {
-          individuals.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
-          tbody.innerHTML = individuals.map(item => {
-            const dateObj = new Date(item.utcTime);
-            return `
-              <tr class="hover:bg-gray-750 transition">
-                <td class="py-3 px-4 font-bold text-red-400">${escapeHtml(item.nick)}</td>
-                <td class="py-3 px-4">${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
-                <td class="py-3 px-4 font-mono font-semibold text-white">${dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</td>
-                <td class="py-3 px-4 text-xs text-gray-500">${escapeHtml(item.originTz || 'UTC')}</td>
-                <td class="py-3 px-4 text-right">
-                  <button onclick="deleteEntry('${item.id}')" class="text-xs text-gray-500 hover:text-red-400 transition">Eliminar</button>
-                </td>
-              </tr>
-            `;
-          }).join('');
-        }
-
-        // 2. Renderizar Coincidencias Automáticas
-        renderAutoMatches(individuals, autoTablesContainer);
-
-        // 3. Renderizar Mesas Abiertas
-        renderCustomTables(customTables, customTablesContainer);
-
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-red-400">Error al cargar información.</td></tr>`;
+      // 1. Registros individuales
+      if (individuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-500">No hay disponibilidades individuales.</td></tr>`;
+      } else {
+        individuals.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
+        tbody.innerHTML = individuals.map(item => {
+          const dateObj = new Date(item.utcTime);
+          return `
+            <tr class="hover:bg-gray-750 transition">
+              <td class="py-3 px-4 font-bold text-red-400">${escapeHtml(item.nick)}</td>
+              <td class="py-3 px-4">${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+              <td class="py-3 px-4 font-mono font-semibold text-white">${dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</td>
+              <td class="py-3 px-4 text-xs text-gray-500">${escapeHtml(item.originTz || 'UTC')}</td>
+              <td class="py-3 px-4 text-right">
+                <button onclick="deleteEntry('${item.id}')" class="text-xs text-gray-500 hover:text-red-400 transition">Eliminar</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
       }
+
+      // 2. Coincidencias automáticas
+      renderAutoMatches(individuals, autoTablesContainer);
+
+      // 3. Mesas abiertas
+      renderCustomTables(customTables, customTablesContainer);
     }
 
     function renderAutoMatches(individuals, container) {
@@ -394,7 +329,7 @@
 
       const keys = Object.keys(groups);
       if (keys.length === 0) {
-        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay horarios individuales para emparejar.</p>`;
+        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay horarios para emparejar.</p>`;
         return;
       }
 
@@ -430,7 +365,7 @@
 
     function renderCustomTables(tables, container) {
       if (tables.length === 0) {
-        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay mesas abiertas creadas. ¡Sé el primero en abrir una!</p>`;
+        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay mesas abiertas creadas. ¡Abre una!</p>`;
         return;
       }
 
@@ -440,7 +375,7 @@
         const dateObj = new Date(t.utcTime);
         const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
         const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-        const count = t.players.length;
+        const count = (t.players || []).length;
         const isFull = count >= 5;
         const isReady = count >= 4;
 
@@ -464,7 +399,7 @@
             <div class="space-y-2">
               <p class="text-xs font-semibold text-gray-400">Jugadores confirmados (${count}/5):</p>
               <div class="flex flex-wrap gap-2">
-                ${t.players.map(p => `
+                ${(t.players || []).map(p => `
                   <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
                     ${escapeHtml(p)}
                     <button onclick="leaveTable('${t.id}', '${escapeHtml(p)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
@@ -485,20 +420,8 @@
       }).join('');
     }
 
-    async function deleteEntry(id) {
-      if (!confirm('¿Seguro que quieres cerrar esta mesa o registro?')) return;
-      try {
-        let allData = await fetchCurrentData();
-        allData = allData.filter(e => e.id !== id);
-        await saveData(allData);
-        loadData();
-      } catch (err) {
-        alert('Error al eliminar.');
-      }
-    }
-
     function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
   </script>
 </body>
