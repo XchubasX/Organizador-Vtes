@@ -23,7 +23,7 @@
     <header class="text-center space-y-2 border-b border-red-800 pb-4">
       <h1 class="text-3xl md:text-5xl font-extrabold text-red-600 tracking-wider">VAMPIRE: THE ETERNAL STRUGGLE</h1>
       <p class="text-gray-400 text-sm md:text-base">Coordinador Internacional de Mesas y Disponibilidad</p>
-      <div id="userTimezone" class="inline-block bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
+      <div id="userTimezone" class="inline-flex items-center gap-2 bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
         Detectando tu zona horaria...
       </div>
     </header>
@@ -156,13 +156,13 @@
       </form>
     </section>
 
-    <!-- MATCHMAKING AUTOMÁTICO (SEPARADO POR PLATAFORMA) -->
+    <!-- MATCHMAKING AUTOMÁTICO -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
       <div class="border-b border-gray-700 pb-3">
         <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
           <span>🏰</span> Coincidencias Automáticas (Separadas por Plataforma)
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado strictly por Horario y Plataforma.</p>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado por Horario y Plataforma.</p>
       </div>
       <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
@@ -194,7 +194,6 @@
   </div>
 
   <script>
-    // Configuración de tu proyecto en Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
       authDomain: "vtes-scheduler.firebaseapp.com",
@@ -205,7 +204,6 @@
       appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
     };
 
-    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const recordsRef = db.ref('vtes_records');
@@ -217,30 +215,33 @@
 
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
-    // MAPEO DIRECTO DE ZONA HORARIA A EMOJI DE BANDERA
-    function getCountryFlag(tz) {
-      if (!tz) return '🌐';
+    // RETORNA BANDERAS MEDIANTE IMÁGENES SVG DE ALTA COMPATIBILIDAD (Evita renderizado de texto en Windows)
+    function getCountryFlagImg(tz) {
+      if (!tz) return '<span class="text-base">🌐</span>';
       const tzLower = tz.toLowerCase();
+      let code = 'un';
 
-      if (tzLower.includes('mexico') || tzLower.includes('cancun') || tzLower.includes('merida') || tzLower.includes('monterrey')) return '🇲🇽';
-      if (tzLower.includes('madrid') || tzLower.includes('canary') || tzLower.includes('ceuta')) return '🇪🇸';
-      if (tzLower.includes('buenos_aires') || tzLower.includes('cordoba') || tzLower.includes('jujuy') || tzLower.includes('mendoza')) return '🇦🇷';
-      if (tzLower.includes('santiago')) return '🇨🇱';
-      if (tzLower.includes('bogota')) return '🇨🇴';
-      if (tzLower.includes('lima')) return '🇵🇪';
-      if (tzLower.includes('caracas')) return '🇻🇪';
-      if (tzLower.includes('montevideo')) return '🇺🇾';
-      if (tzLower.includes('sao_paulo') || tzLower.includes('fortaleza') || tzLower.includes('manaus')) return '🇧🇷';
-      if (tzLower.includes('new_york') || tzLower.includes('chicago') || tzLower.includes('los_angeles') || tzLower.includes('denver')) return '🇺🇸';
-      if (tzLower.includes('london')) return '🇬🇧';
-      if (tzLower.includes('paris')) return '🇫🇷';
-      if (tzLower.includes('rome')) return '🇮🇹';
-      if (tzLower.includes('berlin')) return '🇩🇪';
+      if (tzLower.includes('mexico') || tzLower.includes('cancun') || tzLower.includes('merida') || tzLower.includes('monterrey')) code = 'mx';
+      else if (tzLower.includes('madrid') || tzLower.includes('canary') || tzLower.includes('ceuta')) code = 'es';
+      else if (tzLower.includes('buenos_aires') || tzLower.includes('cordoba') || tzLower.includes('jujuy') || tzLower.includes('mendoza')) code = 'ar';
+      else if (tzLower.includes('santiago')) code = 'cl';
+      else if (tzLower.includes('bogota')) code = 'co';
+      else if (tzLower.includes('lima')) code = 'pe';
+      else if (tzLower.includes('caracas')) code = 've';
+      else if (tzLower.includes('montevideo')) code = 'uy';
+      else if (tzLower.includes('sao_paulo') || tzLower.includes('fortaleza') || tzLower.includes('manaus')) code = 'br';
+      else if (tzLower.includes('new_york') || tzLower.includes('chicago') || tzLower.includes('los_angeles') || tzLower.includes('denver')) code = 'us';
+      else if (tzLower.includes('london')) code = 'gb';
+      else if (tzLower.includes('paris')) code = 'fr';
+      else if (tzLower.includes('rome')) code = 'it';
+      else if (tzLower.includes('berlin')) code = 'de';
 
-      return '🌐';
+      if (code === 'un') return '<span class="text-base">🌐</span>';
+
+      return `<img src="https://flagcdn.com/w20/${code}.png" srcset="https://flagcdn.com/w40/${code}.png 2x" width="20" alt="${code}" class="inline-block rounded-sm shadow-sm" />`;
     }
 
-    document.getElementById('userTimezone').innerHTML = `Tu zona horaria: <strong>${escapeHtml(userTimezone)}</strong> ${getCountryFlag(userTimezone)}`;
+    document.getElementById('userTimezone').innerHTML = `Tu zona horaria: <strong>${escapeHtml(userTimezone)}</strong> ${getCountryFlagImg(userTimezone)}`;
 
     const configFlatpickr = {
       enableTime: true,
@@ -253,11 +254,9 @@
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
-    // BARREDORA SILENCIOSA: Elimina mesas y disponibilidades 3 horas después de su hora pactada
     function sweepExpiredTables(dataArray) {
       const now = new Date().getTime();
       const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-
       const validData = [];
 
       dataArray.forEach(item => {
@@ -279,14 +278,12 @@
       renderAll(currentGlobalData);
     }
 
-    // Monitor activo en segundo plano cada 30 segundos
     setInterval(() => {
       if (rawFirebaseData.length > 0) {
         processAndRender();
       }
     }, 30 * 1000);
 
-    // Escuchar contraseñas de mesas automáticas
     autoPassRef.on('value', (snapshot) => {
       autoPasswords = snapshot.val() || {};
       if (currentGlobalData.length > 0) {
@@ -294,14 +291,12 @@
       }
     });
 
-    // Escuchar registros en tiempo real desde Firebase
     recordsRef.on('value', (snapshot) => {
       const dataObj = snapshot.val() || {};
       rawFirebaseData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
       processAndRender();
     });
 
-    // Guardar disponibilidad individual
     document.getElementById('availabilityForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const nick = document.getElementById('playerNick').value.trim();
@@ -334,7 +329,6 @@
       pickerAvailability.clear();
     });
 
-    // Abrir una Mesa de Juego
     document.getElementById('customTableForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('tableName').value.trim();
@@ -380,7 +374,6 @@
       }
     }
 
-    // Unirse a Mesa Abierta
     function joinTable(tableId) {
       const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
       if (!playerNick || !playerNick.trim()) return;
@@ -411,7 +404,6 @@
       });
     }
 
-    // Remover Jugador con Confirmación VTES "BANISHMENT"
     function leaveTable(tableId, playerNick) {
       const confirmCode = prompt(`Para remover a "${playerNick}" de esta mesa, escribe BANISHMENT para confirmar:`);
       if (!confirmCode) return;
@@ -480,11 +472,11 @@
         individuals.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
         tbody.innerHTML = individuals.map(item => {
           const dateObj = new Date(item.utcTime);
-          const flag = getCountryFlag(item.originTz);
+          const flag = getCountryFlagImg(item.originTz);
           return `
             <tr class="hover:bg-gray-750 transition">
               <td class="py-3 px-4 font-bold text-red-400 flex items-center gap-2">
-                <span class="text-base">${flag}</span>
+                ${flag}
                 <span>${escapeHtml(item.nick)}</span>
               </td>
               <td class="py-3 px-4">${getPlatformBadge(item.platform || 'Lackey')}</td>
@@ -591,10 +583,10 @@
                 <p class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Jugadores en esta mesa:</p>
                 <div class="flex flex-wrap gap-1.5">
                   ${tablePlayers.map(p => {
-                    const flag = getCountryFlag(p.originTz);
+                    const flag = getCountryFlagImg(p.originTz);
                     return `
                       <span class="inline-flex items-center gap-1.5 bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2.5 py-1 rounded font-medium">
-                        <span class="text-sm">${flag}</span>
+                        ${flag}
                         <span>${escapeHtml(p.nick)}</span>
                       </span>
                     `;
@@ -678,11 +670,11 @@
                  ${(t.players || []).map(p => {
                   const playerNick = typeof p === 'string' ? p : p.nick;
                   const playerTz = typeof p === 'string' ? t.originTz : (p.originTz || t.originTz);
-                  const flag = getCountryFlag(playerTz);
+                  const flag = getCountryFlagImg(playerTz);
 
                   return `
                     <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
-                      <span class="text-sm">${flag}</span>
+                      ${flag}
                       <span>${escapeHtml(playerNick)}</span>
                       <button onclick="leaveTable('${t.id}', '${escapeHtml(playerNick)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
                     </span>
