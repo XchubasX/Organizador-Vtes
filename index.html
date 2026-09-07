@@ -51,9 +51,9 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, la fecha/hora, tu Nick y opcionalmente una **Contraseña de Mesa** para plataformas online.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, la fecha/hora, tu Nick, la plataforma (**Lackey** o **Succubus Club**) y opcionalmente una **Contraseña**.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span> para anotar tu Nick (máximo 5 jugadores).</li>
-              <li><strong class="text-white">Ver Contraseña:</strong> Haz clic en <span class="text-gray-300 font-semibold">"👁️ Ver Password"</span> en la tarjeta de la mesa para revelarla.</li>
+              <li><strong class="text-white">Ver Contraseña:</strong> Haz clic en <span class="text-gray-300 font-semibold">"👁️ Ver Password"</span> para revelarla.</li>
             </ul>
           </div>
 
@@ -62,7 +62,8 @@
               <span>🩸</span> 2. Registrar tu Disponibilidad Individual
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li>Ingresa tu Nick y la fecha/hora local libre. El sistema agrupará a los jugadores coincidentes en tiempo real y dividirá automáticamente en varias mesas si superan los 5 participantes.</li>
+              <li>Ingresa tu Nick, fecha/hora y selecciona la plataforma donde jugarás (**Lackey** / **Succubus Club**).</li>
+              <li>El sistema agrupará a los jugadores coincidentes en tiempo real, dividirá en mesas de máximo 5 e incluirá un campo para definir la clave de la sala.</li>
             </ul>
           </div>
         </div>
@@ -78,21 +79,28 @@
         <p class="text-xs text-gray-400 mt-1">Crea una mesa con horario fijo para que otros jugadores se vayan sumando.</p>
       </div>
 
-      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de la Mesa</label>
-          <input type="text" id="tableName" required placeholder="ej. Liga Chile / Lackey" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
+          <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora</label>
           <input type="text" id="tableDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick (Creador)</label>
-          <input type="text" id="tableCreator" required placeholder="ej. Hardestadt_MX" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick</label>
+          <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-amber-400 mb-1">🔑 Password / Clave</label>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma</label>
+          <select id="tablePlatform" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+            <option value="Lackey">LackeyCCG</option>
+            <option value="Succubus Club">Succubus Club</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">🔑 Password</label>
           <input type="text" id="tablePassword" placeholder="ej. vtes2026" class="w-full bg-gray-800 border border-amber-700/60 rounded-lg px-3 py-1.5 text-amber-300 text-sm font-mono focus:outline-none focus:border-amber-400">
         </div>
         <div class="flex items-end">
@@ -110,14 +118,21 @@
       <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
         <span>🩸</span> Registrar disponibilidad personal (Horario Libre)
       </h2>
-      <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Nick / Nombre (Discord / VTES)</label>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Nick / Nombre</label>
           <input type="text" id="playerNick" required placeholder="ej. Malkavian_Mex" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
-          <input type="text" id="localDateTime" required placeholder="Seleccionar fecha y hora..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-red-600">
+          <input type="text" id="localDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-red-600">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma Preferida</label>
+          <select id="playerPlatform" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
+            <option value="Lackey">LackeyCCG</option>
+            <option value="Succubus Club">Succubus Club</option>
+          </select>
         </div>
         <div class="flex items-end">
           <button type="submit" id="submitBtn" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
@@ -133,7 +148,7 @@
         <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
           <span>🏰</span> Coincidencias Automáticas por Horario Libre
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real mediante Firebase. Máximo 5 jugadores por mesa.</p>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Máximo 5 jugadores por mesa con clave compartida.</p>
       </div>
       <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
@@ -148,6 +163,7 @@
           <thead>
             <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase font-mono">
               <th class="py-3 px-4">Jugador</th>
+              <th class="py-3 px-4">Plataforma</th>
               <th class="py-3 px-4">Fecha (Tu Hora)</th>
               <th class="py-3 px-4">Hora (Tu Hora)</th>
               <th class="py-3 px-4">Zona Origen</th>
@@ -155,7 +171,7 @@
             </tr>
           </thead>
           <tbody id="scheduleTable" class="divide-y divide-gray-700/50 text-sm">
-            <tr><td colspan="5" class="py-8 text-center text-gray-500">Conectando a Firebase...</td></tr>
+            <tr><td colspan="6" class="py-8 text-center text-gray-500">Conectando a Firebase...</td></tr>
           </tbody>
         </table>
       </div>
@@ -179,6 +195,9 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const recordsRef = db.ref('vtes_records');
+    const autoPassRef = db.ref('vtes_auto_passwords');
+
+    let autoPasswords = {};
 
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
@@ -194,7 +213,18 @@
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
-    // Escuchar cambios en tiempo real
+    // Escuchar contraseñas de mesas automáticas
+    autoPassRef.on('value', (snapshot) => {
+      autoPasswords = snapshot.val() || {};
+      // Forzar re-render si hay datos cargados
+      recordsRef.get().then(snap => {
+        const dataObj = snap.val() || {};
+        const allData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
+        renderAll(allData);
+      });
+    });
+
+    // Escuchar cambios de registros en tiempo real
     recordsRef.on('value', (snapshot) => {
       const dataObj = snapshot.val() || {};
       const allData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
@@ -206,12 +236,14 @@
       e.preventDefault();
       const nick = document.getElementById('playerNick').value.trim();
       const localInput = document.getElementById('localDateTime').value;
+      const platform = document.getElementById('playerPlatform').value;
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
       recordsRef.push({
         type: 'individual',
         nick: nick,
+        platform: platform,
         utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         originTz: userTimezone
       });
@@ -220,12 +252,13 @@
       pickerAvailability.clear();
     });
 
-    // Abrir una Mesa de Juego (con campo Password opcional)
+    // Abrir una Mesa de Juego
     document.getElementById('customTableForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('tableName').value.trim();
       const localInput = document.getElementById('tableDateTime').value;
       const creator = document.getElementById('tableCreator').value.trim();
+      const platform = document.getElementById('tablePlatform').value;
       const password = document.getElementById('tablePassword').value.trim();
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
@@ -235,6 +268,7 @@
         name: name,
         utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         players: [creator],
+        platform: platform,
         password: password || '',
         originTz: userTimezone
       });
@@ -242,6 +276,14 @@
       document.getElementById('customTableForm').reset();
       pickerCustomTable.clear();
     });
+
+    function setAutoTablePassword(autoKey) {
+      const currentPwd = autoPasswords[autoKey] || '';
+      const newPwd = prompt('Ingresa/actualiza la contraseña para esta mesa automática:', currentPwd);
+      if (newPwd !== null) {
+        autoPassRef.child(autoKey).set(newPwd.trim());
+      }
+    }
 
     function joinTable(tableId) {
       const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
@@ -296,6 +338,13 @@
       }
     }
 
+    function getPlatformBadge(platform) {
+      const isLackey = (platform || '').toLowerCase().includes('lackey');
+      return isLackey 
+        ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">💻 LackeyCCG</span>`
+        : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">🦇 Succubus Club</span>`;
+    }
+
     function renderAll(allData) {
       const tbody = document.getElementById('scheduleTable');
       const autoTablesContainer = document.getElementById('autoTablesContainer');
@@ -306,7 +355,7 @@
 
       // 1. Registros individuales
       if (individuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-500">No hay disponibilidades individuales.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">No hay disponibilidades individuales.</td></tr>`;
       } else {
         individuals.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
         tbody.innerHTML = individuals.map(item => {
@@ -314,6 +363,7 @@
           return `
             <tr class="hover:bg-gray-750 transition">
               <td class="py-3 px-4 font-bold text-red-400">${escapeHtml(item.nick)}</td>
+              <td class="py-3 px-4">${getPlatformBadge(item.platform || 'Lackey')}</td>
               <td class="py-3 px-4">${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
               <td class="py-3 px-4 font-mono font-semibold text-white">${dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</td>
               <td class="py-3 px-4 text-xs text-gray-500">${escapeHtml(item.originTz || 'UTC')}</td>
@@ -325,7 +375,7 @@
         }).join('');
       }
 
-      // 2. Coincidencias automáticas (divididas máximo de a 5)
+      // 2. Coincidencias automáticas
       renderAutoMatches(individuals, autoTablesContainer);
 
       // 3. Mesas abiertas
@@ -335,7 +385,6 @@
     function renderAutoMatches(individuals, container) {
       const groups = {};
       
-      // Agrupar jugadores por fecha/hora exacta
       individuals.forEach(entry => {
         const key = new Date(entry.utcTime).toISOString().slice(0, 16); 
         if (!groups[key]) groups[key] = [];
@@ -350,27 +399,42 @@
 
       let html = '';
 
-      // Recorrer cada grupo de horario
       keys.forEach(key => {
         const allPlayersInSlot = groups[key];
         const dateObj = new Date(key + ':00Z');
         const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
         const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
-        // Dividir a los jugadores en sub-mesas de máximo 5 integrantes
         const tables = [];
         for (let i = 0; i < allPlayersInSlot.length; i += 5) {
           tables.push(allPlayersInSlot.slice(i, i + 5));
         }
 
-        // Generar una tarjeta por cada mesa creada para este horario
         tables.forEach((tablePlayers, index) => {
           const count = tablePlayers.length;
           const tableLabel = tables.length > 1 ? ` (Mesa ${index + 1})` : '';
+          const autoKey = `auto_${key.replace(/[:\-T]/g, '')}_${index + 1}`;
+          const currentPassword = autoPasswords[autoKey] || '';
 
           let statusBadge = count >= 4 
             ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Lista (${count} jug)</span>`
             : `<span class="bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded-full font-bold">⏳ ${count}/5 Jugadores</span>`;
+
+          const pwdHtml = `
+            <div class="bg-gray-800/80 border border-gray-700/80 rounded-lg p-2 flex items-center justify-between text-xs">
+              <span class="text-gray-400 font-medium flex items-center gap-1">🔑 Password:</span>
+              <div class="flex items-center gap-2">
+                ${currentPassword 
+                  ? `<span id="pwd-${autoKey}" class="hidden font-mono font-bold text-amber-400 bg-gray-900 px-2 py-0.5 rounded border border-amber-500/30 select-all">${escapeHtml(currentPassword)}</span>
+                     <button onclick="togglePasswordView('pwd-${autoKey}')" class="text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition text-[11px]">👁️ Ver</button>`
+                  : `<span class="text-gray-500 italic">Sin clave</span>`
+                }
+                <button onclick="setAutoTablePassword('${autoKey}')" class="text-amber-400 hover:text-amber-300 bg-amber-950/60 border border-amber-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold">
+                  ✏️ ${currentPassword ? 'Editar' : 'Definir'}
+                </button>
+              </div>
+            </div>
+          `;
 
           html += `
             <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md space-y-3">
@@ -381,8 +445,19 @@
                 </div>
                 <div>${statusBadge}</div>
               </div>
-              <div class="flex flex-wrap gap-1.5">
-                ${tablePlayers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2 py-1 rounded font-medium">${escapeHtml(p.nick)}</span>`).join('')}
+
+              ${pwdHtml}
+
+              <div class="space-y-1.5">
+                <p class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Jugadores & Plataforma:</p>
+                <div class="flex flex-wrap gap-1.5">
+                  ${tablePlayers.map(p => `
+                    <span class="inline-flex items-center gap-1 bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2 py-1 rounded font-medium">
+                      ${escapeHtml(p.nick)}
+                      ${getPlatformBadge(p.platform || 'Lackey')}
+                    </span>
+                  `).join('')}
+                </div>
               </div>
             </div>
           `;
@@ -428,8 +503,11 @@
           <div class="bg-gray-900 border ${isReady ? 'border-green-600/60' : 'border-amber-600/40'} rounded-xl p-4 shadow-md space-y-4">
             <div class="flex justify-between items-start border-b border-gray-800 pb-2">
               <div>
-                <h3 class="font-bold text-amber-400 text-base">${escapeHtml(t.name)}</h3>
-                <p class="text-xs text-gray-400">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span></p>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-amber-400 text-base">${escapeHtml(t.name)}</h3>
+                  ${getPlatformBadge(t.platform || 'Lackey')}
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span></p>
               </div>
               <div class="flex flex-col items-end gap-1">
                 ${statusBadge}
