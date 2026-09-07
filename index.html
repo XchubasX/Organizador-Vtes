@@ -23,7 +23,7 @@
     <header class="text-center space-y-2 border-b border-red-800 pb-4">
       <h1 class="text-3xl md:text-5xl font-extrabold text-red-600 tracking-wider">VAMPIRE: THE ETERNAL STRUGGLE</h1>
       <p class="text-gray-400 text-sm md:text-base">Coordinador Internacional de Mesas y Disponibilidad</p>
-      <div id="userTimezone" class="inline-flex items-center gap-2 bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
+      <div id="userTimezone" class="inline-block bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
         Detectando tu zona horaria...
       </div>
     </header>
@@ -42,8 +42,8 @@
         
         <div class="p-5 border-t border-gray-700/60 space-y-6 text-sm text-gray-300 bg-gray-900/40">
           <div class="bg-gray-900 p-3.5 rounded-lg border-l-4 border-red-600 text-xs">
-            <strong class="text-white block mb-1">🌍 Conversión Automática de Horarios y Banderas:</strong>
-            El sistema detecta automáticamente tu zona horaria. Todos los horarios se adaptan a tu **hora local** y se muestra la bandera del país de origen de cada jugador.
+            <strong class="text-white block mb-1">🌍 Conversión Automática de Horarios:</strong>
+            El sistema detecta automáticamente tu zona horaria. Todos los horarios seleccionados o mostrados se adaptan a tu **hora local**.
           </div>
 
           <div class="space-y-2">
@@ -51,7 +51,7 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), opcionalmente un **Servidor de Discord**, y una **Contraseña**.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), opcionalmente un **Servidor de Discord** o enlace de voz, y una **Contraseña**.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
               <li><strong class="text-white">Servidor de Discord:</strong> Se puede ingresar al crear la mesa o editarse en cualquier momento directamente desde la tarjeta de la mesa abierta.</li>
             </ul>
@@ -156,13 +156,13 @@
       </form>
     </section>
 
-    <!-- MATCHMAKING AUTOMÁTICO -->
+    <!-- MATCHMAKING AUTOMÁTICO (SEPARADO POR PLATAFORMA) -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
       <div class="border-b border-gray-700 pb-3">
         <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
           <span>🏰</span> Coincidencias Automáticas (Separadas por Plataforma)
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado por Horario y Plataforma.</p>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado strictly por Horario y Plataforma (Lackey vs Succubus Club).</p>
       </div>
       <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
@@ -194,6 +194,7 @@
   </div>
 
   <script>
+    // Configuración de tu proyecto en Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
       authDomain: "vtes-scheduler.firebaseapp.com",
@@ -204,44 +205,17 @@
       appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
     };
 
+    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const recordsRef = db.ref('vtes_records');
     const autoPassRef = db.ref('vtes_auto_passwords');
 
     let autoPasswords = {};
-    let rawFirebaseData = [];
     let currentGlobalData = [];
 
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    // RETORNA BANDERAS MEDIANTE IMÁGENES SVG DE ALTA COMPATIBILIDAD (Evita renderizado de texto en Windows)
-    function getCountryFlagImg(tz) {
-      if (!tz) return '<span class="text-base">🌐</span>';
-      const tzLower = tz.toLowerCase();
-      let code = 'un';
-
-      if (tzLower.includes('mexico') || tzLower.includes('cancun') || tzLower.includes('merida') || tzLower.includes('monterrey')) code = 'mx';
-      else if (tzLower.includes('madrid') || tzLower.includes('canary') || tzLower.includes('ceuta')) code = 'es';
-      else if (tzLower.includes('buenos_aires') || tzLower.includes('cordoba') || tzLower.includes('jujuy') || tzLower.includes('mendoza')) code = 'ar';
-      else if (tzLower.includes('santiago')) code = 'cl';
-      else if (tzLower.includes('bogota')) code = 'co';
-      else if (tzLower.includes('lima')) code = 'pe';
-      else if (tzLower.includes('caracas')) code = 've';
-      else if (tzLower.includes('montevideo')) code = 'uy';
-      else if (tzLower.includes('sao_paulo') || tzLower.includes('fortaleza') || tzLower.includes('manaus')) code = 'br';
-      else if (tzLower.includes('new_york') || tzLower.includes('chicago') || tzLower.includes('los_angeles') || tzLower.includes('denver')) code = 'us';
-      else if (tzLower.includes('london')) code = 'gb';
-      else if (tzLower.includes('paris')) code = 'fr';
-      else if (tzLower.includes('rome')) code = 'it';
-      else if (tzLower.includes('berlin')) code = 'de';
-
-      if (code === 'un') return '<span class="text-base">🌐</span>';
-
-      return `<img src="https://flagcdn.com/w20/${code}.png" srcset="https://flagcdn.com/w40/${code}.png 2x" width="20" alt="${code}" class="inline-block rounded-sm shadow-sm" />`;
-    }
-
-    document.getElementById('userTimezone').innerHTML = `Tu zona horaria: <strong>${escapeHtml(userTimezone)}</strong> ${getCountryFlagImg(userTimezone)}`;
+    document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
 
     const configFlatpickr = {
       enableTime: true,
@@ -254,16 +228,20 @@
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
+    // BARREDORA SILENCIOSA: Elimina mesas y disponibilidades 3 horas después de su hora pactada
     function sweepExpiredTables(dataArray) {
       const now = new Date().getTime();
       const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+
       const validData = [];
 
       dataArray.forEach(item => {
         if (!item.utcTime) return;
         const itemTime = new Date(item.utcTime).getTime();
 
+        // Si la hora actual supera la hora del evento + 3 horas
         if (now > (itemTime + THREE_HOURS_MS)) {
+          // Eliminar de Firebase en segundo plano
           recordsRef.child(item.id).remove();
         } else {
           validData.push(item);
@@ -273,17 +251,7 @@
       return validData;
     }
 
-    function processAndRender() {
-      currentGlobalData = sweepExpiredTables(rawFirebaseData);
-      renderAll(currentGlobalData);
-    }
-
-    setInterval(() => {
-      if (rawFirebaseData.length > 0) {
-        processAndRender();
-      }
-    }, 30 * 1000);
-
+    // Escuchar contraseñas de mesas automáticas
     autoPassRef.on('value', (snapshot) => {
       autoPasswords = snapshot.val() || {};
       if (currentGlobalData.length > 0) {
@@ -291,12 +259,18 @@
       }
     });
 
+    // Escuchar registros en tiempo real
     recordsRef.on('value', (snapshot) => {
       const dataObj = snapshot.val() || {};
-      rawFirebaseData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
-      processAndRender();
+      const rawData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
+      
+      // Aplicar barredora silenciosa
+      currentGlobalData = sweepExpiredTables(rawData);
+      
+      renderAll(currentGlobalData);
     });
 
+    // Guardar disponibilidad individual
     document.getElementById('availabilityForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const nick = document.getElementById('playerNick').value.trim();
@@ -329,6 +303,7 @@
       pickerAvailability.clear();
     });
 
+    // Abrir una Mesa de Juego
     document.getElementById('customTableForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('tableName').value.trim();
@@ -340,13 +315,11 @@
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
-      const creatorObj = { nick: creator, originTz: userTimezone };
-
       recordsRef.push({
         type: 'custom_table',
         name: name,
         utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
-        players: [creatorObj],
+        players: [creator],
         platform: platform,
         discord: discord || '',
         password: password || '',
@@ -365,6 +338,7 @@
       }
     }
 
+    // Editar Servidor de Discord en una Mesa Abierta Existente
     function editCustomTableDiscord(tableId, currentDiscord) {
       const newDiscord = prompt('Ingresa o actualiza el Servidor / Canal de Discord:', currentDiscord || '');
       if (newDiscord !== null) {
@@ -374,6 +348,7 @@
       }
     }
 
+    // Unirse a Mesa Abierta
     function joinTable(tableId) {
       const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
       if (!playerNick || !playerNick.trim()) return;
@@ -384,12 +359,9 @@
       tableRef.get().then(snapshot => {
         if (!snapshot.exists()) return alert('La mesa ya no existe.');
         const table = snapshot.val();
-        let players = table.players || [];
+        const players = table.players || [];
 
-        const nameExists = players.some(p => {
-          const name = typeof p === 'string' ? p : p.nick;
-          return name.toLowerCase() === cleanNick.toLowerCase();
-        });
+        const nameExists = players.some(p => p.toLowerCase() === cleanNick.toLowerCase());
 
         if (nameExists) {
           return alert(`El jugador "${cleanNick}" ya está registrado en esta mesa.`);
@@ -399,11 +371,12 @@
           return alert('La mesa ya está llena (máximo 5 jugadores).');
         }
 
-        players.push({ nick: cleanNick, originTz: userTimezone });
+        players.push(cleanNick);
         tableRef.update({ players: players });
       });
     }
 
+    // Remover Jugador con Confirmación VTES "BANISHMENT"
     function leaveTable(tableId, playerNick) {
       const confirmCode = prompt(`Para remover a "${playerNick}" de esta mesa, escribe BANISHMENT para confirmar:`);
       if (!confirmCode) return;
@@ -419,10 +392,7 @@
         const table = snapshot.val();
         let players = table.players || [];
 
-        players = players.filter(p => {
-          const name = typeof p === 'string' ? p : p.nick;
-          return name.toLowerCase() !== playerNick.toLowerCase();
-        });
+        players = players.filter(p => p.toLowerCase() !== playerNick.toLowerCase());
 
         if (players.length === 0) {
           tableRef.remove();
@@ -439,6 +409,7 @@
       }
     }
 
+    // Eliminar Registro Individual o Mesa Completa con Confirmación VTES "BANISHMENT"
     function deleteEntry(id) {
       const confirmCode = prompt('Para eliminar este elemento de forma permanente, escribe BANISHMENT para confirmar:');
       if (!confirmCode) return;
@@ -472,13 +443,9 @@
         individuals.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
         tbody.innerHTML = individuals.map(item => {
           const dateObj = new Date(item.utcTime);
-          const flag = getCountryFlagImg(item.originTz);
           return `
             <tr class="hover:bg-gray-750 transition">
-              <td class="py-3 px-4 font-bold text-red-400 flex items-center gap-2">
-                ${flag}
-                <span>${escapeHtml(item.nick)}</span>
-              </td>
+              <td class="py-3 px-4 font-bold text-red-400">${escapeHtml(item.nick)}</td>
               <td class="py-3 px-4">${getPlatformBadge(item.platform || 'Lackey')}</td>
               <td class="py-3 px-4">${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
               <td class="py-3 px-4 font-mono font-semibold text-white">${dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</td>
@@ -582,15 +549,11 @@
               <div class="space-y-1.5">
                 <p class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Jugadores en esta mesa:</p>
                 <div class="flex flex-wrap gap-1.5">
-                  ${tablePlayers.map(p => {
-                    const flag = getCountryFlagImg(p.originTz);
-                    return `
-                      <span class="inline-flex items-center gap-1.5 bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2.5 py-1 rounded font-medium">
-                        ${flag}
-                        <span>${escapeHtml(p.nick)}</span>
-                      </span>
-                    `;
-                  }).join('')}
+                  ${tablePlayers.map(p => `
+                    <span class="inline-flex items-center bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2.5 py-1 rounded font-medium">
+                      ${escapeHtml(p.nick)}
+                    </span>
+                  `).join('')}
                 </div>
               </div>
             </div>
@@ -667,19 +630,12 @@
             <div class="space-y-2">
               <p class="text-xs font-semibold text-gray-400">Jugadores confirmados (${count}/5):</p>
               <div class="flex flex-wrap gap-2">
-                 ${(t.players || []).map(p => {
-                  const playerNick = typeof p === 'string' ? p : p.nick;
-                  const playerTz = typeof p === 'string' ? t.originTz : (p.originTz || t.originTz);
-                  const flag = getCountryFlagImg(playerTz);
-
-                  return `
-                    <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
-                      ${flag}
-                      <span>${escapeHtml(playerNick)}</span>
-                      <button onclick="leaveTable('${t.id}', '${escapeHtml(playerNick)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
-                    </span>
-                  `;
-                }).join('')}
+                 ${(t.players || []).map(p => `
+                  <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
+                    ${escapeHtml(p)}
+                    <button onclick="leaveTable('${t.id}', '${escapeHtml(p)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
+                  </span>
+                `).join('')}
               </div>
             </div>
 
