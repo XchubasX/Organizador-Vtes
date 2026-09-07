@@ -62,7 +62,7 @@
               <span>🩸</span> 2. Registrar tu Disponibilidad Individual
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li>Ingresa tu Nick y la fecha/hora local libre. El sistema agrupará a los jugadores coincidentes en tiempo real.</li>
+              <li>Ingresa tu Nick y la fecha/hora local libre. El sistema agrupará a los jugadores coincidentes en tiempo real y dividirá automáticamente en varias mesas si superan los 5 participantes.</li>
             </ul>
           </div>
         </div>
@@ -129,7 +129,7 @@
         <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
           <span>🏰</span> Coincidencias Automáticas por Horario Libre
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real mediante Firebase.</p>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real mediante Firebase. Máximo 5 jugadores por mesa.</p>
       </div>
       <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
@@ -312,7 +312,7 @@
         }).join('');
       }
 
-      // 2. Coincidencias automáticas
+      // 2. Coincidencias automáticas (divididas máximo de a 5)
       renderAutoMatches(individuals, autoTablesContainer);
 
       // 3. Mesas abiertas
@@ -321,6 +321,8 @@
 
     function renderAutoMatches(individuals, container) {
       const groups = {};
+      
+      // Agrupar jugadores por fecha/hora exacta
       individuals.forEach(entry => {
         const key = new Date(entry.utcTime).toISOString().slice(0, 16); 
         if (!groups[key]) groups[key] = [];
@@ -334,32 +336,46 @@
       }
 
       let html = '';
+
+      // Recorrer cada grupo de horario
       keys.forEach(key => {
-        const players = groups[key];
+        const allPlayersInSlot = groups[key];
         const dateObj = new Date(key + ':00Z');
         const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
         const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-        const count = players.length;
 
-        let statusBadge = count >= 4 
-          ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Lista (${count} jug)</span>`
-          : `<span class="bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded-full font-bold">⏳ ${count}/5 Jugadores</span>`;
+        // Dividir a los jugadores en sub-mesas de máximo 5 integrantes
+        const tables = [];
+        for (let i = 0; i < allPlayersInSlot.length; i += 5) {
+          tables.push(allPlayersInSlot.slice(i, i + 5));
+        }
 
-        html += `
-          <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md space-y-3">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-xs text-red-400 uppercase font-semibold tracking-wider">${formattedDate}</p>
-                <p class="text-xl font-mono font-bold text-white">${formattedTime}</p>
+        // Generar una tarjeta por cada mesa creada para este horario
+        tables.forEach((tablePlayers, index) => {
+          const count = tablePlayers.length;
+          const tableLabel = tables.length > 1 ? ` (Mesa ${index + 1})` : '';
+
+          let statusBadge = count >= 4 
+            ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Lista (${count} jug)</span>`
+            : `<span class="bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded-full font-bold">⏳ ${count}/5 Jugadores</span>`;
+
+          html += `
+            <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md space-y-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-xs text-red-400 uppercase font-semibold tracking-wider">${formattedDate}${tableLabel}</p>
+                  <p class="text-xl font-mono font-bold text-white">${formattedTime}</p>
+                </div>
+                <div>${statusBadge}</div>
               </div>
-              <div>${statusBadge}</div>
+              <div class="flex flex-wrap gap-1.5">
+                ${tablePlayers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2 py-1 rounded font-medium">${escapeHtml(p.nick)}</span>`).join('')}
+              </div>
             </div>
-            <div class="flex flex-wrap gap-1.5">
-              ${players.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2 py-1 rounded font-medium">${escapeHtml(p.nick)}</span>`).join('')}
-            </div>
-          </div>
-        `;
+          `;
+        });
       });
+
       container.innerHTML = html;
     }
 
