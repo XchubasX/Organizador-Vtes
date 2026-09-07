@@ -51,8 +51,9 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**) y opcionalmente una **Contraseña**.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), opcionalmente un **Servidor de Discord** o enlace de la voz, y opcionalmente una **Contraseña**.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
+              <li><strong class="text-white">Servidor de Discord:</strong> Se puede ingresar al crear la mesa o editarse en cualquier momento directamente desde la tarjeta de la mesa abierta.</li>
             </ul>
           </div>
 
@@ -85,7 +86,7 @@
         <p class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
       </div>
 
-      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
           <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
@@ -104,6 +105,10 @@
             <option value="Lackey">LackeyCCG</option>
             <option value="Succubus Club">Succubus Club</option>
           </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-indigo-400 mb-1">🎧 Servidor Discord</label>
+          <input type="text" id="tableDiscord" placeholder="ej. VTES Español / Mesa 1" class="w-full bg-gray-800 border border-indigo-700/60 rounded-lg px-3 py-1.5 text-indigo-200 text-sm focus:outline-none focus:border-indigo-400">
         </div>
         <div>
           <label class="block text-xs font-semibold text-amber-400 mb-1">🔑 Password</label>
@@ -154,7 +159,7 @@
         <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
           <span>🏰</span> Coincidencias Automáticas (Separadas por Plataforma)
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado estrictamente por Horario y Plataforma (Lackey vs Succubus Club).</p>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado strictly por Horario y Plataforma (Lackey vs Succubus Club).</p>
       </div>
       <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
@@ -275,6 +280,7 @@
       const localInput = document.getElementById('tableDateTime').value;
       const creator = document.getElementById('tableCreator').value.trim();
       const platform = document.getElementById('tablePlatform').value;
+      const discord = document.getElementById('tableDiscord').value.trim();
       const password = document.getElementById('tablePassword').value.trim();
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
@@ -285,6 +291,7 @@
         utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
         players: [creator],
         platform: platform,
+        discord: discord || '',
         password: password || '',
         originTz: userTimezone
       });
@@ -298,6 +305,16 @@
       const newPwd = prompt('Ingresa/actualiza la contraseña para esta mesa automática:', currentPwd);
       if (newPwd !== null) {
         autoPassRef.child(autoKey).set(newPwd.trim());
+      }
+    }
+
+    // Editar Servidor de Discord en una Mesa Abierta Existente
+    function editCustomTableDiscord(tableId, currentDiscord) {
+      const newDiscord = prompt('Ingresa o actualiza el Servidor / Canal de Discord:', currentDiscord || '');
+      if (newDiscord !== null) {
+        db.ref(`vtes_records/${tableId}`).update({
+          discord: newDiscord.trim()
+        });
       }
     }
 
@@ -537,6 +554,18 @@
           ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Completa (${count}/5)</span>`
           : `<span class="bg-amber-900/60 text-amber-300 border border-amber-700/60 text-xs px-2.5 py-1 rounded-full font-bold">⏳ Faltan ${5 - count} jugador(es)</span>`;
 
+        const discordHtml = `
+          <div class="bg-indigo-950/40 border border-indigo-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-indigo-300">
+            <span class="font-medium flex items-center gap-1">
+              <span>🎧</span> <strong>Discord:</strong> 
+              ${t.discord ? `<span class="text-indigo-200 font-normal">${escapeHtml(t.discord)}</span>` : `<span class="text-gray-500 italic">No especificado</span>`}
+            </span>
+            <button onclick="editCustomTableDiscord('${t.id}', '${escapeHtml(t.discord || '')}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
+              ✏️ ${t.discord ? 'Editar' : 'Definir'}
+            </button>
+          </div>
+        `;
+
         const pwdHtml = t.password ? `
           <div class="bg-gray-800/80 border border-gray-700/80 rounded-lg p-2 flex items-center justify-between text-xs">
             <span class="text-gray-400 font-medium flex items-center gap-1">🔑 Password:</span>
@@ -565,12 +594,13 @@
               </div>
             </div>
 
+            ${discordHtml}
             ${pwdHtml}
 
             <div class="space-y-2">
               <p class="text-xs font-semibold text-gray-400">Jugadores confirmados (${count}/5):</p>
               <div class="flex flex-wrap gap-2">
-                ${(t.players || []).map(p => `
+                 ${(t.players || []).map(p => `
                   <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
                     ${escapeHtml(p)}
                     <button onclick="leaveTable('${t.id}', '${escapeHtml(p)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
