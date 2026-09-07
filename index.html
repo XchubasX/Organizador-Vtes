@@ -24,7 +24,66 @@
         Detectando tu zona horaria...
       </div>
     </header>
+<!-- MANUAL DE USUARIO (COLAPSABLE) -->
+    <section class="bg-gray-800/80 border border-red-900/50 rounded-xl overflow-hidden shadow-lg">
+      <details class="group">
+        <summary class="flex justify-between items-center font-bold cursor-pointer p-4 text-red-400 hover:text-red-300 transition bg-gray-800">
+          <span class="flex items-center gap-2 text-base md:text-lg">
+            <span>📖</span> ¿Cómo usar esta herramienta? (Manual de Usuario)
+          </span>
+          <span class="transform group-open:rotate-180 transition-transform text-xs bg-gray-900 px-2.5 py-1 rounded-full text-gray-400">
+            Ver instrucciones ▼
+          </span>
+        </summary>
+        
+        <div class="p-5 border-t border-gray-700/60 space-y-6 text-sm text-gray-300 bg-gray-900/40">
+          
+          <!-- Nota de Zona Horaria -->
+          <div class="bg-gray-900 p-3.5 rounded-lg border-l-4 border-red-600 text-xs">
+            <strong class="text-white block mb-1">🌍 Conversión Automática de Horarios:</strong>
+            El sistema detecta automáticamente la zona horaria de tu navegador o dispositivo. Todos los horarios que selecciones o veas registrados en la pantalla se muestran ajustados a tu **hora local**, sin importar de qué país sea el otro jugador.
+          </div>
 
+          <!-- Opcion 1 -->
+          <div class="space-y-2">
+            <h3 class="text-amber-400 font-bold flex items-center gap-1.5 text-base">
+              <span>🩸</span> 1. Registrar tu Disponibilidad Personal
+            </h3>
+            <p class="text-xs text-gray-400">Usa esta opción si quieres avisar a la comunidad a qué hora estás disponible para jugar:</p>
+            <ul class="list-disc list-inside space-y-1 text-xs pl-2">
+              <li><strong class="text-white">Nick / Nombre:</strong> Ingresa tu apodo habitual en Discord, Lackey, VTES Online o tu nombre para que otros te identifiquen.</li>
+              <li><strong class="text-white">Fecha y Hora Local:</strong> Haz clic en el cuadro para abrir el calendario visual. Selecciona el día y desplaza la hora/minutos (en formato 24 horas).</li>
+              <li><strong class="text-white">Publicar Hora:</strong> Guarda tu registro. Si otros jugadores coinciden exactamente a la misma hora, el sistema los agrupará de inmediato en la sección de <em>Coincidencias Automáticas</em>.</li>
+            </ul>
+          </div>
+
+          <!-- Opcion 2 -->
+          <div class="space-y-2">
+            <h3 class="text-amber-400 font-bold flex items-center gap-1.5 text-base">
+              <span>🗡️</span> 2. Crear una Mesa Manual Ad-hoc
+            </h3>
+            <p class="text-xs text-gray-400">Usa esta opción si estás organizando una partida con nombre propio o liga y ya tienes varios participantes confirmados:</p>
+            <ul class="list-disc list-inside space-y-1 text-xs pl-2">
+              <li><strong class="text-white">Nombre de la Mesa:</strong> Otorga un título descriptivo a la partida (ej. <em>"Liga Prince - Mesa 2"</em> o <em>"Práctica Principiantes"</em>).</li>
+              <li><strong class="text-white">Fecha y Hora Local:</strong> Selecciona en el calendario la fecha y hora pactada para el inicio.</li>
+              <li><strong class="text-white">Jugadores:</strong> Escribe los nombres de los participantes separados por comas (ej. <em>Arakiel, Theo, Lucita, Hardestadt</em>).</li>
+            </ul>
+          </div>
+
+          <!-- Opcion 3 -->
+          <div class="space-y-2">
+            <h3 class="text-amber-400 font-bold flex items-center gap-1.5 text-base">
+              <span>🏰</span> 3. Coincidencias Automáticas y Control
+            </h3>
+            <ul class="list-disc list-inside space-y-1 text-xs pl-2">
+              <li><strong class="text-white">Mesas listas:</strong> Cuando 4 o más jugadores coincidan a la misma hora exacta, la tarjeta de coincidencia cambiará a verde indicando que hay mesa armada.</li>
+              <li><strong class="text-white">Cancelar/Eliminar:</strong> Si ya no estás disponible, busca tu registro individual en la tabla inferior y presiona <span class="text-red-400 font-semibold">Eliminar</span> para retirar tu hora.</li>
+            </ul>
+          </div>
+
+        </div>
+      </details>
+    </section>
     <!-- Formulario para agregar disponibilidad -->
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
       <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
