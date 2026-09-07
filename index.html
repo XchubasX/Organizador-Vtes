@@ -51,7 +51,7 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), opcionalmente un **Servidor de Discord** o enlace de la voz, y opcionalmente una **Contraseña**.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), opcionalmente un **Servidor de Discord** o enlace de voz, y una **Contraseña**.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
               <li><strong class="text-white">Servidor de Discord:</strong> Se puede ingresar al crear la mesa o editarse en cualquier momento directamente desde la tarjeta de la mesa abierta.</li>
             </ul>
@@ -69,9 +69,12 @@
 
           <div class="space-y-2">
             <h3 class="text-red-400 font-bold flex items-center gap-1.5 text-base">
-              <span>🛡️</span> 3. Confirmación de Eliminación
+              <span>🛡️</span> 3. Confirmación de Eliminación Manual y Limpieza Automática
             </h3>
-            <p class="text-xs text-gray-400 pl-2">Para evitar eliminaciones por error, para borrar cualquier registro o abandonar una mesa deberás escribir la clave temática: <strong class="text-red-400 font-mono">BANISHMENT</strong>.</p>
+            <p class="text-xs text-gray-400 pl-2">
+              Para borrar cualquier registro manualmente o abandonar una mesa deberás escribir la clave temática: <strong class="text-red-400 font-mono">BANISHMENT</strong>.<br>
+              <span class="text-gray-300">🧹 <strong>Barredora Silenciosa:</strong> El sistema eliminará automáticamente las mesas y disponibilidades transcurridas 3 horas después de su horario programado.</span>
+            </p>
           </div>
         </div>
       </details>
@@ -225,6 +228,29 @@
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
+    // BARREDORA SILENCIOSA: Elimina mesas y disponibilidades 3 horas después de su hora pactada
+    function sweepExpiredTables(dataArray) {
+      const now = new Date().getTime();
+      const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+
+      const validData = [];
+
+      dataArray.forEach(item => {
+        if (!item.utcTime) return;
+        const itemTime = new Date(item.utcTime).getTime();
+
+        // Si la hora actual supera la hora del evento + 3 horas
+        if (now > (itemTime + THREE_HOURS_MS)) {
+          // Eliminar de Firebase en segundo plano
+          recordsRef.child(item.id).remove();
+        } else {
+          validData.push(item);
+        }
+      });
+
+      return validData;
+    }
+
     // Escuchar contraseñas de mesas automáticas
     autoPassRef.on('value', (snapshot) => {
       autoPasswords = snapshot.val() || {};
@@ -236,11 +262,15 @@
     // Escuchar registros en tiempo real
     recordsRef.on('value', (snapshot) => {
       const dataObj = snapshot.val() || {};
-      currentGlobalData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
+      const rawData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
+      
+      // Aplicar barredora silenciosa
+      currentGlobalData = sweepExpiredTables(rawData);
+      
       renderAll(currentGlobalData);
     });
 
-    // Guardar disponibilidad individual (Validando Nick duplicado)
+    // Guardar disponibilidad individual
     document.getElementById('availabilityForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const nick = document.getElementById('playerNick').value.trim();
@@ -346,7 +376,7 @@
       });
     }
 
-    // SEGURIDAD OPCIÓN 3: Remover Jugador con Confirmación VTES "BANISHMENT"
+    // Remover Jugador con Confirmación VTES "BANISHMENT"
     function leaveTable(tableId, playerNick) {
       const confirmCode = prompt(`Para remover a "${playerNick}" de esta mesa, escribe BANISHMENT para confirmar:`);
       if (!confirmCode) return;
@@ -379,7 +409,7 @@
       }
     }
 
-    // SEGURIDAD OPCIÓN 3: Eliminar Registro Individual o Mesa Completa con Confirmación VTES "BANISHMENT"
+    // Eliminar Registro Individual o Mesa Completa con Confirmación VTES "BANISHMENT"
     function deleteEntry(id) {
       const confirmCode = prompt('Para eliminar este elemento de forma permanente, escribe BANISHMENT para confirmar:');
       if (!confirmCode) return;
@@ -428,7 +458,7 @@
         }).join('');
       }
 
-      // 2. Coincidencias automáticas (SEPARADAS POR PLATAFORMA)
+      // 2. Coincidencias automáticas
       renderAutoMatches(individuals, autoTablesContainer);
 
       // 3. Mesas abiertas
