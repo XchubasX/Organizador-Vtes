@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTES Matchmaking & Mesas Ad-hoc</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
+
+  <div class="max-w-5xl mx-auto space-y-8">
+    
+    <!-- Encabezado -->
+    <header class="text-center space-y-2 border-b border-red-800 pb-4">
+      <h1 class="text-3xl md:text-5xl font-extrabold text-red-600 tracking-wider">VAMPIRE: THE ETERNAL STRUGGLE</h1>
+      <p class="text-gray-400 text-sm md:text-base">Coordinador Internacional de Mesas y Disponibilidad</p>
+      <div id="userTimezone" class="inline-block bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
+        Detectando tu zona horaria...
+      </div>
+    </header>
+
+    <!-- Formulario para agregar disponibilidad -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
+        <span>🩸</span> Registrar disponibilidad personal
+      </h2>
+      <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Nick / Nombre (Discord / VTES)</label>
+          <input type="text" id="playerNick" required placeholder="ej. Malkavian_Mex" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
+          <input type="datetime-local" id="localDateTime" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
+        </div>
+        <div class="flex items-end">
+          <button type="submit" id="submitBtn" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+            Publicar Hora
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- MESAS MANUALES / AD-HOC -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+        <div>
+          <h2 class="text-xl font-bold text-amber-500 flex items-center gap-2">
+            <span>🗡️</span> Crear Mesa Manual Ad-hoc
+          </h2>
+          <p class="text-xs text-gray-400 mt-1">Arma una mesa específica eligiendo el nombre y los jugadores anotados.</p>
+        </div>
+      </div>
+
+      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de la Mesa</label>
+          <input type="text" id="tableName" required placeholder="ej. Mesa 1 - Liga Prince" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
+          <input type="datetime-local" id="tableDateTime" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Jugadores (separados por coma)</label>
+          <input type="text" id="tablePlayers" required placeholder="Nick1, Nick2, Nick3..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="flex items-end">
+          <button type="submit" id="createTableBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-4 rounded-lg text-sm transition">
+            Crear Mesa
+          </button>
+        </div>
+      </form>
+
+      <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <!-- Mesas ad-hoc creadas -->
+      </div>
+    </section>
+
+    <!-- MATCHMAKING AUTOMÁTICO POR HORARIO -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+        <div>
+          <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
+            <span>🏰</span> Coincidencias Automáticas por Horario
+          </h2>
+          <p class="text-xs text-gray-400 mt-1">Jugadores agrupados por horario común según tu hora local.</p>
+        </div>
+        <button onclick="loadData()" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-2 rounded-lg transition">
+          🔄 Actualizar Lista
+        </button>
+      </div>
+
+      <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Las coincidencias se renderizan aquí -->
+      </div>
+    </section>
+
+    <!-- REGISTROS INDIVIDUALES -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+      <h2 class="text-lg font-bold text-gray-300 mb-4 flex items-center gap-2">
+        <span>📜</span> Todos los registros individuales
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase font-mono">
+              <th class="py-3 px-4">Jugador</th>
+              <th class="py-3 px-4">Fecha (Tu Hora)</th>
+              <th class="py-3 px-4">Hora (Tu Hora)</th>
+              <th class="py-3 px-4">Zona Origen</th>
+              <th class="py-3 px-4 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleTable" class="divide-y divide-gray-700/50 text-sm">
+            <tr>
+              <td colspan="5" class="py-8 text-center text-gray-500">Cargando disponibilidades...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    const BIN_ID = '6a9ed406ac6210605ab0324a'; 
+    const MASTER_KEY = '$2a$10$/JMMumj5G/vmHkg5v6uFEuemVhsZoIwNArhwk5MYb.Oo0d8iPSZ7S'; 
+    const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
+
+    document.addEventListener('DOMContentLoaded', loadData);
+
+    // Guardar disponibilidad individual
+    document.getElementById('availabilityForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+
+      const nick = document.getElementById('playerNick').value.trim();
+      const localInput = document.getElementById('localDateTime').value;
+
+      const newEntry = {
+        id: 'user_' + Date.now().toString(),
+        type: 'individual',
+        nick: nick,
+        utcTime: new Date(localInput).toISOString(),
+        originTz: userTimezone
+      };
+
+      try {
+        const currentData = await fetchCurrentData();
+        currentData.push(newEntry);
+        await saveData(currentData);
+
+        document.getElementById('availabilityForm').reset();
+        await loadData();
+      } catch (err) {
+        alert('Error al guardar.');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Crear Mesa Ad-hoc / Manual
+    document.getElementById('customTableForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const createBtn = document.getElementById('createTableBtn');
+      createBtn.disabled = true;
+
+      const name = document.getElementById('tableName').value.trim();
+      const localInput = document.getElementById('tableDateTime').value;
+      const rawPlayers = document.getElementById('tablePlayers').value;
+
+      const playersArray = rawPlayers.split(',').map(p => p.trim()).filter(p => p.length > 0);
+
+      const newTable = {
+        id: 'table_' + Date.now().toString(),
+        type: 'custom_table',
+        name: name,
+        utcTime: new Date(localInput).toISOString(),
+        players: playersArray,
+        originTz: userTimezone
+      };
+
+      try {
+        const currentData = await fetchCurrentData();
+        currentData.push(newTable);
+        await saveData(currentData);
+
+        document.getElementById('customTableForm').reset();
+        await loadData();
+      } catch (err) {
+        alert('Error al crear la mesa manual.');
+      } finally {
+        createBtn.disabled = false;
+      }
+    });
+
+    async function fetchCurrentData() {
+      const res = await fetch(`${API_URL}/latest`, {
+        headers: { 'X-Master-Key': MASTER_KEY }
+      });
+      const data = await res.json();
+      return Array.isArray(data.record) ? data.record : [];
+    }
+
+    async function saveData(data) {
+      await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': MASTER_KEY
+        },
+        body: JSON.stringify(data)
+      });
+    }
+
+    async function loadData() {
+      const tbody = document.getElementById('scheduleTable');
+      const autoTablesContainer = document.getElementById('autoTablesContainer');
+      const customTablesContainer = document.getElementById('customTablesContainer');
+
+      try {
+        const allData = await fetchCurrentData();
+
+        const individuals = allData.filter(d => d.type === 'individual' || !d.type);
+        const customTables = allData.filter(d => d.type === 'custom_table');
+
+        // 1. Renderizar Registros Individuales
+        if (individuals.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-500">No hay disponibilidades guardadas.</td></tr>`;
+        } else {
+          individuals.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
+          tbody.innerHTML = individuals.map(item => {
+            const dateObj = new Date(item.utcTime);
+            return `
+              <tr class="hover:bg-gray-750 transition">
+                <td class="py-3 px-4 font-bold text-red-400">${escapeHtml(item.nick)}</td>
+                <td class="py-3 px-4">${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+                <td class="py-3 px-4 font-mono font-semibold text-white">${dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</td>
+                <td class="py-3 px-4 text-xs text-gray-500">${escapeHtml(item.originTz || 'UTC')}</td>
+                <td class="py-3 px-4 text-right">
+                  <button onclick="deleteEntry('${item.id}')" class="text-xs text-gray-500 hover:text-red-400 transition">Eliminar</button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // 2. Renderizar Coincidencias Automáticas
+        renderAutoMatches(individuals, autoTablesContainer);
+
+        // 3. Renderizar Mesas Ad-hoc Manuales
+        renderCustomTables(customTables, customTablesContainer);
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-red-400">Error al cargar información.</td></tr>`;
+      }
+    }
+
+    function renderAutoMatches(individuals, container) {
+      const groups = {};
+      individuals.forEach(entry => {
+        const key = new Date(entry.utcTime).toISOString().slice(0, 16); 
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(entry);
+      });
+
+      const keys = Object.keys(groups);
+      if (keys.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay jugadores para emparejar automáticamente.</p>`;
+        return;
+      }
+
+      let html = '';
+      keys.forEach(key => {
+        const players = groups[key];
+        const dateObj = new Date(key + ':00Z');
+        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        const count = players.length;
+
+        let statusBadge = count >= 4 
+          ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 ${Math.floor(count/4)} Mesa(s) Lista(s) (${count} jug)</span>`
+          : `<span class="bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded-full font-bold">⏳ ${count}/5 Jugadores</span>`;
+
+        html += `
+          <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-xs text-red-400 uppercase font-semibold tracking-wider">${formattedDate}</p>
+                <p class="text-xl font-mono font-bold text-white">${formattedTime}</p>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${players.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2 py-1 rounded font-medium">${escapeHtml(p.nick)}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderCustomTables(tables, container) {
+      if (tables.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No se han creado mesas manuales ad-hoc.</p>`;
+        return;
+      }
+
+      tables.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
+
+      container.innerHTML = tables.map(t => {
+        const dateObj = new Date(t.utcTime);
+        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+        return `
+          <div class="bg-gray-900 border border-amber-600/40 rounded-xl p-4 shadow-md space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-bold text-amber-400 text-base">${escapeHtml(t.name)}</h3>
+                <p class="text-xs text-gray-400">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span></p>
+              </div>
+              <button onclick="deleteEntry('${t.id}')" class="text-xs text-gray-500 hover:text-red-400 transition">Cerrar Mesa</button>
+            </div>
+            <div class="space-y-1">
+              <p class="text-xs font-semibold text-gray-400">Jugadores confirmados (${t.players.length}):</p>
+              <div class="flex flex-wrap gap-1.5">
+                ${t.players.map(p => `<span class="bg-amber-950/40 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded font-medium">${escapeHtml(p)}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function deleteEntry(id) {
+      if (!confirm('¿Seguro que quieres eliminar este elemento?')) return;
+      try {
+        let allData = await fetchCurrentData();
+        allData = allData.filter(e => e.id !== id);
+        await saveData(allData);
+        loadData();
+      } catch (err) {
+        alert('Error al eliminar.');
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
