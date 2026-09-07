@@ -162,7 +162,7 @@
         <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
           <span>🏰</span> Coincidencias Automáticas (Separadas por Plataforma)
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado estrictamente por Horario y Plataforma.</p>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado strictly por Horario y Plataforma.</p>
       </div>
       <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
@@ -216,20 +216,8 @@
     let currentGlobalData = [];
 
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone} (${getCountryFlag(userTimezone)})`;
-
-    const configFlatpickr = {
-      enableTime: true,
-      dateFormat: "Y-m-d H:i",
-      time_24hr: true,
-      locale: "es",
-      minDate: "today"
-    };
-
-    let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
-    let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
-
-    // FUNCIÓN HELPER: Mapea la zona horaria al emoji de bandera
+    
+    // MAPEO DIRECTO DE ZONA HORARIA A EMOJI DE BANDERA
     function getCountryFlag(tz) {
       if (!tz) return '🌐';
       const tzLower = tz.toLowerCase();
@@ -251,6 +239,19 @@
 
       return '🌐';
     }
+
+    document.getElementById('userTimezone').innerHTML = `Tu zona horaria: <strong>${escapeHtml(userTimezone)}</strong> ${getCountryFlag(userTimezone)}`;
+
+    const configFlatpickr = {
+      enableTime: true,
+      dateFormat: "Y-m-d H:i",
+      time_24hr: true,
+      locale: "es",
+      minDate: "today"
+    };
+
+    let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
+    let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
     // BARREDORA SILENCIOSA: Elimina mesas y disponibilidades 3 horas después de su hora pactada
     function sweepExpiredTables(dataArray) {
@@ -345,7 +346,6 @@
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
-      // Estructuramos el primer jugador con su Nick y Zona Horaria
       const creatorObj = { nick: creator, originTz: userTimezone };
 
       recordsRef.push({
@@ -393,7 +393,6 @@
         const table = snapshot.val();
         let players = table.players || [];
 
-        // Normalización de compatibilidad para datos antiguos (strings o objetos)
         const nameExists = players.some(p => {
           const name = typeof p === 'string' ? p : p.nick;
           return name.toLowerCase() === cleanNick.toLowerCase();
@@ -485,7 +484,7 @@
           return `
             <tr class="hover:bg-gray-750 transition">
               <td class="py-3 px-4 font-bold text-red-400 flex items-center gap-2">
-                <span>${flag}</span>
+                <span class="text-base">${flag}</span>
                 <span>${escapeHtml(item.nick)}</span>
               </td>
               <td class="py-3 px-4">${getPlatformBadge(item.platform || 'Lackey')}</td>
@@ -591,12 +590,15 @@
               <div class="space-y-1.5">
                 <p class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Jugadores en esta mesa:</p>
                 <div class="flex flex-wrap gap-1.5">
-                  ${tablePlayers.map(p => `
-                    <span class="inline-flex items-center gap-1 bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2.5 py-1 rounded font-medium">
-                      <span>${getCountryFlag(p.originTz)}</span>
-                      <span>${escapeHtml(p.nick)}</span>
-                    </span>
-                  `).join('')}
+                  ${tablePlayers.map(p => {
+                    const flag = getCountryFlag(p.originTz);
+                    return `
+                      <span class="inline-flex items-center gap-1.5 bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2.5 py-1 rounded font-medium">
+                        <span class="text-sm">${flag}</span>
+                        <span>${escapeHtml(p.nick)}</span>
+                      </span>
+                    `;
+                  }).join('')}
                 </div>
               </div>
             </div>
@@ -680,7 +682,7 @@
 
                   return `
                     <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
-                      <span>${flag}</span>
+                      <span class="text-sm">${flag}</span>
                       <span>${escapeHtml(playerNick)}</span>
                       <button onclick="leaveTable('${t.id}', '${escapeHtml(playerNick)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
                     </span>
