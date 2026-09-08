@@ -84,7 +84,7 @@
               <span>🛡️</span> 2. Seguridad y Limpieza Automática
             </h3>
             <p class="text-xs text-gray-400 pl-2">
-              Tus registros o mesas se cierran sin pedir PIN en tu dispositivo original. Desde otros equipos se requerirá obligatoriamente el PIN Antiborrado de 4 dígitos configurado.<br>
+              Tus registros o mesas requieren confirmación previa antes de cerrarse en tu dispositivo original. Desde otros equipos se requerirá obligatoriamente el PIN Antiborrado de 4 dígitos configurado.<br>
               <span class="text-gray-300">🧹 <strong>Barredora Silenciosa:</strong> El sistema eliminará automáticamente las mesas y disponibilidades transcurridas 3 horas después de su horario programado.</span>
             </p>
           </div>
@@ -312,7 +312,6 @@
         return alert(`El jugador "${nick}" ya tiene una disponibilidad registrada para esta misma fecha y hora.`);
       }
 
-      // Generar ID único temporal para guardar la autoría local en localStorage
       const newRef = recordsRef.push();
       const newId = newRef.key;
 
@@ -331,7 +330,7 @@
       pickerAvailability.clear();
     });
 
-    // Abrir una Mesa de Juego con registro en localStorage
+    // Abrir una Mesa de Juego
     document.getElementById('customTableForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('tableName').value.trim();
@@ -344,11 +343,9 @@
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
-      // Generar ID único temporal para guardar la autoría local en localStorage
       const newRef = recordsRef.push();
       const newId = newRef.key;
 
-      // Guardar firma de creador en este navegador
       localStorage.setItem(`vtes_owner_${newId}`, creator.toLowerCase());
 
       newRef.set({
@@ -441,7 +438,7 @@
       if (el) el.classList.toggle('hidden');
     }
 
-    // ELIMINAR O CERRAR REGISTRO / MESA CON VALIDACIÓN ESTRICTA (LocalStorage + PIN Antiborrado)
+    // ELIMINAR O CERRAR REGISTRO / MESA (LocalStorage + Confirmación + PIN Antiborrado)
     function deleteEntry(id) {
       const tableRef = db.ref(`vtes_records/${id}`);
 
@@ -449,17 +446,20 @@
         if (!snapshot.exists()) return alert('El elemento ya no existe.');
         const table = snapshot.val();
 
-        // Verificar si se está abriendo desde el navegador original del creador (por localStorage)
         const localOwnerKey = `vtes_owner_${id}`;
         const isOriginalDevice = localStorage.getItem(localOwnerKey);
+        const itemLabel = table.type === 'custom_table' ? `la mesa "${table.name}"` : `el registro de "${table.nick}"`;
 
         if (isOriginalDevice) {
-          // Dispositivo original: Cierre transparente sin pedir PIN
-          tableRef.remove();
-          localStorage.removeItem(localOwnerKey);
+          // Dispositivo original: Cuadro de diálogo de confirmación para evitar borrados accidentales
+          const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar permanentemente ${itemLabel}?`);
+          if (confirmDelete) {
+            tableRef.remove();
+            localStorage.removeItem(localOwnerKey);
+          }
         } else {
           // Dispositivo externo: Exigir obligatoriamente el PIN Antiborrado
-          const pinIngresado = prompt(`🔒 Este navegador no es el creador original (${table.type === 'custom_table' ? table.name : table.nick}). Ingresa el PIN Antiborrado de 4 dígitos para proceder:`);
+          const pinIngresado = prompt(`🔒 Este navegador no es el creador original de ${itemLabel}. Ingresa el PIN Antiborrado de 4 dígitos para proceder:`);
           if (!pinIngresado) return;
 
           const valorLimpio = pinIngresado.trim();
