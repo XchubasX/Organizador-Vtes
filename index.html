@@ -1,174 +1,744 @@
-```
-<!-- Encabezado -->
-<header class="text-center space-y-2 border-b border-red-800 pb-4">
-  <h1 class="text-3xl md:text-5xl font-extrabold text-red-600 tracking-wider">VAMPIRE: THE ETERNAL STRUGGLE</h1>
-  <p class="text-gray-400 text-sm md:text-base">Coordinador Internacional de Mesas y Disponibilidad</p>
-  <div id="userTimezone" class="inline-block bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
-    Detectando tu zona horaria...
-  </div>
-</header>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTES Matchmaking & Mesas Abiertas</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Flatpickr (Calendario) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+  <!-- Firebase App & Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
 
-<!-- MANUAL DE USUARIO -->
-<section class="bg-gray-800/80 border border-red-900/50 rounded-xl overflow-hidden shadow-lg">
-  <details class="group">
-    <summary class="flex justify-between items-center font-bold cursor-pointer p-4 text-red-400 hover:text-red-300 transition bg-gray-800">
-      <span class="flex items-center gap-2 text-base md:text-lg">
-        <span>📖</span> ¿Cómo usar esta herramienta? (Manual de Usuario)
-      </span>
-      <span class="transform group-open:rotate-180 transition-transform text-xs bg-gray-900 px-2.5 py-1 rounded-full text-gray-400">
-        Ver instrucciones ▼
-      </span>
-    </summary>
-    
-    <div class="p-5 border-t border-gray-700/60 space-y-6 text-sm text-gray-300 bg-gray-900/40">
-      <div class="bg-gray-900 p-3.5 rounded-lg border-l-4 border-red-600 text-xs">
-        <strong class="text-white block mb-1">🌍 Conversión Automática de Horarios:</strong>
-        El sistema detecta automáticamente tu zona horaria. Todos los horarios seleccionados o mostrados se adaptan a tu <strong>hora local</strong>.
+  <!-- MODAL EXPLICATIVO DE SEGURIDAD (VENTANA FLOTANTE) -->
+  <div id="securityModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gray-800 border border-amber-600/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 border-b border-gray-700 pb-3">
+        <span class="text-2xl">🔒</span>
+        <h3 class="text-lg font-bold text-amber-400">PIN Antiborrado de Seguridad</h3>
       </div>
-
-      <div class="space-y-2">
-        <h3 class="text-amber-400 font-bold flex items-center gap-1.5 text-base">
-          <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
-        </h3>
-        <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-          <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora (solo fechas futuras), tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), servidor de Discord, la contraseña de la partida, y un <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> exclusivo.</li>
-          <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
-        </ul>
-      </div>
-
-      <div class="space-y-2">
-        <h3 class="text-red-400 font-bold flex items-center gap-1.5 text-base">
-          <span>🛡️</span> 2. Seguridad y Limpieza Automática
-        </h3>
-        <p class="text-xs text-gray-400 pl-2">
-          Tus registros o mesas requieren confirmación previa antes de cerrarse o remover jugadores. Solo el propio jugador o el creador de la mesa (mediante confirmación en su dispositivo original o ingresando el PIN Antiborrado desde otro equipo) pueden remover participantes.<br>
-          <span class="text-gray-300">🧹 <strong>Barredora Silenciosa:</strong> El sistema eliminará automáticamente las mesas y disponibilidades transcurridas 3 horas después de su horario programado.</span>
+      <div class="space-y-3 text-xs md:text-sm text-gray-300 leading-relaxed">
+        <p>
+          Estás creando un registro protegido. El <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre, eliminación manual o gestión de jugadores en caso de que intentes hacerlo desde un dispositivo diferente al actual.
+        </p>
+        <p class="text-gray-400">
+          Por motivos de seguridad, este PIN <strong>no se puede recuperar ni visualizar</strong> en pantalla una vez guardado. Si lo olvidas y estás en otro equipo, la entrada solo podrá ser eliminada automáticamente por la barredora del sistema tras cumplirse su tiempo.
         </p>
       </div>
-    </div>
-  </details>
-</section>
-
-<!-- CREAR MESA ABIERTA -->
-<section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
-  <div class="border-b border-gray-700 pb-3">
-    <h2 class="text-xl font-bold text-amber-500 flex items-center gap-2">
-      <span>⚔️</span> Abrir Nueva Mesa de Juego
-    </h2>
-    <p class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
-  </div>
-
-  <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
-    <div>
-      <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
-      <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora</label>
-      <input type="text" id="tableDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick</label>
-      <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma</label>
-      <select id="tablePlatform" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
-        <option value="Lackey">LackeyCCG</option>
-        <option value="Succubus Club">Succubus Club</option>
-      </select>
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-indigo-400 mb-1">🎧 Discord</label>
-      <input type="text" id="tableDiscord" placeholder="ej. VTES Español" class="w-full bg-gray-800 border border-indigo-700/60 rounded-lg px-3 py-1.5 text-indigo-200 text-sm focus:outline-none focus:border-indigo-400">
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-blue-400 mb-1">🎮 Pass Partida</label>
-      <input type="text" id="tableGamePassword" placeholder="ej. vtes123" class="w-full bg-gray-800 border border-blue-700/60 rounded-lg px-3 py-1.5 text-blue-200 text-sm focus:outline-none focus:border-blue-400">
-    </div>
-    <div>
-      <div class="flex items-center justify-between mb-1">
-        <label class="block text-xs font-semibold text-amber-400">🔒 PIN Antiborrado</label>
-        <button type="button" onclick="showSecurityModal()" class="text-[10px] text-amber-400 hover:text-amber-300 underline bg-transparent border-0 cursor-pointer p-0">¿Para qué es?</button>
+      <div class="pt-2 flex justify-end">
+        <button type="button" onclick="closeSecurityModal()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-5 py-2 rounded-xl text-xs md:text-sm transition shadow-md">
+          Entendido
+        </button>
       </div>
-      <input type="text" id="tableDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-gray-800 border border-amber-700/60 rounded-lg px-3 py-1.5 text-amber-300 text-sm font-mono focus:outline-none focus:border-amber-400">
     </div>
-    <div class="flex items-end">
-      <button type="submit" id="createTableBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition">
-        Abrir Mesa
-      </button>
-    </div>
-  </form>
-
-  <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"></div>
-</section>
-
-<!-- DISPONIBILIDAD INDIVIDUAL -->
-<section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
-  <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
-    <span>🩸</span> Registrar disponibilidad personal (Horario Libre)
-  </h2>
-  <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-    <div>
-      <label class="block text-xs font-semibold text-gray-400 mb-1">Nick / Nombre</label>
-      <input type="text" id="playerNick" required placeholder="ej. Malkavian_Mex" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
-      <input type="text" id="localDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-red-600">
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma Elegida</label>
-      <select id="playerPlatform" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
-        <option value="Lackey">LackeyCCG</option>
-        <option value="Succubus Club">Succubus Club</option>
-      </select>
-    </div>
-    <div>
-      <label class="block text-xs font-semibold text-amber-400 mb-1">🔒 PIN Antiborrado</label>
-      <input type="text" id="playerDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-gray-900 border border-amber-700/60 rounded-lg px-3 py-2 text-amber-300 font-mono focus:outline-none focus:border-amber-400">
-    </div>
-    <div class="flex items-end">
-      <button type="submit" id="submitBtn" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
-        Publicar Hora
-      </button>
-    </div>
-  </form>
-</section>
-
-<!-- MATCHMAKING AUTOMÁTICO -->
-<section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
-  <div class="border-b border-gray-700 pb-3">
-    <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
-      <span>🏰</span> Coincidencias Automáticas (Separadas por Plataforma)
-    </h2>
-    <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado por Horario y Plataforma.</p>
   </div>
-  <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-</section>
 
-<!-- REGISTROS INDIVIDUALES -->
-<section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
-  <h2 class="text-lg font-bold text-gray-300 mb-4 flex items-center gap-2">
-    <span>📜</span> Todos los registros individuales
-  </h2>
-  <div class="overflow-x-auto">
-    <table class="w-full text-left border-collapse">
-      <thead>
-        <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase font-mono">
-          <th class="py-3 px-4">Jugador</th>
-          <th class="py-3 px-4">Plataforma</th>
-          <th class="py-3 px-4">Fecha (Tu Hora)</th>
-          <th class="py-3 px-4">Hora (Tu Hora)</th>
-          <th class="py-3 px-4">Zona Origen</th>
-          <th class="py-3 px-4 text-right">Acción</th>
-        </tr>
-      </thead>
-      <tbody id="scheduleTable" class="divide-y divide-gray-700/50 text-sm">
-        <tr><td colspan="6" class="py-8 text-center text-gray-500">Conectando a Firebase...</td></tr>
-      </tbody>
-    </table>
+  <div class="max-w-5xl mx-auto space-y-8">
+    
+    <!-- Encabezado -->
+    <header class="text-center space-y-2 border-b border-red-800 pb-4">
+      <h1 class="text-3xl md:text-5xl font-extrabold text-red-600 tracking-wider">VAMPIRE: THE ETERNAL STRUGGLE</h1>
+      <p class="text-gray-400 text-sm md:text-base">Coordinador Internacional de Mesas y Disponibilidad</p>
+      <div id="userTimezone" class="inline-block bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
+        Detectando tu zona horaria...
+      </div>
+    </header>
+
+    <!-- MANUAL DE USUARIO -->
+    <section class="bg-gray-800/80 border border-red-900/50 rounded-xl overflow-hidden shadow-lg">
+      <details class="group">
+        <summary class="flex justify-between items-center font-bold cursor-pointer p-4 text-red-400 hover:text-red-300 transition bg-gray-800">
+          <span class="flex items-center gap-2 text-base md:text-lg">
+            <span>📖</span> ¿Cómo usar esta herramienta? (Manual de Usuario)
+          </span>
+          <span class="transform group-open:rotate-180 transition-transform text-xs bg-gray-900 px-2.5 py-1 rounded-full text-gray-400">
+            Ver instrucciones ▼
+          </span>
+        </summary>
+        
+        <div class="p-5 border-t border-gray-700/60 space-y-6 text-sm text-gray-300 bg-gray-900/40">
+          <div class="bg-gray-900 p-3.5 rounded-lg border-l-4 border-red-600 text-xs">
+            <strong class="text-white block mb-1">🌍 Conversión Automática de Horarios:</strong>
+            El sistema detecta automáticamente tu zona horaria. Todos los horarios seleccionados o mostrados se adaptan a tu <strong>hora local</strong>.
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-amber-400 font-bold flex items-center gap-1.5 text-base">
+              <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
+            </h3>
+            <ul class="list-disc list-inside space-y-1 text-xs pl-2">
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora (solo fechas futuras), tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), servidor de Discord, la contraseña de la partida, y un <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> exclusivo.</li>
+              <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-red-400 font-bold flex items-center gap-1.5 text-base">
+              <span>🛡️</span> 2. Seguridad y Limpieza Automática
+            </h3>
+            <p class="text-xs text-gray-400 pl-2">
+              Tus registros o mesas requieren confirmación previa antes de cerrarse o remover jugadores. Solo el propio jugador o el creador de la mesa (mediante confirmación en su dispositivo original o ingresando el PIN Antiborrado desde otro equipo) pueden remover participantes.<br>
+              <span class="text-gray-300">🧹 <strong>Barredora Silenciosa:</strong> El sistema eliminará automáticamente las mesas y disponibilidades transcurridas 3 horas después de su horario programado.</span>
+            </p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- CREAR MESA ABIERTA -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="border-b border-gray-700 pb-3">
+        <h2 class="text-xl font-bold text-amber-500 flex items-center gap-2">
+          <span>⚔️</span> Abrir Nueva Mesa de Juego
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
+      </div>
+
+      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
+          <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora</label>
+          <input type="text" id="tableDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick</label>
+          <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma</label>
+          <select id="tablePlatform" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+            <option value="Lackey">LackeyCCG</option>
+            <option value="Succubus Club">Succubus Club</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-indigo-400 mb-1">🎧 Discord</label>
+          <input type="text" id="tableDiscord" placeholder="ej. VTES Español" class="w-full bg-gray-800 border border-indigo-700/60 rounded-lg px-3 py-1.5 text-indigo-200 text-sm focus:outline-none focus:border-indigo-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-blue-400 mb-1">🎮 Pass Partida</label>
+          <input type="text" id="tableGamePassword" placeholder="ej. vtes123" class="w-full bg-gray-800 border border-blue-700/60 rounded-lg px-3 py-1.5 text-blue-200 text-sm focus:outline-none focus:border-blue-400">
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-amber-400">🔒 PIN Antiborrado</label>
+            <button type="button" onclick="showSecurityModal()" class="text-[10px] text-amber-400 hover:text-amber-300 underline bg-transparent border-0 cursor-pointer p-0">¿Para qué es?</button>
+          </div>
+          <input type="text" id="tableDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-gray-800 border border-amber-700/60 rounded-lg px-3 py-1.5 text-amber-300 text-sm font-mono focus:outline-none focus:border-amber-400">
+        </div>
+        <div class="flex items-end">
+          <button type="submit" id="createTableBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition">
+            Abrir Mesa
+          </button>
+        </div>
+      </form>
+
+      <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"></div>
+    </section>
+
+    <!-- DISPONIBILIDAD INDIVIDUAL -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
+        <span>🩸</span> Registrar disponibilidad personal (Horario Libre)
+      </h2>
+      <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Nick / Nombre</label>
+          <input type="text" id="playerNick" required placeholder="ej. Malkavian_Mex" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora Local</label>
+          <input type="text" id="localDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-red-600">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma Elegida</label>
+          <select id="playerPlatform" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
+            <option value="Lackey">LackeyCCG</option>
+            <option value="Succubus Club">Succubus Club</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">🔒 PIN Antiborrado</label>
+          <input type="text" id="playerDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-gray-900 border border-amber-700/60 rounded-lg px-3 py-2 text-amber-300 font-mono focus:outline-none focus:border-amber-400">
+        </div>
+        <div class="flex items-end">
+          <button type="submit" id="submitBtn" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+            Publicar Hora
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- MATCHMAKING AUTOMÁTICO -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="border-b border-gray-700 pb-3">
+        <h2 class="text-xl font-bold text-red-500 flex items-center gap-2">
+          <span>🏰</span> Coincidencias Automáticas (Separadas por Plataforma)
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">Sincronizado en tiempo real. Agrupado strictly por Horario y Plataforma.</p>
+      </div>
+      <div id="autoTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- REGISTROS INDIVIDUALES -->
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+      <h2 class="text-lg font-bold text-gray-300 mb-4 flex items-center gap-2">
+        <span>📜</span> Todos los registros individuales
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase font-mono">
+              <th class="py-3 px-4">Jugador</th>
+              <th class="py-3 px-4">Plataforma</th>
+              <th class="py-3 px-4">Fecha (Tu Hora)</th>
+              <th class="py-3 px-4">Hora (Tu Hora)</th>
+              <th class="py-3 px-4">Zona Origen</th>
+              <th class="py-3 px-4 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleTable" class="divide-y divide-gray-700/50 text-sm">
+            <tr><td colspan="6" class="py-8 text-center text-gray-500">Conectando a Firebase...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </div>
-</section>
 
-```
+  <script>
+    // Configuración de tu proyecto en Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
+      authDomain: "vtes-scheduler.firebaseapp.com",
+      databaseURL: "https://vtes-scheduler-default-rtdb.firebaseio.com",
+      projectId: "vtes-scheduler",
+      storageBucket: "vtes-scheduler.firebasestorage.app",
+      messagingSenderId: "897608138023",
+      appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const recordsRef = db.ref('vtes_records');
+    const autoPassRef = db.ref('vtes_auto_passwords');
+
+    let autoPasswords = {};
+    let currentGlobalData = [];
+
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
+
+    const configFlatpickr = {
+      enableTime: true,
+      dateFormat: "Y-m-d H:i",
+      time_24hr: true,
+      locale: "es",
+      minDate: "today"
+    };
+
+    let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
+    let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
+
+    function showSecurityModal() {
+      document.getElementById('securityModal').classList.remove('hidden');
+    }
+
+    function closeSecurityModal() {
+      document.getElementById('securityModal').classList.add('hidden');
+    }
+
+    // BARREDORA SILENCIOSA
+    function sweepExpiredTables(dataArray) {
+      const now = new Date().getTime();
+      const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+      const validData = [];
+
+      dataArray.forEach(item => {
+        if (!item.utcTime) return;
+        const itemTime = new Date(item.utcTime).getTime();
+        if (now > (itemTime + THREE_HOURS_MS)) {
+          recordsRef.child(item.id).remove();
+        } else {
+          validData.push(item);
+        }
+      });
+      return validData;
+    }
+
+    autoPassRef.on('value', (snapshot) => {
+      autoPasswords = snapshot.val() || {};
+      if (currentGlobalData.length > 0) {
+        renderAll(currentGlobalData);
+      }
+    });
+
+    recordsRef.on('value', (snapshot) => {
+      const dataObj = snapshot.val() || {};
+      const rawData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
+      currentGlobalData = sweepExpiredTables(rawData);
+      renderAll(currentGlobalData);
+    });
+
+    // Guardar disponibilidad individual
+    document.getElementById('availabilityForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nick = document.getElementById('playerNick').value.trim();
+      const localInput = document.getElementById('localDateTime').value;
+      const platform = document.getElementById('playerPlatform').value;
+      const deletePin = document.getElementById('playerDeletePin').value.trim();
+
+      if (!localInput) return alert('Selecciona una fecha y hora.');
+
+      const selectedDate = new Date(localInput.replace(' ', 'T'));
+      if (selectedDate.getTime() < Date.now()) {
+        return alert('❌ Error: No puedes registrar un horario en el pasado. Por favor selecciona una fecha y hora futura.');
+      }
+
+      const utcISO = selectedDate.toISOString();
+      const isDuplicate = currentGlobalData.some(item => {
+        return (item.type === 'individual' || !item.type) &&
+               item.nick.toLowerCase() === nick.toLowerCase() &&
+               item.utcTime === utcISO;
+      });
+
+      if (isDuplicate) {
+        return alert(`El jugador "${nick}" ya tiene una disponibilidad registrada para esta misma fecha y hora.`);
+      }
+
+      const newRef = recordsRef.push();
+      const newId = newRef.key;
+
+      localStorage.setItem(`vtes_owner_${newId}`, nick.toLowerCase());
+
+      newRef.set({
+        type: 'individual',
+        nick: nick,
+        platform: platform,
+        utcTime: utcISO,
+        deletePin: deletePin,
+        originTz: userTimezone
+      });
+
+      document.getElementById('availabilityForm').reset();
+      pickerAvailability.clear();
+    });
+
+    // Abrir una Mesa de Juego
+    document.getElementById('customTableForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('tableName').value.trim();
+      const localInput = document.getElementById('tableDateTime').value;
+      const creator = document.getElementById('tableCreator').value.trim();
+      const platform = document.getElementById('tablePlatform').value;
+      const discord = document.getElementById('tableDiscord').value.trim();
+      const gamePassword = document.getElementById('tableGamePassword').value.trim();
+      const deletePin = document.getElementById('tableDeletePin').value.trim();
+
+      if (!localInput) return alert('Selecciona una fecha y hora.');
+
+      const selectedDate = new Date(localInput.replace(' ', 'T'));
+      if (selectedDate.getTime() < Date.now()) {
+        return alert('❌ Error: No puedes crear una mesa en el pasado. Por favor selecciona una fecha y hora futura.');
+      }
+
+      const newRef = recordsRef.push();
+      const newId = newRef.key;
+
+      localStorage.setItem(`vtes_owner_${newId}`, creator.toLowerCase());
+
+      newRef.set({
+        type: 'custom_table',
+        name: name,
+        utcTime: selectedDate.toISOString(),
+        players: [creator],
+        platform: platform,
+        discord: discord || '',
+        gamePassword: gamePassword || '',
+        deletePin: deletePin,
+        originTz: userTimezone
+      });
+
+      document.getElementById('customTableForm').reset();
+      pickerCustomTable.clear();
+    });
+
+    function setAutoTablePassword(autoKey) {
+      const currentPwd = autoPasswords[autoKey] || '';
+      const newPwd = prompt('Ingresa/actualiza la contraseña para esta mesa automática:', currentPwd);
+      if (newPwd !== null) {
+        autoPassRef.child(autoKey).set(newPwd.trim());
+      }
+    }
+
+    function editCustomTableDiscord(tableId, currentDiscord) {
+      const newDiscord = prompt('Ingresa o actualiza el Servidor / Canal de Discord:', currentDiscord || '');
+      if (newDiscord !== null) {
+        db.ref(`vtes_records/${tableId}`).update({
+          discord: newDiscord.trim()
+        });
+      }
+    }
+
+    function editCustomTableGamePassword(tableId, currentGamePassword) {
+      const newPassword = prompt('Ingresa o actualiza la contraseña de la partida:', currentGamePassword || '');
+      if (newPassword !== null) {
+        db.ref(`vtes_records/${tableId}`).update({
+          gamePassword: newPassword.trim()
+        });
+      }
+    }
+
+    function joinTable(tableId) {
+      const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
+      if (!playerNick || !playerNick.trim()) return;
+
+      const cleanNick = playerNick.trim();
+      const tableRef = db.ref(`vtes_records/${tableId}`);
+
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return alert('La mesa ya no existe.');
+        const table = snapshot.val();
+        const players = table.players || [];
+
+        if (players.some(p => p.toLowerCase() === cleanNick.toLowerCase())) {
+          return alert(`El jugador "${cleanNick}" ya está registrado en esta mesa.`);
+        }
+        if (players.length >= 5) {
+          return alert('La mesa ya está llena (máximo 5 jugadores).');
+        }
+
+        players.push(cleanNick);
+        
+        // Guardamos en el navegador local que ESTE usuario se unió con este Nick
+        localStorage.setItem(`vtes_joined_${tableId}_${cleanNick.toLowerCase()}`, cleanNick);
+
+        tableRef.update({ players: players });
+      });
+    }
+
+    function leaveTable(tableId, playerToRemove) {
+      const tableRef = db.ref(`vtes_records/${tableId}`);
+
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return;
+        const table = snapshot.val();
+        let players = table.players || [];
+
+        // 1. Identificar si el usuario actual es el creador de la mesa
+        const localOwnerKey = `vtes_owner_${tableId}`;
+        const isCreator = !!localStorage.getItem(localOwnerKey);
+
+        // 2. Identificar si el usuario actual es el propio jugador
+        const userJoinedAs = localStorage.getItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
+        const isSelf = !!userJoinedAs;
+
+        let authorized = false;
+
+        if (isCreator || isSelf) {
+          const confirmAction = confirm(
+            isSelf 
+              ? `¿Deseas salir de la mesa "${table.name}"?` 
+              : `Como creador de la mesa, ¿deseas remover a "${playerToRemove}"?`
+          );
+          authorized = confirmAction;
+        } else {
+          const pinIngresado = prompt(
+            `🔒 Para remover a "${playerToRemove}" desde este equipo, ingresa el PIN Antiborrado de la mesa:`
+          );
+          if (pinIngresado && table.deletePin && pinIngresado.trim() === table.deletePin) {
+            authorized = true;
+          } else if (pinIngresado) {
+            alert('❌ PIN Antiborrado incorrecto. No tienes permiso para remover a este jugador.');
+          }
+        }
+
+        if (!authorized) return;
+
+        players = players.filter(p => p.toLowerCase() !== playerToRemove.toLowerCase());
+        localStorage.removeItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
+
+        if (players.length === 0) {
+          tableRef.remove();
+          localStorage.removeItem(localOwnerKey);
+        } else {
+          tableRef.update({ players: players });
+        }
+      });
+    }
+
+    function togglePasswordView(elementId) {
+      const el = document.getElementById(elementId);
+      if (el) el.classList.toggle('hidden');
+    }
+
+    // ELIMINAR O CERRAR REGISTRO / MESA (LocalStorage + Confirmación + PIN Antiborrado)
+    function deleteEntry(id) {
+      const tableRef = db.ref(`vtes_records/${id}`);
+
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return alert('El elemento ya no existe.');
+        const table = snapshot.val();
+
+        const localOwnerKey = `vtes_owner_${id}`;
+        const isOriginalDevice = localStorage.getItem(localOwnerKey);
+        const itemLabel = table.type === 'custom_table' ? `la mesa "${table.name}"` : `el registro de "${table.nick}"`;
+
+        if (isOriginalDevice) {
+          const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar permanentemente ${itemLabel}?`);
+          if (confirmDelete) {
+            tableRef.remove();
+            localStorage.removeItem(localOwnerKey);
+          }
+        } else {
+          const pinIngresado = prompt(`🔒 Este navegador no es el creador original de ${itemLabel}. Ingresa el PIN Antiborrado de 4 dígitos para proceder:`);
+          if (!pinIngresado) return;
+
+          const valorLimpio = pinIngresado.trim();
+          if (table.deletePin && valorLimpio === table.deletePin) {
+            tableRef.remove();
+          } else {
+            alert('❌ PIN Antiborrado incorrecto. No se pudo eliminar el registro.');
+          }
+        }
+      });
+    }
+
+    function getPlatformBadge(platform) {
+      const isLackey = (platform || '').toLowerCase().includes('lackey');
+      return isLackey 
+        ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">💻 LackeyCCG</span>`
+        : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">🦇 Succubus Club</span>`;
+    }
+
+    function renderAll(allData) {
+      const tbody = document.getElementById('scheduleTable');
+      const autoTablesContainer = document.getElementById('autoTablesContainer');
+      const customTablesContainer = document.getElementById('customTablesContainer');
+
+      const individuals = allData.filter(d => d.type === 'individual' || !d.type);
+      const customTables = allData.filter(d => d.type === 'custom_table');
+
+      if (individuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">No hay disponibilidades individuales.</td></tr>`;
+      } else {
+        individuals.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
+        tbody.innerHTML = individuals.map(item => {
+          const dateObj = new Date(item.utcTime);
+          return `
+            <tr class="hover:bg-gray-750 transition">
+              <td class="py-3 px-4 font-bold text-red-400">${escapeHtml(item.nick)}</td>
+              <td class="py-3 px-4">${getPlatformBadge(item.platform || 'Lackey')}</td>
+              <td class="py-3 px-4">${dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+              <td class="py-3 px-4 font-mono font-semibold text-white">${dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</td>
+              <td class="py-3 px-4 text-xs text-gray-500">${escapeHtml(item.originTz || 'UTC')}</td>
+              <td class="py-3 px-4 text-right">
+                <button onclick="deleteEntry('${item.id}')" class="text-xs text-gray-500 hover:text-red-400 transition">Eliminar</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      renderAutoMatches(individuals, autoTablesContainer);
+      renderCustomTables(customTables, customTablesContainer);
+    }
+
+    function renderAutoMatches(individuals, container) {
+      const groups = {};
+      individuals.forEach(entry => {
+        const timeKey = new Date(entry.utcTime).toISOString().slice(0, 16); 
+        const platformKey = (entry.platform || 'Lackey').toLowerCase();
+        const groupKey = `${timeKey}_${platformKey}`;
+
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            timeIso: timeKey,
+            platform: entry.platform || 'Lackey',
+            players: []
+          };
+        }
+        groups[groupKey].players.push(entry);
+      });
+
+      const keys = Object.keys(groups);
+      if (keys.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay horarios para emparejar.</p>`;
+        return;
+      }
+
+      let html = '';
+      keys.forEach(key => {
+        const groupData = groups[key];
+        const allPlayersInSlot = groupData.players;
+        const platformName = groupData.platform;
+
+        const dateObj = new Date(groupData.timeIso + ':00Z');
+        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+        const tables = [];
+        for (let i = 0; i < allPlayersInSlot.length; i += 5) {
+          tables.push(allPlayersInSlot.slice(i, i + 5));
+        }
+
+        tables.forEach((tablePlayers, index) => {
+          const count = tablePlayers.length;
+          const tableLabel = tables.length > 1 ? ` (Mesa ${index + 1})` : '';
+          const autoKey = `auto_${key.replace(/[:\-T]/g, '')}_${index + 1}`;
+          const currentPassword = autoPasswords[autoKey] || '';
+
+          let statusBadge = count >= 4 
+            ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Lista (${count} jug)</span>`
+            : `<span class="bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded-full font-bold">⏳ ${count}/5 Jugadores</span>`;
+
+          const pwdHtml = `
+            <div class="bg-gray-800/80 border border-gray-700/80 rounded-lg p-2 flex items-center justify-between text-xs">
+              <span class="text-gray-400 font-medium flex items-center gap-1">🔑 Password Partida:</span>
+              <div class="flex items-center gap-2">
+                ${currentPassword 
+                  ? `<span id="pwd-${autoKey}" class="hidden font-mono font-bold text-amber-400 bg-gray-900 px-2 py-0.5 rounded border border-amber-500/30 select-all">${escapeHtml(currentPassword)}</span>
+                     <button onclick="togglePasswordView('pwd-${autoKey}')" class="text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition text-[11px]">👁️ Ver</button>`
+                  : `<span class="text-gray-500 italic">Sin clave</span>`
+                }
+                <button onclick="setAutoTablePassword('${autoKey}')" class="text-amber-400 hover:text-amber-300 bg-amber-950/60 border border-amber-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold">
+                  ✏️ ${currentPassword ? 'Editar' : 'Definir'}
+                </button>
+              </div>
+            </div>
+          `;
+
+          html += `
+            <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md space-y-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <p class="text-xs text-red-400 uppercase font-semibold tracking-wider">${formattedDate}${tableLabel}</p>
+                    ${getPlatformBadge(platformName)}
+                  </div>
+                  <p class="text-xl font-mono font-bold text-white">${formattedTime}</p>
+                </div>
+                <div>${statusBadge}</div>
+              </div>
+              ${pwdHtml}
+              <div class="space-y-1.5">
+                <p class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Jugadores en esta mesa:</p>
+                <div class="flex flex-wrap gap-1.5">
+                  ${tablePlayers.map(p => `
+                    <span class="inline-flex items-center bg-gray-800 border border-gray-700 text-gray-200 text-xs px-2.5 py-1 rounded font-medium">
+                      ${escapeHtml(p.nick)}
+                    </span>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderCustomTables(tables, container) {
+      if (tables.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay mesas abiertas creadas. ¡Abre una!</p>`;
+        return;
+      }
+
+      tables.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
+
+      container.innerHTML = tables.map(t => {
+        const dateObj = new Date(t.utcTime);
+        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        const count = (t.players || []).length;
+        const isFull = count >= 5;
+        const isReady = count >= 4;
+
+        let statusBadge = isReady
+          ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Completa (${count}/5)</span>`
+          : `<span class="bg-amber-900/60 text-amber-300 border border-amber-700/60 text-xs px-2.5 py-1 rounded-full font-bold">⏳ Faltan ${5 - count} jugador(es)</span>`;
+
+        const discordHtml = `
+          <div class="bg-indigo-950/40 border border-indigo-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-indigo-300">
+            <span class="font-medium flex items-center gap-1">
+              <span>🎧</span> <strong>Discord:</strong> 
+              ${t.discord ? `<span class="text-indigo-200 font-normal">${escapeHtml(t.discord)}</span>` : `<span class="text-gray-500 italic">No especificado</span>`}
+            </span>
+            <button onclick="editCustomTableDiscord('${t.id}', '${escapeHtml(t.discord || '')}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
+              ✏️ ${t.discord ? 'Editar' : 'Definir'}
+            </button>
+          </div>
+        `;
+
+        const gamePwdHtml = `
+          <div class="bg-blue-950/40 border border-blue-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-blue-300">
+            <span class="font-medium flex items-center gap-1">
+              <span>🎮</span> <strong>Pass Partida:</strong> 
+              ${t.gamePassword ? `<span id="gamepwd-${t.id}" class="hidden font-mono font-bold text-blue-200 bg-gray-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${t.id}')" class="text-blue-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition text-[11px] ml-1">👁️ Ver</button>` : `<span class="text-gray-500 italic">Sin contraseña</span>`}
+            </span>
+            <button onclick="editCustomTableGamePassword('${t.id}', '${escapeHtml(t.gamePassword || '')}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
+              ✏️ ${t.gamePassword ? 'Editar' : 'Definir'}
+            </button>
+          </div>
+        `;
+
+        return `
+          <div class="bg-gray-900 border ${isReady ? 'border-green-600/60' : 'border-amber-600/40'} rounded-xl p-4 shadow-md space-y-4">
+            <div class="flex justify-between items-start border-b border-gray-800 pb-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-amber-400 text-base">${escapeHtml(t.name)}</h3>
+                  ${getPlatformBadge(t.platform || 'Lackey')}
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span></p>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                ${statusBadge}
+                <button onclick="deleteEntry('${t.id}')" class="text-[10px] text-gray-500 hover:text-red-400 transition mt-1">Cerrar Mesa</button>
+              </div>
+            </div>
+            <div class="space-y-2">
+              ${discordHtml}
+              ${gamePwdHtml}
+            </div>
+            <div class="space-y-2">
+              <p class="text-xs font-semibold text-gray-400">Jugadores confirmados (${count}/5):</p>
+              <div class="flex flex-wrap gap-2">
+                 ${(t.players || []).map(p => `
+                  <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
+                    ${escapeHtml(p)}
+                    <button onclick="leaveTable('${t.id}', '${escapeHtml(p)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+            ${!isFull ? `
+              <button onclick="joinTable('${t.id}')" class="w-full bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
+                ➕ ¡Unirme a esta Mesa!
+              </button>
+            ` : `
+              <div class="text-center text-xs text-gray-500 py-1 bg-gray-800 rounded">Mesa llena</div>
+            `}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
