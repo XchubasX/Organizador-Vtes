@@ -22,14 +22,14 @@
     <div class="bg-gray-800 border border-amber-600/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
       <div class="flex items-center gap-3 border-b border-gray-700 pb-3">
         <span class="text-2xl">🔒</span>
-        <h3 class="text-lg font-bold text-amber-400">PIN de Seguridad para Borrado de Mesa</h3>
+        <h3 class="text-lg font-bold text-amber-400">PIN Antiborrado de Seguridad</h3>
       </div>
       <div class="space-y-3 text-xs md:text-sm text-gray-300 leading-relaxed">
         <p>
-          Estás creando una mesa protegida. El <strong class="text-amber-400">PIN de Seguridad de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre o eliminación manual de esta mesa en caso de que intentes borrarla desde un dispositivo diferente al actual.
+          Estás creando un registro protegido. El <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre o eliminación manual en caso de que intentes borrarlo desde un dispositivo diferente al actual.
         </p>
         <p class="text-gray-400">
-          Por motivos de seguridad, este PIN <strong>no se puede recuperar ni visualizar</strong> en pantalla una vez guardado. Si lo olvidas y estás en otro equipo, la mesa solo podrá ser eliminada automáticamente por la barredora del sistema tras cumplirse su tiempo.
+          Por motivos de seguridad, este PIN <strong>no se puede recuperar ni visualizar</strong> en pantalla una vez guardado. Si lo olvidas y estás en otro equipo, la entrada solo podrá ser eliminada automáticamente por la barredora del sistema tras cumplirse su tiempo.
         </p>
       </div>
       <div class="pt-2 flex justify-end">
@@ -74,7 +74,7 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), servidor de Discord, la contraseña de la partida, y un <strong class="text-amber-400">PIN de 4 dígitos</strong> exclusivo para proteger su eliminación.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), servidor de Discord, la contraseña de la partida, y un <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> exclusivo.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
             </ul>
           </div>
@@ -84,7 +84,7 @@
               <span>🛡️</span> 2. Seguridad y Limpieza Automática
             </h3>
             <p class="text-xs text-gray-400 pl-2">
-              Tus mesas se cierran sin pedir PIN en tu dispositivo original. Desde otros equipos se requerirá el PIN de 4 dígitos configurado o la palabra de confirmación <code class="bg-gray-900 px-1.5 py-0.5 rounded text-red-400 font-mono">BANISHMENT</code>.<br>
+              Tus registros o mesas se cierran sin pedir PIN en tu dispositivo original. Desde otros equipos se requerirá obligatoriamente el PIN Antiborrado de 4 dígitos configurado.<br>
               <span class="text-gray-300">🧹 <strong>Barredora Silenciosa:</strong> El sistema eliminará automáticamente las mesas y disponibilidades transcurridas 3 horas después de su horario programado.</span>
             </p>
           </div>
@@ -131,7 +131,7 @@
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="block text-xs font-semibold text-amber-400">🔒 PIN Borrado</label>
+            <label class="block text-xs font-semibold text-amber-400">🔒 PIN Antiborrado</label>
             <button type="button" onclick="showSecurityModal()" class="text-[10px] text-amber-400 hover:text-amber-300 underline bg-transparent border-0 cursor-pointer p-0">¿Para qué es?</button>
           </div>
           <input type="text" id="tableDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-gray-800 border border-amber-700/60 rounded-lg px-3 py-1.5 text-amber-300 text-sm font-mono focus:outline-none focus:border-amber-400">
@@ -151,7 +151,7 @@
       <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
         <span>🩸</span> Registrar disponibilidad personal (Horario Libre)
       </h2>
-      <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Nick / Nombre</label>
           <input type="text" id="playerNick" required placeholder="ej. Malkavian_Mex" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-600">
@@ -166,6 +166,10 @@
             <option value="Lackey">LackeyCCG</option>
             <option value="Succubus Club">Succubus Club</option>
           </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">🔒 PIN Antiborrado</label>
+          <input type="text" id="playerDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-gray-900 border border-amber-700/60 rounded-lg px-3 py-2 text-amber-300 font-mono focus:outline-none focus:border-amber-400">
         </div>
         <div class="flex items-end">
           <button type="submit" id="submitBtn" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
@@ -293,6 +297,7 @@
       const nick = document.getElementById('playerNick').value.trim();
       const localInput = document.getElementById('localDateTime').value;
       const platform = document.getElementById('playerPlatform').value;
+      const deletePin = document.getElementById('playerDeletePin').value.trim();
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
@@ -318,6 +323,7 @@
         nick: nick,
         platform: platform,
         utcTime: utcISO,
+        deletePin: deletePin,
         originTz: userTimezone
       });
 
@@ -435,7 +441,7 @@
       if (el) el.classList.toggle('hidden');
     }
 
-    // ELIMINAR O CERRAR REGISTRO / MESA CON VALIDACIÓN ESTRICTA (LocalStorage + PIN o BANISHMENT)
+    // ELIMINAR O CERRAR REGISTRO / MESA CON VALIDACIÓN ESTRICTA (LocalStorage + PIN Antiborrado)
     function deleteEntry(id) {
       const tableRef = db.ref(`vtes_records/${id}`);
 
@@ -452,27 +458,15 @@
           tableRef.remove();
           localStorage.removeItem(localOwnerKey);
         } else {
-          // Dispositivo externo: Exigir obligatoriamente el PIN (si es mesa) o BANISHMENT (para ambos)
-          if (table.type === 'custom_table') {
-            const pinIngresado = prompt('🔒 Este navegador no es el creador original. Ingresa el PIN de 4 dígitos o escribe BANISHMENT para cerrar la mesa:');
-            if (!pinIngresado) return;
+          // Dispositivo externo: Exigir obligatoriamente el PIN Antiborrado
+          const pinIngresado = prompt(`🔒 Este navegador no es el creador original (${table.type === 'custom_table' ? table.name : table.nick}). Ingresa el PIN Antiborrado de 4 dígitos para proceder:`);
+          if (!pinIngresado) return;
 
-            const valorLimpio = pinIngresado.trim();
-            if ((table.deletePin && valorLimpio === table.deletePin) || valorLimpio.toUpperCase() === 'BANISHMENT') {
-              tableRef.remove();
-            } else {
-              alert('❌ PIN o código incorrecto. No se pudo cerrar la mesa.');
-            }
+          const valorLimpio = pinIngresado.trim();
+          if (table.deletePin && valorLimpio === table.deletePin) {
+            tableRef.remove();
           } else {
-            // Registro individual: Exigir obligatoriamente BANISHMENT desde otro dispositivo
-            const confirmCode = prompt(`❌ Este registro pertenece a "${table.nick}". Para forzar su eliminación desde otro dispositivo, escribe BANISHMENT:`);
-            if (!confirmCode) return;
-
-            if (confirmCode.trim().toUpperCase() === 'BANISHMENT') {
-              tableRef.remove();
-            } else {
-              alert('❌ Confirmación incorrecta. No se pudo eliminar el registro.');
-            }
+            alert('❌ PIN Antiborrado incorrecto. No se pudo eliminar el registro.');
           }
         }
       });
