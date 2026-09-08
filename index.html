@@ -74,7 +74,7 @@
               <span>⚔️</span> 1. Abrir o Unirte a una Mesa de Juego
             </h3>
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora, tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), servidor de Discord, la contraseña de la partida, y un <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> exclusivo.</li>
+              <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora (solo fechas futuras), tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), servidor de Discord, la contraseña de la partida, y un <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> exclusivo.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
             </ul>
           </div>
@@ -301,7 +301,12 @@
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
-      const utcISO = new Date(localInput.replace(' ', 'T')).toISOString();
+      const selectedDate = new Date(localInput.replace(' ', 'T'));
+      if (selectedDate.getTime() < Date.now()) {
+        return alert('❌ Error: No puedes registrar un horario en el pasado. Por favor selecciona una fecha y hora futura.');
+      }
+
+      const utcISO = selectedDate.toISOString();
       const isDuplicate = currentGlobalData.some(item => {
         return (item.type === 'individual' || !item.type) &&
                item.nick.toLowerCase() === nick.toLowerCase() &&
@@ -343,6 +348,11 @@
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
+      const selectedDate = new Date(localInput.replace(' ', 'T'));
+      if (selectedDate.getTime() < Date.now()) {
+        return alert('❌ Error: No puedes crear una mesa en el pasado. Por favor selecciona una fecha y hora futura.');
+      }
+
       const newRef = recordsRef.push();
       const newId = newRef.key;
 
@@ -351,7 +361,7 @@
       newRef.set({
         type: 'custom_table',
         name: name,
-        utcTime: new Date(localInput.replace(' ', 'T')).toISOString(),
+        utcTime: selectedDate.toISOString(),
         players: [creator],
         platform: platform,
         discord: discord || '',
@@ -451,14 +461,12 @@
         const itemLabel = table.type === 'custom_table' ? `la mesa "${table.name}"` : `el registro de "${table.nick}"`;
 
         if (isOriginalDevice) {
-          // Dispositivo original: Cuadro de diálogo de confirmación para evitar borrados accidentales
           const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar permanentemente ${itemLabel}?`);
           if (confirmDelete) {
             tableRef.remove();
             localStorage.removeItem(localOwnerKey);
           }
         } else {
-          // Dispositivo externo: Exigir obligatoriamente el PIN Antiborrado
           const pinIngresado = prompt(`🔒 Este navegador no es el creador original de ${itemLabel}. Ingresa el PIN Antiborrado de 4 dígitos para proceder:`);
           if (!pinIngresado) return;
 
