@@ -26,7 +26,7 @@
       </div>
       <div class="space-y-3 text-xs md:text-sm text-gray-300 leading-relaxed">
         <p>
-          Estás creando un registro protegido. El <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre o eliminación manual en caso de que intentes borrarlo desde un dispositivo diferente al actual.
+          Estás creando un registro protegido. El <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre, eliminación manual o gestión de jugadores en caso de que intentes hacerlo desde un dispositivo diferente al actual.
         </p>
         <p class="text-gray-400">
           Por motivos de seguridad, este PIN <strong>no se puede recuperar ni visualizar</strong> en pantalla una vez guardado. Si lo olvidas y estás en otro equipo, la entrada solo podrá ser eliminada automáticamente por la barredora del sistema tras cumplirse su tiempo.
@@ -84,7 +84,7 @@
               <span>🛡️</span> 2. Seguridad y Limpieza Automática
             </h3>
             <p class="text-xs text-gray-400 pl-2">
-              Tus registros o mesas requieren confirmación previa antes de cerrarse en tu dispositivo original. Desde otros equipos se requerirá obligatoriamente el PIN Antiborrado de 4 dígitos configurado.<br>
+              Tus registros o mesas requieren confirmación previa antes de cerrarse o remover jugadores. Solo el propio jugador o el creador de la mesa (mediante confirmación en su dispositivo original o ingresando el PIN Antiborrado desde otro equipo) pueden remover participantes.<br>
               <span class="text-gray-300">🧹 <strong>Barredora Silenciosa:</strong> El sistema eliminará automáticamente las mesas y disponibilidades transcurridas 3 horas después de su horario programado.</span>
             </p>
           </div>
@@ -420,23 +420,58 @@
         }
 
         players.push(cleanNick);
+        
+        // Guardamos en el navegador local que ESTE usuario se unió con este Nick
+        localStorage.setItem(`vtes_joined_${tableId}_${cleanNick.toLowerCase()}`, cleanNick);
+
         tableRef.update({ players: players });
       });
     }
 
-    function leaveTable(tableId, playerNick) {
-      const confirmLeave = confirm(`¿Estás seguro de que deseas remover a "${playerNick}" de esta mesa?`);
-      if (!confirmLeave) return;
-
+    function leaveTable(tableId, playerToRemove) {
       const tableRef = db.ref(`vtes_records/${tableId}`);
+
       tableRef.get().then(snapshot => {
         if (!snapshot.exists()) return;
         const table = snapshot.val();
         let players = table.players || [];
-        players = players.filter(p => p.toLowerCase() !== playerNick.toLowerCase());
+
+        // 1. Identificar si el usuario actual es el creador de la mesa
+        const localOwnerKey = `vtes_owner_${tableId}`;
+        const isCreator = !!localStorage.getItem(localOwnerKey);
+
+        // 2. Identificar si el usuario actual es el propio jugador
+        const userJoinedAs = localStorage.getItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
+        const isSelf = !!userJoinedAs;
+
+        let authorized = false;
+
+        if (isCreator || isSelf) {
+          const confirmAction = confirm(
+            isSelf 
+              ? `¿Deseas salir de la mesa "${table.name}"?` 
+              : `Como creador de la mesa, ¿deseas remover a "${playerToRemove}"?`
+          );
+          authorized = confirmAction;
+        } else {
+          const pinIngresado = prompt(
+            `🔒 Para remover a "${playerToRemove}" desde este equipo, ingresa el PIN Antiborrado de la mesa:`
+          );
+          if (pinIngresado && table.deletePin && pinIngresado.trim() === table.deletePin) {
+            authorized = true;
+          } else if (pinIngresado) {
+            alert('❌ PIN Antiborrado incorrecto. No tienes permiso para remover a este jugador.');
+          }
+        }
+
+        if (!authorized) return;
+
+        players = players.filter(p => p.toLowerCase() !== playerToRemove.toLowerCase());
+        localStorage.removeItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
 
         if (players.length === 0) {
           tableRef.remove();
+          localStorage.removeItem(localOwnerKey);
         } else {
           tableRef.update({ players: players });
         }
