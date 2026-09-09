@@ -14,8 +14,6 @@
   <!-- Firebase App & Database SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- html2canvas (Generador de imágenes de mesas) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
 
@@ -78,7 +76,6 @@
             <ul class="list-disc list-inside space-y-1 text-xs pl-2">
               <li><strong class="text-white">Abrir una Mesa:</strong> Ingresa el nombre de la partida, fecha/hora (solo fechas futuras), tu Nick, plataforma (**LackeyCCG** o **Succubus Club**), servidor de Discord, la contraseña de la partida, y un <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> exclusivo.</li>
               <li><strong class="text-white">Unirse a una Mesa:</strong> Haz clic en <span class="text-amber-400 font-semibold">"¡Unirme a esta Mesa!"</span>. El sistema no permitirá nombres duplicados en la misma mesa.</li>
-              <li><strong class="text-white">Compartir en WhatsApp:</strong> Usa el botón <span class="text-green-400 font-semibold">"📲 Compartir en Grupo"</span> para generar una tarjeta con imagen e hipervínculo directo para invitar jugadores en cualquier grupo de WhatsApp.</li>
             </ul>
           </div>
 
@@ -518,94 +515,6 @@
       });
     }
 
-    // FUNCIONALIDAD COMPARTIR MESA EN WHATSAPP (IMAGEN + HIPERVÍNCULO)
-    async function shareTableToWhatsApp(tableId) {
-      const tableElement = document.getElementById(`custom-table-${tableId}`);
-      if (!tableElement) return alert('No se pudo ubicar la tarjeta de la mesa.');
-
-      const shareBtn = tableElement.querySelector('.whatsapp-share-btn');
-      if (shareBtn) {
-        shareBtn.disabled = true;
-        shareBtn.innerText = '⏳ Generando imagen...';
-      }
-
-      try {
-        const tableRef = db.ref(`vtes_records/${tableId}`);
-        const snapshot = await tableRef.get();
-        if (!snapshot.exists()) return alert('La mesa ya no existe.');
-
-        const table = snapshot.val();
-        const dateObj = new Date(table.utcTime);
-        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-        const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-        const count = (table.players || []).length;
-        const webUrl = window.location.href;
-
-        const messageText = 
-`⚔️ *¡NUEVA MESA DE VTES ABIERTA!* ⚔️
-
-📌 *Mesa:* ${table.name}
-💻 *Plataforma:* ${table.platform || 'Lackey'}
-📅 *Fecha:* ${formattedDate}
-⏰ *Hora:* ${formattedTime}
-👥 *Jugadores:* ${count}/5
-
-👉 *¡Entra aquí para unirte a la mesa!*
-${webUrl}`;
-
-        // Capturar tarjeta HTML excluyendo temporalmente botones de interacción si es necesario
-        const canvas = await html2canvas(tableElement, {
-          backgroundColor: '#111827',
-          scale: 2
-        });
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) throw new Error("No se pudo generar la imagen");
-          
-          const file = new File([blob], `Mesa_VTES_${table.name.replace(/\s+/g, '_')}.png`, { type: 'image/png' });
-
-          // Si el navegador admite la Web Share API para enviar archivos directamente (móviles/tablets)
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                title: `Mesa VTES: ${table.name}`,
-                text: messageText,
-                files: [file]
-              });
-            } catch (err) {
-              console.log('Compartido cancelado o no soportado por la app destino.');
-            }
-          } else {
-            // En PC o navegadores de escritorio: Descarga la foto y abre WhatsApp Web
-            const downloadLink = document.createElement('a');
-            downloadLink.href = URL.createObjectURL(blob);
-            downloadLink.download = `Mesa_VTES_${table.name.replace(/\s+/g, '_')}.png`;
-            downloadLink.click();
-
-            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
-            window.open(whatsappUrl, '_blank');
-
-            alert('📷 Se ha descargado la imagen de la mesa.\n\nSelecciona tu Grupo de WhatsApp y adjunta la imagen descargada junto con el texto pregenerado.');
-          }
-
-          if (shareBtn) {
-            shareBtn.disabled = false;
-            shareBtn.innerHTML = '📲 Compartir en Grupo';
-          }
-        }, 'image/png');
-
-      } catch (error) {
-        console.error('Error al generar o compartir la mesa:', error);
-        alert('Hubo un inconveniente al generar la imagen. Abriendo WhatsApp con texto...');
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
-        window.open(whatsappUrl, '_blank');
-        if (shareBtn) {
-          shareBtn.disabled = false;
-          shareBtn.innerHTML = '📲 Compartir en Grupo';
-        }
-      }
-    }
-
     function getPlatformBadge(platform) {
       const isLackey = (platform || '').toLowerCase().includes('lackey');
       return isLackey 
@@ -786,7 +695,7 @@ ${webUrl}`;
         `;
 
         return `
-          <div id="custom-table-${t.id}" class="bg-gray-900 border ${isReady ? 'border-green-600/60' : 'border-amber-600/40'} rounded-xl p-4 shadow-md space-y-4">
+          <div class="bg-gray-900 border ${isReady ? 'border-green-600/60' : 'border-amber-600/40'} rounded-xl p-4 shadow-md space-y-4">
             <div class="flex justify-between items-start border-b border-gray-800 pb-2">
               <div>
                 <div class="flex items-center gap-2">
@@ -815,19 +724,13 @@ ${webUrl}`;
                 `).join('')}
               </div>
             </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              ${!isFull ? `
-                <button onclick="joinTable('${t.id}')" class="w-full bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
-                  ➕ ¡Unirme a esta Mesa!
-                </button>
-              ` : `
-                <div class="text-center text-xs text-gray-500 py-1.5 bg-gray-800 rounded font-semibold">Mesa llena</div>
-              `}
-              <button onclick="shareTableToWhatsApp('${t.id}')" class="whatsapp-share-btn w-full bg-green-900/30 hover:bg-green-700 text-green-300 hover:text-white border border-green-700/60 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1">
-                📲 Compartir en Grupo
+            ${!isFull ? `
+              <button onclick="joinTable('${t.id}')" class="w-full bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
+                ➕ ¡Unirme a esta Mesa!
               </button>
-            </div>
+            ` : `
+              <div class="text-center text-xs text-gray-500 py-1 bg-gray-800 rounded">Mesa llena</div>
+            `}
           </div>
         `;
       }).join('');
