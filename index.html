@@ -105,7 +105,17 @@
         <p class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
       </div>
 
+      <div class="flex gap-2 bg-gray-900 p-1.5 rounded-lg border border-gray-700 max-w-xs">
+        <button type="button" id="modeVirtualBtn" onclick="setTableModality('virtual')" class="flex-1 bg-amber-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition">
+          💻 Virtual
+        </button>
+        <button type="button" id="modePresencialBtn" onclick="setTableModality('presencial')" class="flex-1 bg-gray-800 text-gray-400 font-bold py-1.5 px-3 rounded-md text-xs transition">
+          📍 Presencial
+        </button>
+      </div>
+
       <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+        <input type="hidden" id="tableModality" value="virtual">
         <div>
           <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
           <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
@@ -118,21 +128,49 @@
           <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick</label>
           <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma</label>
-          <select id="tablePlatform" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
-            <option value="Lackey">LackeyCCG</option>
-            <option value="Succubus Club">Succubus Club</option>
-          </select>
+
+        <div id="virtualFieldsGroup" style="display: contents;">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma</label>
+            <select id="tablePlatform" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+              <option value="Lackey">LackeyCCG</option>
+              <option value="Succubus Club">Succubus Club</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-indigo-400 mb-1">🎧 Discord</label>
+            <input type="text" id="tableDiscord" placeholder="ej. VTES Español" class="w-full bg-gray-800 border border-indigo-700/60 rounded-lg px-3 py-1.5 text-indigo-200 text-sm focus:outline-none focus:border-indigo-400">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-blue-400 mb-1">🎮 Pass Partida</label>
+            <input type="text" id="tableGamePassword" placeholder="ej. vtes123" class="w-full bg-gray-800 border border-blue-700/60 rounded-lg px-3 py-1.5 text-blue-200 text-sm focus:outline-none focus:border-blue-400">
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-indigo-400 mb-1">🎧 Discord</label>
-          <input type="text" id="tableDiscord" placeholder="ej. VTES Español" class="w-full bg-gray-800 border border-indigo-700/60 rounded-lg px-3 py-1.5 text-indigo-200 text-sm focus:outline-none focus:border-indigo-400">
+
+        <div id="presencialFieldsGroup" style="display: none;">
+          <div>
+            <label class="block text-xs font-semibold text-emerald-400 mb-1">📍 Lugar / FLGS</label>
+            <input type="text" id="tableVenue" placeholder="ej. Tienda Vórtice" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-emerald-400 mb-1">País</label>
+            <select id="tableCountry" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+              <option value="México">México</option>
+              <option value="Chile">Chile</option>
+              <option value="España">España</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-emerald-400 mb-1">Ciudad</label>
+            <input type="text" id="tableCity" placeholder="ej. CDMX" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-emerald-400 mb-1">Link de Google Maps (opcional)</label>
+            <input type="text" id="tableMapsLink" placeholder="https://maps.app.goo.gl/..." class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-blue-400 mb-1">🎮 Pass Partida</label>
-          <input type="text" id="tableGamePassword" placeholder="ej. vtes123" class="w-full bg-gray-800 border border-blue-700/60 rounded-lg px-3 py-1.5 text-blue-200 text-sm focus:outline-none focus:border-blue-400">
-        </div>
+
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="block text-xs font-semibold text-amber-400">🔒 PIN Antiborrado</label>
@@ -270,6 +308,28 @@
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
+    function setTableModality(mode) {
+      document.getElementById('tableModality').value = mode;
+      const virtualGroup = document.getElementById('virtualFieldsGroup');
+      const presencialGroup = document.getElementById('presencialFieldsGroup');
+      const btnVirtual = document.getElementById('modeVirtualBtn');
+      const btnPresencial = document.getElementById('modePresencialBtn');
+
+      const isVirtual = mode === 'virtual';
+      virtualGroup.style.display = isVirtual ? 'contents' : 'none';
+      presencialGroup.style.display = isVirtual ? 'none' : 'contents';
+
+      btnVirtual.classList.toggle('bg-amber-600', isVirtual);
+      btnVirtual.classList.toggle('text-white', isVirtual);
+      btnVirtual.classList.toggle('bg-gray-800', !isVirtual);
+      btnVirtual.classList.toggle('text-gray-400', !isVirtual);
+
+      btnPresencial.classList.toggle('bg-amber-600', !isVirtual);
+      btnPresencial.classList.toggle('text-white', !isVirtual);
+      btnPresencial.classList.toggle('bg-gray-800', isVirtual);
+      btnPresencial.classList.toggle('text-gray-400', isVirtual);
+    }
+
     function showSecurityModal() {
       document.getElementById('securityModal').classList.remove('hidden');
     }
@@ -279,30 +339,43 @@
     }
 
     // HELPER: Función para Compartir Invitación por WhatsApp (Mantiene los husos horarios específicos)
-    function shareTableInvitation(elementId, tableName, platform, utcISO, playersCount, discord) {
-      // 1. Formatear horarios para el mensaje de WhatsApp
+    function shareTableInvitation(elementId, tableName, platform, utcISO, playersCount, discord, modality, venue, city, country, mapsLink) {
       const date = new Date(utcISO);
-      const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
-      const optionsDate = { weekday: 'short', month: 'short', day: 'numeric' };
-
-      const timeMex = `${date.toLocaleTimeString('es-MX', { ...optionsTime, timeZone: 'America/Mexico_City' })} (${date.toLocaleDateString('es-MX', { ...optionsDate, timeZone: 'America/Mexico_City' })})`;
-      const timeEsp = `${date.toLocaleTimeString('es-ES', { ...optionsTime, timeZone: 'Europe/Madrid' })} (${date.toLocaleDateString('es-ES', { ...optionsDate, timeZone: 'Europe/Madrid' })})`;
-      const timeChi = `${date.toLocaleTimeString('es-CL', { ...optionsTime, timeZone: 'America/Santiago' })} (${date.toLocaleDateString('es-CL', { ...optionsDate, timeZone: 'America/Santiago' })})`;
-
-      // 2. Obtener URL actual del sitio
       const siteUrl = window.location.href.split('#')[0];
 
-      // 3. Crear mensaje formateado
       let msg = `🦇 *¡INVITACIÓN A MESA DE VTES!* 🦇\n\n`;
       msg += `⚔️ *Mesa:* ${tableName}\n`;
-      msg += `💻 *Plataforma:* ${platform}\n`;
-      msg += `👥 *Jugadores:* ${playersCount}/5\n`;
-      if (discord) msg += `🎧 *Discord:* ${discord}\n`;
-      msg += `\n🌍 *HORARIOS INTERNACIONALES:*\n`;
-      msg += `🇲🇽 ${timeMex}\n`;
-      msg += `🇪🇸 ${timeEsp}\n`;
-      msg += `🇨🇱 ${timeChi}\n\n`;
-      msg += `👉 *Regístrate o únete aquí:* ${siteUrl}\n\n`;
+
+      if (modality === 'presencial') {
+        // Mensaje para mesa PRESENCIAL: lugar, ciudad y hora local (sin husos horarios)
+        const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
+        const optionsDate = { weekday: 'long', month: 'short', day: 'numeric' };
+        const localWhen = `${date.toLocaleDateString(undefined, optionsDate)} - ${date.toLocaleTimeString(undefined, optionsTime)}`;
+
+        msg += `📍 *Lugar:* ${venue}\n`;
+        if (city || country) msg += `🌆 *Ciudad:* ${city}${country ? ', ' + country : ''}\n`;
+        msg += `👥 *Jugadores:* ${playersCount}/5\n`;
+        msg += `🗓️ *Cuándo:* ${localWhen}\n`;
+        if (mapsLink) msg += `🗺️ *Ubicación:* ${mapsLink}\n`;
+      } else {
+        // Mensaje para mesa VIRTUAL: husos horarios internacionales
+        const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
+        const optionsDate = { weekday: 'short', month: 'short', day: 'numeric' };
+
+        const timeMex = `${date.toLocaleTimeString('es-MX', { ...optionsTime, timeZone: 'America/Mexico_City' })} (${date.toLocaleDateString('es-MX', { ...optionsDate, timeZone: 'America/Mexico_City' })})`;
+        const timeEsp = `${date.toLocaleTimeString('es-ES', { ...optionsTime, timeZone: 'Europe/Madrid' })} (${date.toLocaleDateString('es-ES', { ...optionsDate, timeZone: 'Europe/Madrid' })})`;
+        const timeChi = `${date.toLocaleTimeString('es-CL', { ...optionsTime, timeZone: 'America/Santiago' })} (${date.toLocaleDateString('es-CL', { ...optionsDate, timeZone: 'America/Santiago' })})`;
+
+        msg += `💻 *Plataforma:* ${platform}\n`;
+        msg += `👥 *Jugadores:* ${playersCount}/5\n`;
+        if (discord) msg += `🎧 *Discord:* ${discord}\n`;
+        msg += `\n🌍 *HORARIOS INTERNACIONALES:*\n`;
+        msg += `🇲🇽 ${timeMex}\n`;
+        msg += `🇪🇸 ${timeEsp}\n`;
+        msg += `🇨🇱 ${timeChi}\n`;
+      }
+
+      msg += `\n👉 *Regístrate o únete aquí:* ${siteUrl}\n\n`;
       msg += `¡Únete a la partida! 🩸`;
 
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
@@ -391,10 +464,8 @@
       const name = document.getElementById('tableName').value.trim();
       const localInput = document.getElementById('tableDateTime').value;
       const creator = document.getElementById('tableCreator').value.trim();
-      const platform = document.getElementById('tablePlatform').value;
-      const discord = document.getElementById('tableDiscord').value.trim();
-      const gamePassword = document.getElementById('tableGamePassword').value.trim();
       const deletePin = document.getElementById('tableDeletePin').value.trim();
+      const modality = document.getElementById('tableModality').value;
 
       if (!localInput) return alert('Selecciona una fecha y hora.');
 
@@ -403,25 +474,45 @@
         return alert('❌ Error: No puedes crear una mesa en el pasado. Por favor selecciona una fecha y hora futura.');
       }
 
+      const recordData = {
+        type: 'custom_table',
+        name: name,
+        utcTime: selectedDate.toISOString(),
+        players: [creator],
+        modality: modality,
+        deletePin: deletePin,
+        originTz: userTimezone
+      };
+
+      if (modality === 'presencial') {
+        const venue = document.getElementById('tableVenue').value.trim();
+        const country = document.getElementById('tableCountry').value;
+        const city = document.getElementById('tableCity').value.trim();
+        const mapsLink = document.getElementById('tableMapsLink').value.trim();
+
+        if (!venue) return alert('Ingresa el Lugar / FLGS.');
+        if (!city) return alert('Ingresa la Ciudad.');
+
+        recordData.venue = venue;
+        recordData.country = country;
+        recordData.city = city;
+        recordData.mapsLink = mapsLink || '';
+      } else {
+        recordData.platform = document.getElementById('tablePlatform').value;
+        recordData.discord = document.getElementById('tableDiscord').value.trim() || '';
+        recordData.gamePassword = document.getElementById('tableGamePassword').value.trim() || '';
+      }
+
       const newRef = recordsRef.push();
       const newId = newRef.key;
 
       localStorage.setItem(`vtes_owner_${newId}`, creator.toLowerCase());
 
-      newRef.set({
-        type: 'custom_table',
-        name: name,
-        utcTime: selectedDate.toISOString(),
-        players: [creator],
-        platform: platform,
-        discord: discord || '',
-        gamePassword: gamePassword || '',
-        deletePin: deletePin,
-        originTz: userTimezone
-      });
+      newRef.set(recordData);
 
       document.getElementById('customTableForm').reset();
       pickerCustomTable.clear();
+      setTableModality('virtual');
     });
 
     function setAutoTablePassword(autoKey) {
@@ -446,6 +537,15 @@
       if (newPassword !== null) {
         db.ref(`vtes_records/${tableId}`).update({
           gamePassword: newPassword.trim()
+        });
+      }
+    }
+
+    function editCustomTableMapsLink(tableId, currentLink) {
+      const newLink = prompt('Ingresa o actualiza el link de Google Maps:', currentLink || '');
+      if (newLink !== null) {
+        db.ref(`vtes_records/${tableId}`).update({
+          mapsLink: newLink.trim()
         });
       }
     }
@@ -570,6 +670,10 @@
       return isLackey 
         ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">💻 LackeyCCG</span>`
         : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">🦇 Succubus Club</span>`;
+    }
+
+    function getLocationBadge() {
+      return `<span class="bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">📍 Presencial</span>`;
     }
 
     function renderAll(allData) {
@@ -752,7 +856,25 @@
           </div>
         `;
 
+        const venueHtml = `
+          <div class="bg-emerald-950/40 border border-emerald-700/50 rounded-lg p-2.5 text-xs text-emerald-300 space-y-1.5">
+            <div class="flex items-center gap-1.5">
+              <span>📍</span> <strong>${escapeHtml(t.venue || '')}</strong>
+            </div>
+            <div class="text-emerald-400/70 pl-4">${escapeHtml(t.city || '')}${t.country ? ', ' + escapeHtml(t.country) : ''}</div>
+            <div class="flex items-center justify-between pt-1">
+              ${t.mapsLink
+                ? `<a href="${escapeHtml(t.mapsLink)}" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold">🗺️ Ver ubicación</a>`
+                : `<span class="text-gray-500 italic">Sin link de mapa</span>`}
+              <button onclick="editCustomTableMapsLink('${t.id}', '${escapeHtml(t.mapsLink || '')}')" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
+                ✏️ ${t.mapsLink ? 'Editar' : 'Agregar'} link
+              </button>
+            </div>
+          </div>
+        `;
+
         const cardId = `card-custom-${t.id}`;
+        const isPresencial = t.modality === 'presencial';
 
         return `
           <div id="${cardId}" class="bg-gray-900 border ${isReady ? 'border-green-600/60' : 'border-amber-600/40'} rounded-xl p-4 shadow-md space-y-4">
@@ -760,7 +882,7 @@
               <div>
                 <div class="flex items-center gap-2">
                   <h3 class="font-bold text-amber-400 text-base">${escapeHtml(t.name)}</h3>
-                  ${getPlatformBadge(t.platform || 'Lackey')}
+                  ${isPresencial ? getLocationBadge() : getPlatformBadge(t.platform || 'Lackey')}
                 </div>
                 <p class="text-xs text-gray-400 mt-0.5">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span></p>
               </div>
@@ -771,8 +893,7 @@
             </div>
 
             <div class="space-y-2">
-              ${discordHtml}
-              ${gamePwdHtml}
+              ${isPresencial ? venueHtml : discordHtml + gamePwdHtml}
             </div>
 
             <div class="space-y-2">
@@ -795,7 +916,7 @@
               ` : `
                 <div class="text-center text-xs text-gray-500 py-1.5 bg-gray-800 rounded">Mesa llena</div>
               `}
-              <button onclick="shareTableInvitation('${cardId}', '${escapeHtml(t.name)}', '${escapeHtml(t.platform || 'Lackey')}', '${t.utcTime}', ${count}, '${escapeHtml(t.discord || '')}')" class="w-full bg-green-700/30 hover:bg-green-600 text-green-300 hover:text-white border border-green-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1.5">
+              <button onclick="shareTableInvitation('${cardId}', '${escapeHtml(t.name)}', '${escapeHtml(t.platform || 'Lackey')}', '${t.utcTime}', ${count}, '${escapeHtml(t.discord || '')}', '${t.modality || 'virtual'}', '${escapeHtml(t.venue || '')}', '${escapeHtml(t.city || '')}', '${escapeHtml(t.country || '')}', '${escapeHtml(t.mapsLink || '')}')" class="w-full bg-green-700/30 hover:bg-green-600 text-green-300 hover:text-white border border-green-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1.5">
                 📲 Invitar por WhatsApp
               </button>
             </div>
