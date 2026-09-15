@@ -100,9 +100,9 @@
     <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
       <div class="border-b border-gray-700 pb-3">
         <h2 class="text-xl font-bold text-amber-500 flex items-center gap-2">
-          <span>⚔️</span> Abrir Nueva Mesa de Juego
+          <span id="tableSectionIcon">⚔️</span> <span id="tableSectionTitle">Abrir Nueva Mesa de Juego</span>
         </h2>
-        <p class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
+        <p id="tableSectionSubtitle" class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
       </div>
 
       <div class="flex gap-2 bg-gray-900 p-1.5 rounded-lg border border-gray-700 max-w-xs">
@@ -180,7 +180,7 @@
         </div>
         <div class="flex items-end">
           <button type="submit" id="createTableBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition">
-            Abrir Mesa
+            <span id="createTableBtnLabel">Abrir Mesa</span>
           </button>
         </div>
       </form>
@@ -308,6 +308,8 @@
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
 
+    let currentTableModalityFilter = 'virtual';
+
     function setTableModality(mode) {
       document.getElementById('tableModality').value = mode;
       const virtualGroup = document.getElementById('virtualFieldsGroup');
@@ -328,6 +330,17 @@
       btnPresencial.classList.toggle('text-white', !isVirtual);
       btnPresencial.classList.toggle('bg-gray-800', isVirtual);
       btnPresencial.classList.toggle('text-gray-400', isVirtual);
+
+      document.getElementById('tableSectionIcon').textContent = isVirtual ? '⚔️' : '📍';
+      document.getElementById('tableSectionTitle').textContent = isVirtual ? 'Abrir Nueva Mesa de Juego' : 'Crear Nuevo Evento Presencial';
+      document.getElementById('tableSectionSubtitle').textContent = isVirtual
+        ? 'Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.'
+        : 'Organiza una quedada presencial para que otros confirmen asistencia.';
+      document.getElementById('createTableBtnLabel').textContent = isVirtual ? 'Abrir Mesa' : 'Crear Evento';
+
+      // La lista de abajo se filtra para mostrar solo lo que coincide con la modalidad seleccionada
+      currentTableModalityFilter = mode;
+      renderAll(currentGlobalData);
     }
 
     function showSecurityModal() {
@@ -682,7 +695,7 @@
       const customTablesContainer = document.getElementById('customTablesContainer');
 
       const individuals = allData.filter(d => d.type === 'individual' || !d.type);
-      const customTables = allData.filter(d => d.type === 'custom_table');
+      const customTables = allData.filter(d => d.type === 'custom_table' && (d.modality || 'virtual') === currentTableModalityFilter);
 
       if (individuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">No hay disponividades individuales.</td></tr>`;
@@ -814,7 +827,7 @@
 
     function renderCustomTables(tables, container) {
       if (tables.length === 0) {
-        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">No hay mesas abiertas creadas. ¡Abre una!</p>`;
+        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">${currentTableModalityFilter === 'presencial' ? 'No hay eventos presenciales creados. ¡Crea uno!' : 'No hay mesas abiertas creadas. ¡Abre una!'}</p>`;
         return;
       }
 
