@@ -14,6 +14,8 @@
   <!-- Firebase App & Database SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Firebase App Check (protege la base de datos: solo funciona desde el dominio autorizado) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
   <!-- html2canvas para Screenshots (opcional) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -232,6 +234,21 @@
 
     // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
+
+    // ---------------------------------------------------------------------
+    // FIREBASE APP CHECK (reCAPTCHA Enterprise)
+    // Esto valida que las peticiones a la base de datos vengan realmente
+    // desde tu página publicada en xchubasx.github.io, y no desde una copia
+    // del HTML abierta en otro dominio o en un equipo local.
+    // Reemplaza el texto de abajo por tu Site Key de reCAPTCHA Enterprise
+    // (la que creaste en console.cloud.google.com/security/recaptcha).
+    // ---------------------------------------------------------------------
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+      new firebase.appCheck.ReCaptchaEnterpriseProvider('6Lc2QLYtAAAAAHI6pH3gABXBdG4m2X1rPKmegI0P'),
+      true // refresca el token automáticamente en segundo plano
+    );
+
     const db = firebase.database();
     const recordsRef = db.ref('vtes_records');
     const autoPassRef = db.ref('vtes_auto_passwords');
