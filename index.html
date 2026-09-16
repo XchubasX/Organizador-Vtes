@@ -117,7 +117,7 @@
       <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
         <input type="hidden" id="tableModality" value="virtual">
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
+          <label id="tableNameLabel" class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
           <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
         </div>
         <div>
@@ -149,7 +149,7 @@
 
         <div id="presencialFieldsGroup" style="display: none;">
           <div>
-            <label class="block text-xs font-semibold text-emerald-400 mb-1">📍 Lugar / FLGS</label>
+            <label class="block text-xs font-semibold text-emerald-400 mb-1">📍 Lugar</label>
             <input type="text" id="tableVenue" placeholder="ej. Tienda Vórtice" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
           </div>
           <div>
@@ -184,6 +184,26 @@
           </button>
         </div>
       </form>
+
+      <div id="presencialFiltersBar" style="display: none;" class="flex flex-wrap items-end gap-3 bg-gray-900/60 border border-emerald-700/30 rounded-lg p-3">
+        <div class="flex-1 min-w-[140px]">
+          <label class="block text-[11px] font-semibold text-emerald-400 mb-1">🌍 País</label>
+          <input type="text" id="filterCountry" placeholder="ej. México" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
+        </div>
+        <div class="flex-1 min-w-[140px]">
+          <label class="block text-[11px] font-semibold text-emerald-400 mb-1">🏙️ Ciudad</label>
+          <select id="filterCity" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="flex-1 min-w-[140px]">
+          <label class="block text-[11px] font-semibold text-emerald-400 mb-1">🗓️ Fecha</label>
+          <input type="text" id="filterDate" placeholder="Cualquier fecha" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs cursor-pointer focus:outline-none focus:border-emerald-400">
+        </div>
+        <button type="button" id="clearFiltersBtn" onclick="clearPresencialFilters()" class="text-[11px] text-gray-400 hover:text-red-400 underline bg-transparent border-0 cursor-pointer px-1 py-2">
+          Limpiar filtros
+        </button>
+      </div>
 
       <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"></div>
     </section>
@@ -307,6 +327,11 @@
 
     let pickerAvailability = flatpickr("#localDateTime", configFlatpickr);
     let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
+    let pickerFilterDate = flatpickr("#filterDate", {
+      dateFormat: "Y-m-d",
+      locale: "es",
+      onChange: () => renderAll(currentGlobalData)
+    });
 
     let currentTableModalityFilter = 'virtual';
 
@@ -333,10 +358,12 @@
 
       document.getElementById('tableSectionIcon').textContent = isVirtual ? '⚔️' : '📍';
       document.getElementById('tableSectionTitle').textContent = isVirtual ? 'Abrir Nueva Mesa de Juego' : 'Crear Nuevo Evento Presencial';
+      document.getElementById('tableNameLabel').textContent = isVirtual ? 'Nombre de Mesa' : 'Nombre de Evento';
       document.getElementById('tableSectionSubtitle').textContent = isVirtual
         ? 'Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.'
         : 'Organiza una quedada presencial para que otros confirmen asistencia.';
       document.getElementById('createTableBtnLabel').textContent = isVirtual ? 'Abrir Mesa' : 'Crear Evento';
+      document.getElementById('presencialFiltersBar').style.display = isVirtual ? 'none' : 'flex';
 
       // La lista de abajo se filtra para mostrar solo lo que coincide con la modalidad seleccionada
       currentTableModalityFilter = mode;
@@ -357,7 +384,7 @@
       const siteUrl = window.location.href.split('#')[0];
 
       let msg = `🦇 *¡INVITACIÓN A MESA DE VTES!* 🦇\n\n`;
-      msg += `⚔️ *Mesa:* ${tableName}\n`;
+      msg += `⚔️ *${modality === 'presencial' ? 'Evento' : 'Mesa'}:* ${tableName}\n`;
 
       if (modality === 'presencial') {
         // Mensaje para mesa PRESENCIAL: lugar, ciudad y hora local (sin husos horarios)
@@ -503,7 +530,7 @@
         const city = document.getElementById('tableCity').value.trim();
         const mapsLink = document.getElementById('tableMapsLink').value.trim();
 
-        if (!venue) return alert('Ingresa el Lugar / FLGS.');
+        if (!venue) return alert('Ingresa el Lugar.');
         if (!city) return alert('Ingresa la Ciudad.');
 
         recordData.venue = venue;
@@ -689,13 +716,51 @@
       return `<span class="bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">📍 Presencial</span>`;
     }
 
+    function matchesPresencialFilters(t) {
+      const countryVal = (document.getElementById('filterCountry').value || '').trim().toLowerCase();
+      const cityVal = document.getElementById('filterCity').value || '';
+      const dateVal = document.getElementById('filterDate').value || '';
+
+      if (countryVal && !(t.country || '').toLowerCase().includes(countryVal)) return false;
+      if (cityVal && (t.city || '') !== cityVal) return false;
+      if (dateVal) {
+        const localDateStr = new Date(t.utcTime).toLocaleDateString('en-CA'); // formato YYYY-MM-DD
+        if (localDateStr !== dateVal) return false;
+      }
+      return true;
+    }
+
+    function updateCityFilterOptions(presencialTables) {
+      const citySelect = document.getElementById('filterCity');
+      const currentValue = citySelect.value;
+      const cities = Array.from(new Set(presencialTables.map(t => t.city).filter(Boolean))).sort();
+      citySelect.innerHTML = '<option value="">Todas</option>' + cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      if (cities.includes(currentValue)) citySelect.value = currentValue;
+    }
+
+    function clearPresencialFilters() {
+      document.getElementById('filterCountry').value = '';
+      document.getElementById('filterCity').value = '';
+      pickerFilterDate.clear();
+      renderAll(currentGlobalData);
+    }
+
+    document.getElementById('filterCountry').addEventListener('input', () => renderAll(currentGlobalData));
+    document.getElementById('filterCity').addEventListener('change', () => renderAll(currentGlobalData));
+
     function renderAll(allData) {
       const tbody = document.getElementById('scheduleTable');
       const autoTablesContainer = document.getElementById('autoTablesContainer');
       const customTablesContainer = document.getElementById('customTablesContainer');
 
       const individuals = allData.filter(d => d.type === 'individual' || !d.type);
-      const customTables = allData.filter(d => d.type === 'custom_table' && (d.modality || 'virtual') === currentTableModalityFilter);
+      const rawCustomTables = allData.filter(d => d.type === 'custom_table' && (d.modality || 'virtual') === currentTableModalityFilter);
+
+      let customTables = rawCustomTables;
+      if (currentTableModalityFilter === 'presencial') {
+        updateCityFilterOptions(rawCustomTables);
+        customTables = rawCustomTables.filter(matchesPresencialFilters);
+      }
 
       if (individuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">No hay disponividades individuales.</td></tr>`;
