@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadísticas - VTES Scheduler</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase App & Database SDKs (solo lectura de contadores) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Firebase App Check (la base de datos exige token válido incluso para lectura) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
+
+  <div class="max-w-3xl mx-auto space-y-6">
+
+    <header class="text-center space-y-2 border-b border-red-800 pb-4">
+      <h1 class="text-2xl md:text-4xl font-extrabold text-red-600 tracking-wider">📊 ESTADÍSTICAS</h1>
+      <p class="text-gray-400 text-sm">VTES Scheduler</p>
+    </header>
+
+    <!-- GATE DE CONTRASEÑA (disuasorio, no es seguridad real — ver comentario en el script) -->
+    <section id="gateSection" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4 max-w-sm mx-auto">
+      <p class="text-sm text-gray-400 text-center">Esta página es privada. Ingresa la contraseña para ver las estadísticas.</p>
+      <form id="gateForm" class="space-y-3">
+        <input type="password" id="gatePassword" placeholder="Contraseña" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-amber-500" autocomplete="off">
+        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm transition">
+          Entrar
+        </button>
+      </form>
+      <p id="gateError" class="text-center text-xs text-red-400 hidden">Contraseña incorrecta.</p>
+    </section>
+
+    <!-- CONTENIDO -->
+    <div id="statsContent" class="space-y-6 hidden">
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-gray-800 border border-amber-700/40 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-amber-400" id="statVirtualTables">0</p>
+          <p class="text-[11px] text-gray-400 mt-1">Mesas virtuales creadas</p>
+        </div>
+        <div class="bg-gray-800 border border-emerald-700/40 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-emerald-400" id="statPresencialEvents">0</p>
+          <p class="text-[11px] text-gray-400 mt-1">Eventos presenciales creados</p>
+        </div>
+        <div class="bg-gray-800 border border-amber-700/40 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-amber-400" id="statVirtualJoins">0</p>
+          <p class="text-[11px] text-gray-400 mt-1">Inscripciones a mesas virtuales</p>
+        </div>
+        <div class="bg-gray-800 border border-emerald-700/40 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-emerald-400" id="statPresencialJoins">0</p>
+          <p class="text-[11px] text-gray-400 mt-1">Inscripciones a eventos presenciales</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
+          <p class="text-xl font-bold text-white" id="statVirtualAvg">—</p>
+          <p class="text-[11px] text-gray-400 mt-1">Promedio de jugadores por mesa virtual</p>
+        </div>
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
+          <p class="text-xl font-bold text-white" id="statPresencialAvg">—</p>
+          <p class="text-[11px] text-gray-400 mt-1">Promedio de asistentes por evento presencial</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-3">
+        <h2 class="text-lg font-bold text-amber-500">Eventos presenciales por ciudad</h2>
+        <div id="cityBreakdown" class="space-y-2"></div>
+      </div>
+
+      <p class="text-center text-[11px] text-gray-600">
+        Los contadores son históricos: no bajan aunque una mesa o evento se elimine, se cierre o expire.
+      </p>
+
+      <div class="text-center">
+        <a href="index.html" class="inline-block text-xs text-amber-400 hover:text-amber-300 underline">← Volver al Organizador</a>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Configuración de tu proyecto en Firebase (misma que index.html — solo se usa para leer
+    // los contadores de estadísticas; esta página no escribe nada en la base de datos)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
+      authDomain: "vtes-scheduler.firebaseapp.com",
+      databaseURL: "https://vtes-scheduler-default-rtdb.firebaseio.com",
+      projectId: "vtes-scheduler",
+      storageBucket: "vtes-scheduler.firebasestorage.app",
+      messagingSenderId: "897608138023",
+      appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+      new firebase.appCheck.ReCaptchaEnterpriseProvider('6Lc2QLYtAAAAAHI6pH3gABXBdG4m2X1rPKmegI0P'),
+      true
+    );
+
+    const db = firebase.database();
+
+    // ---------------------------------------------------------------------
+    // Contraseña simple para disuadir accesos casuales a esta página.
+    // IMPORTANTE: esto NO es seguridad real. Las reglas de la base de datos
+    // son las mismas para todo el sitio (protegidas por App Check, no por
+    // usuario/contraseña), así que alguien con conocimientos técnicos podría
+    // leer estos contadores directamente desde la consola del navegador sin
+    // pasar por esta pantalla. Esta página tampoco está enlazada desde
+    // ningún otro lugar del sitio — solo se llega a ella si se conoce la URL.
+    // ---------------------------------------------------------------------
+    const STATS_PASSWORD = 'vtes2026';
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    document.getElementById('gateForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('gatePassword').value;
+      if (input === STATS_PASSWORD) {
+        document.getElementById('gateSection').classList.add('hidden');
+        document.getElementById('statsContent').classList.remove('hidden');
+        loadStats();
+      } else {
+        document.getElementById('gateError').classList.remove('hidden');
+        document.getElementById('gatePassword').value = '';
+      }
+    });
+
+    function loadStats() {
+      db.ref('stats').get().then(snapshot => {
+        const stats = snapshot.val() || {};
+
+        const virtualTables = stats.virtualTablesCreated || 0;
+        const virtualJoins = stats.virtualJoins || 0;
+        const presencialEvents = stats.presencialEventsCreated || 0;
+        const presencialJoins = stats.presencialJoins || 0;
+
+        document.getElementById('statVirtualTables').textContent = virtualTables;
+        document.getElementById('statPresencialEvents').textContent = presencialEvents;
+        document.getElementById('statVirtualJoins').textContent = virtualJoins;
+        document.getElementById('statPresencialJoins').textContent = presencialJoins;
+
+        document.getElementById('statVirtualAvg').textContent = virtualTables > 0 ? (virtualJoins / virtualTables).toFixed(1) : '—';
+        document.getElementById('statPresencialAvg').textContent = presencialEvents > 0 ? (presencialJoins / presencialEvents).toFixed(1) : '—';
+
+        const byCity = stats.presencialByCity || {};
+        const cityKeys = Object.keys(byCity).sort((a, b) => (byCity[b].eventsCreated || 0) - (byCity[a].eventsCreated || 0));
+
+        const cityContainer = document.getElementById('cityBreakdown');
+        if (cityKeys.length === 0) {
+          cityContainer.innerHTML = `<p class="text-xs text-gray-500 italic">Todavía no hay eventos presenciales registrados.</p>`;
+        } else {
+          cityContainer.innerHTML = cityKeys.map(key => {
+            const c = byCity[key];
+            const events = c.eventsCreated || 0;
+            const joins = c.joins || 0;
+            const avg = events > 0 ? (joins / events).toFixed(1) : '—';
+            return `
+              <div class="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+                <span class="font-medium text-emerald-300">${escapeHtml(c.name || key)}${c.country ? `<span class="text-gray-500 font-normal">, ${escapeHtml(c.country)}</span>` : ''}</span>
+                <span class="text-xs text-gray-400">${events} evento${events === 1 ? '' : 's'} · ${joins} asistente${joins === 1 ? '' : 's'} · prom. ${avg}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }).catch(() => {
+        document.getElementById('statsContent').innerHTML = `<p class="text-center text-red-400 text-sm">No se pudieron cargar las estadísticas.</p>`;
+      });
+    }
+  </script>
+
+</body>
+</html>
