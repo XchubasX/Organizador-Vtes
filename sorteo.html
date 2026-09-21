@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteo de Mesa - VTES</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase App & Database SDKs (solo lectura del evento) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Firebase App Check (la base de datos exige token válido incluso para lectura) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
+
+  <div class="max-w-2xl mx-auto space-y-6">
+
+    <header class="text-center space-y-2 border-b border-red-800 pb-4">
+      <h1 class="text-2xl md:text-4xl font-extrabold text-red-600 tracking-wider">🎲 SORTEO DE MESA</h1>
+      <p id="eventLabel" class="text-gray-400 text-sm">Cargando evento...</p>
+      <a href="index.html" class="inline-block text-xs text-amber-400 hover:text-amber-300 underline">← Volver al Organizador</a>
+    </header>
+
+    <!-- SELECCIÓN DE JUGADORES PRESENTES -->
+    <section id="selectionSection" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div>
+        <h2 class="text-lg font-bold text-amber-500">¿Quién juega en esta mesa?</h2>
+        <p class="text-xs text-gray-400 mt-1">Marca a los que están presentes. Puedes agregar o quitar nombres antes de sortear — útil si alguien no llegó o si se suma alguien de última hora.</p>
+      </div>
+
+      <div id="playerCheckboxList" class="space-y-2"></div>
+
+      <div class="flex gap-2 pt-2">
+        <input type="text" id="extraNameInput" placeholder="Agregar nombre..." class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+        <button type="button" onclick="addExtraName()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-1.5 rounded-lg text-sm transition">+ Agregar</button>
+      </div>
+
+      <button type="button" id="sortearBtn" onclick="performDraw()" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-lg text-base transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-700" disabled>
+        🎲 Sortear presa/depredador
+      </button>
+      <p class="text-center text-[11px] text-gray-500">Selecciona al menos 2 jugadores para poder sortear.</p>
+    </section>
+
+    <!-- RESULTADO -->
+    <section id="resultSection" class="bg-gray-800 border border-red-800/50 rounded-xl p-6 shadow-xl space-y-4 hidden">
+      <h2 class="text-lg font-bold text-red-500 text-center tracking-wide">🩸 CADENA DE SANGRE 🩸</h2>
+
+      <div id="wheelContainer" class="flex justify-center"></div>
+
+      <p class="text-center text-[11px] text-gray-400 leading-relaxed">
+        El número indica el orden de turno. Cada jugador es <strong class="text-red-400">depredador</strong> del jugador anterior en el círculo (el primero es depredador del último, cerrando la cadena).
+      </p>
+
+      <ol id="orderList" class="text-sm text-gray-300 space-y-1.5 pt-2 border-t border-gray-700"></ol>
+
+      <button type="button" onclick="performDraw()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 rounded-lg text-sm transition">
+        🔄 Volver a sortear
+      </button>
+    </section>
+
+  </div>
+
+  <script>
+    // Configuración de tu proyecto en Firebase (misma que index.html — solo se usa para leer
+    // el evento y precargar la lista de confirmados; esta página no escribe nada en la base de datos)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
+      authDomain: "vtes-scheduler.firebaseapp.com",
+      databaseURL: "https://vtes-scheduler-default-rtdb.firebaseio.com",
+      projectId: "vtes-scheduler",
+      storageBucket: "vtes-scheduler.firebasestorage.app",
+      messagingSenderId: "897608138023",
+      appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+      new firebase.appCheck.ReCaptchaEnterpriseProvider('6Lc2QLYtAAAAAHI6pH3gABXBdG4m2X1rPKmegI0P'),
+      true
+    );
+
+    const db = firebase.database();
+
+    // Misma lógica retrocompatible que index.html para leer nicks de "players"
+    function normalizePlayer(p) {
+      if (p && typeof p === 'object') {
+        return { nick: p.nick || '', arrival: p.arrival || null };
+      }
+      const str = (p || '').toString();
+      const match = str.match(/^(.*\S)\s+(\d{1,2}):(\d{2})\s*$/);
+      if (match) {
+        return { nick: match[1], arrival: `${match[2].padStart(2, '0')}:${match[3]}` };
+      }
+      return { nick: str, arrival: null };
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const tableId = params.get('tableId');
+
+    // Cada elemento: { nick, checked }
+    let candidateNames = [];
+
+    function renderCheckboxList() {
+      const container = document.getElementById('playerCheckboxList');
+      if (candidateNames.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500 italic">Todavía no hay nombres. Agrega abajo.</p>`;
+      } else {
+        container.innerHTML = candidateNames.map((entry, idx) => `
+          <label class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm cursor-pointer">
+            <input type="checkbox" ${entry.checked ? 'checked' : ''} onchange="toggleCheck(${idx})" class="w-4 h-4 accent-red-600 cursor-pointer">
+            <span class="flex-1 ${entry.checked ? '' : 'text-gray-500 line-through'}">${escapeHtml(entry.nick)}</span>
+            <button type="button" onclick="removeName(${idx})" class="text-gray-500 hover:text-red-400 text-xs px-1" title="Quitar de la lista">✕</button>
+          </label>
+        `).join('');
+      }
+      updateSortearBtnState();
+    }
+
+    function toggleCheck(idx) {
+      candidateNames[idx].checked = !candidateNames[idx].checked;
+      renderCheckboxList();
+    }
+
+    function removeName(idx) {
+      candidateNames.splice(idx, 1);
+      renderCheckboxList();
+    }
+
+    function addExtraName() {
+      const input = document.getElementById('extraNameInput');
+      const val = input.value.trim();
+      if (!val) return;
+      candidateNames.push({ nick: val, checked: true });
+      input.value = '';
+      renderCheckboxList();
+      input.focus();
+    }
+
+    document.getElementById('extraNameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addExtraName();
+      }
+    });
+
+    function updateSortearBtnState() {
+      const checkedCount = candidateNames.filter(n => n.checked).length;
+      document.getElementById('sortearBtn').disabled = checkedCount < 2;
+    }
+
+    // Carga inicial: si viene un tableId en la URL, precarga los confirmados de ese evento
+    if (tableId) {
+      db.ref(`vtes_records/${tableId}`).get().then(snapshot => {
+        if (snapshot.exists()) {
+          const table = snapshot.val();
+          const label = table.venue ? `"${table.name}" — ${table.venue}` : `"${table.name}"`;
+          document.getElementById('eventLabel').textContent = label;
+          candidateNames = (table.players || []).map(p => ({ nick: normalizePlayer(p).nick, checked: true }));
+        } else {
+          document.getElementById('eventLabel').textContent = 'El evento ya no existe — agrega los nombres manualmente.';
+        }
+        renderCheckboxList();
+      }).catch(() => {
+        document.getElementById('eventLabel').textContent = 'No se pudo cargar el evento — agrega los nombres manualmente.';
+        renderCheckboxList();
+      });
+    } else {
+      document.getElementById('eventLabel').textContent = 'Sorteo libre — agrega los nombres de los jugadores presentes.';
+      renderCheckboxList();
+    }
+
+    // Fisher-Yates
+    function shuffle(array) {
+      const arr = array.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function performDraw() {
+      const selected = candidateNames.filter(n => n.checked).map(n => n.nick);
+      if (selected.length < 2) return;
+
+      const order = shuffle(selected);
+      renderWheel(order);
+      renderOrderList(order);
+
+      document.getElementById('resultSection').classList.remove('hidden');
+      document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderOrderList(order) {
+      const list = document.getElementById('orderList');
+      list.innerHTML = order.map((name, idx) => {
+        const predatorIdx = (idx - 1 + order.length) % order.length;
+        return `<li class="flex items-center gap-2">
+          <span class="text-amber-400 font-bold w-5">${idx + 1}.</span>
+          <span class="flex-1">${escapeHtml(name)}</span>
+          ${idx === 0 ? '<span class="text-emerald-400 text-[10px] bg-emerald-950/50 border border-emerald-700/50 px-2 py-0.5 rounded-full">Empieza el juego</span>' : ''}
+          <span class="text-gray-500 text-[10px]">depredador: ${escapeHtml(order[predatorIdx])}</span>
+        </li>`;
+      }).join('');
+    }
+
+    function renderWheel(order) {
+      const n = order.length;
+      const size = 320;
+      const cx = size / 2;
+      const cy = size / 2;
+      const r = size / 2 - 55;
+
+      const points = order.map((name, i) => {
+        const angle = (-90 + (360 / n) * i) * (Math.PI / 180);
+        return {
+          name,
+          x: cx + r * Math.cos(angle),
+          y: cy + r * Math.sin(angle)
+        };
+      });
+
+      let edges = '';
+      for (let i = 0; i < n; i++) {
+        const from = points[i];
+        const to = points[(i + 1) % n];
+        const dx = to.x - from.x, dy = to.y - from.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const shrink = 32;
+        const x1 = from.x + (dx / dist) * shrink;
+        const y1 = from.y + (dy / dist) * shrink;
+        const x2 = to.x - (dx / dist) * shrink;
+        const y2 = to.y - (dy / dist) * shrink;
+        edges += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowhead)" opacity="0.75" />`;
+      }
+
+      let nodes = '';
+      points.forEach((p, i) => {
+        const isFirst = i === 0;
+        const shortName = p.name.length > 12 ? p.name.slice(0, 11) + '…' : p.name;
+        nodes += `
+          <circle cx="${p.x}" cy="${p.y}" r="30" fill="${isFirst ? '#78350f' : '#1f2937'}" stroke="${isFirst ? '#f59e0b' : '#dc2626'}" stroke-width="2" />
+          <text x="${p.x}" y="${p.y - 3}" text-anchor="middle" fill="#fbbf24" font-size="15" font-weight="bold">${i + 1}</text>
+          <text x="${p.x}" y="${p.y + 13}" text-anchor="middle" fill="#e5e7eb" font-size="9">${escapeHtml(shortName)}</text>
+        `;
+      });
+
+      document.getElementById('wheelContainer').innerHTML = `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="max-w-full h-auto">
+          <defs>
+            <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#dc2626" />
+            </marker>
+          </defs>
+          ${edges}
+          ${nodes}
+        </svg>
+      `;
+    }
+  </script>
+
+</body>
+</html>
