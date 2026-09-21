@@ -300,6 +300,18 @@
 
     let currentTableModalityFilter = 'virtual';
 
+    // Ciudad indicada por la URL (ej. .../Organizador-Vtes/Zaragoza), o null si no aplica.
+    // Tiene prioridad sobre el filtro manual de ciudad hasta que el usuario lo toque o
+    // le dé clic a "Limpiar filtros".
+    let urlCityFilter = null;
+
+    function clearUrlCityFilter() {
+      if (!urlCityFilter) return;
+      urlCityFilter = null;
+      const basePath = window.location.pathname.replace(/[^/]+\/?$/, '');
+      window.history.replaceState({}, '', basePath || '/');
+    }
+
     function setTableModality(mode) {
       document.getElementById('tableModality').value = mode;
       const virtualGroup = document.getElementById('virtualFieldsGroup');
@@ -665,6 +677,27 @@
       return validData;
     }
 
+    // ---------------------------------------------------------------------
+    // URL POR CIUDAD (ej. https://.../Organizador-Vtes/Zaragoza)
+    // GitHub Pages no soporta rutas "bonitas" nativamente; el archivo
+    // 404.html se encarga de redirigir aquí pasando la ciudad como
+    // parámetro (?city=...). Esta función la lee, activa el modo
+    // Presencial con esa ciudad filtrada, y deja la URL bonita de nuevo
+    // en la barra del navegador (sin el ?city=...).
+    // ---------------------------------------------------------------------
+    (function initCityFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const cityParam = params.get('city');
+      if (!cityParam) return;
+
+      urlCityFilter = cityParam;
+
+      const basePath = window.location.pathname.replace(/\/?$/, '/');
+      window.history.replaceState({}, '', basePath + encodeURIComponent(cityParam));
+
+      setTableModality('presencial');
+    })();
+
     recordsRef.on('value', (snapshot) => {
       const dataObj = snapshot.val() || {};
       const rawData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
@@ -864,8 +897,15 @@
       const cityVal = document.getElementById('filterCity').value || '';
       const dateVal = document.getElementById('filterDate').value || '';
 
+      // Si la ciudad viene de la URL (ej. .../Organizador-Vtes/Zaragoza), manda sobre el
+      // dropdown manual, y compara sin importar mayúsculas/acentos-caja.
+      if (urlCityFilter) {
+        if ((t.city || '').toLowerCase() !== urlCityFilter.toLowerCase()) return false;
+      } else if (cityVal && (t.city || '').toLowerCase() !== cityVal.toLowerCase()) {
+        return false;
+      }
+
       if (countryVal && !(t.country || '').toLowerCase().includes(countryVal)) return false;
-      if (cityVal && (t.city || '') !== cityVal) return false;
       if (dateVal) {
         const localDateStr = new Date(t.utcTime).toLocaleDateString('en-CA'); // formato YYYY-MM-DD
         if (localDateStr !== dateVal) return false;
@@ -878,18 +918,33 @@
       const currentValue = citySelect.value;
       const cities = Array.from(new Set(presencialTables.map(t => t.city).filter(Boolean))).sort();
       citySelect.innerHTML = '<option value="">Todas</option>' + cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-      if (cities.includes(currentValue)) citySelect.value = currentValue;
+
+      if (urlCityFilter) {
+        // Refleja en el dropdown la ciudad de la URL si ya existe algún evento con ese
+        // nombre (comparación sin distinguir mayúsculas). Si no hay coincidencia todavía,
+        // el dropdown se queda en "Todas" pero el filtro de la URL sigue aplicando igual
+        // (mostrará la lista vacía, no todos los eventos).
+        const match = cities.find(c => c.toLowerCase() === urlCityFilter.toLowerCase());
+        if (match) citySelect.value = match;
+      } else if (cities.includes(currentValue)) {
+        citySelect.value = currentValue;
+      }
     }
 
     function clearPresencialFilters() {
       document.getElementById('filterCountry').value = '';
       document.getElementById('filterCity').value = '';
       pickerFilterDate.clear();
+      clearUrlCityFilter();
       renderAll(currentGlobalData);
     }
 
     document.getElementById('filterCountry').addEventListener('input', () => renderAll(currentGlobalData));
-    document.getElementById('filterCity').addEventListener('change', () => renderAll(currentGlobalData));
+    document.getElementById('filterCity').addEventListener('change', () => {
+      // Si el usuario toca el dropdown manualmente, la ciudad de la URL deja de mandar.
+      clearUrlCityFilter();
+      renderAll(currentGlobalData);
+    });
 
     function renderAll(allData) {
       const customTablesContainer = document.getElementById('customTablesContainer');
