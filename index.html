@@ -6,6 +6,26 @@
   <title>VTES Matchmaking & Mesas Abiertas</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            wine: {
+              50: '#fdf2f4', 100: '#fbe4e8', 200: '#f0c2cb', 300: '#d98fa0',
+              400: '#c05a72', 500: '#a8425a', 600: '#8c2f45', 700: '#6d2436',
+              800: '#551c2a', 900: '#3f141f', 950: '#2a0d15'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
   <!-- Flatpickr (Calendario) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
@@ -19,7 +39,7 @@
   <!-- html2canvas para Screenshots (opcional) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
+<body class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
 
 <!-- SELLO DARK PACK FLOTANTE (Esquina Inferior Izquierda) -->
   <aside aria-label="Dark Pack Certified" class="fixed bottom-4 left-4 z-40 block group">
@@ -31,21 +51,21 @@
 
   <!-- MODAL EXPLICATIVO DE SEGURIDAD (VENTANA FLOTANTE) -->
   <div id="securityModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-gray-800 border border-amber-600/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-      <div class="flex items-center gap-3 border-b border-gray-700 pb-3">
+    <div class="bg-zinc-800 border border-wine-600/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 border-b border-zinc-700 pb-3">
         <span class="text-2xl">🔒</span>
-        <h3 class="text-lg font-bold text-amber-400">PIN Antiborrado de Seguridad</h3>
+        <h3 class="text-lg font-bold text-wine-400">PIN Antiborrado de Seguridad</h3>
       </div>
-      <div class="space-y-3 text-xs md:text-sm text-gray-300 leading-relaxed">
+      <div class="space-y-3 text-xs md:text-sm text-zinc-300 leading-relaxed">
         <p>
-          Estás creando un registro protegido. El <strong class="text-amber-400">PIN Antiborrado de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre, eliminación manual o gestión de jugadores en caso de que intentes hacerlo desde un dispositivo diferente al actual.
+          Estás creando un registro protegido. El <strong class="text-wine-400">PIN Antiborrado de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre, eliminación manual o gestión de jugadores en caso de que intentes hacerlo desde un dispositivo diferente al actual.
         </p>
-        <p class="text-gray-400">
+        <p class="text-zinc-400">
           Por motivos de seguridad, este PIN <strong>no se puede recuperar ni visualizar</strong> en pantalla una vez guardado. Si lo olvidas y estás en otro equipo, la entrada solo podrá ser eliminada automáticamente por la barredora del sistema tras cumplirse su tiempo.
         </p>
       </div>
       <div class="pt-2 flex justify-end">
-        <button type="button" onclick="closeSecurityModal()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-5 py-2 rounded-xl text-xs md:text-sm transition shadow-md">
+        <button type="button" onclick="closeSecurityModal()" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs md:text-sm transition shadow-md">
           Entendido
         </button>
       </div>
@@ -54,20 +74,20 @@
 
   <!-- MODAL EDITAR HORARIO -->
   <div id="editScheduleModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-gray-800 border border-amber-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
-      <div class="flex items-center gap-3 border-b border-gray-700 pb-3">
+    <div class="bg-zinc-800 border border-wine-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 border-b border-zinc-700 pb-3">
         <span class="text-2xl">🗓️</span>
-        <h3 class="text-lg font-bold text-amber-400">Editar Horario</h3>
+        <h3 class="text-lg font-bold text-wine-400">Editar Horario</h3>
       </div>
-      <p id="editScheduleTableName" class="text-xs text-gray-400"></p>
+      <p id="editScheduleTableName" class="text-xs text-zinc-400"></p>
       <form id="editScheduleForm" class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Nueva Fecha y Hora</label>
-          <input type="text" id="editScheduleDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-amber-500">
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Nueva Fecha y Hora</label>
+          <input type="text" id="editScheduleDateTime" required placeholder="Seleccionar..." class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-wine-500">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeEditScheduleModal()" class="text-xs text-gray-400 hover:text-white px-4 py-2 rounded-lg transition">Cancelar</button>
-          <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Guardar</button>
+          <button type="button" onclick="closeEditScheduleModal()" class="text-xs text-zinc-400 hover:text-white px-4 py-2 rounded-lg transition">Cancelar</button>
+          <button type="submit" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Guardar</button>
         </div>
       </form>
     </div>
@@ -75,23 +95,23 @@
 
   <!-- MODAL UNIRSE / CONFIRMAR ASISTENCIA (con hora de llegada para eventos presenciales) -->
   <div id="joinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-gray-800 border border-emerald-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
-      <div class="flex items-center gap-3 border-b border-gray-700 pb-3">
+    <div class="bg-zinc-800 border border-emerald-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 border-b border-zinc-700 pb-3">
         <span class="text-2xl">🧛</span>
         <h3 class="text-lg font-bold text-emerald-400">Confirmar Asistencia</h3>
       </div>
-      <p id="joinModalEventName" class="text-xs text-gray-400"></p>
+      <p id="joinModalEventName" class="text-xs text-zinc-400"></p>
       <form id="joinForm" class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick</label>
-          <input type="text" id="joinNick" required placeholder="ej. Hardestadt" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500">
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Tu Nick</label>
+          <input type="text" id="joinNick" required placeholder="ej. Hardestadt" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Hora estimada de llegada (opcional)</label>
-          <input type="text" id="joinArrival" placeholder="Seleccionar hora..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm cursor-pointer focus:outline-none focus:border-emerald-500">
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Hora estimada de llegada (opcional)</label>
+          <input type="text" id="joinArrival" placeholder="Seleccionar hora..." class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm cursor-pointer focus:outline-none focus:border-emerald-500">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeJoinModal()" class="text-xs text-gray-400 hover:text-white px-4 py-2 rounded-lg transition">Cancelar</button>
+          <button type="button" onclick="closeJoinModal()" class="text-xs text-zinc-400 hover:text-white px-4 py-2 rounded-lg transition">Cancelar</button>
           <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Confirmar</button>
         </div>
       </form>
@@ -101,77 +121,77 @@
   <div class="max-w-5xl mx-auto space-y-8">
 
     <!-- Encabezado -->
-    <header class="text-center space-y-2 border-b border-red-800 pb-4">
-      <h1 class="text-3xl md:text-5xl font-extrabold text-red-600 tracking-wider">VAMPIRE: THE ETERNAL SCHEDULE</h1>
-      <p class="text-gray-400 text-sm md:text-base">Coordinador de Mesas</p>
-      <div id="userTimezone" class="inline-block bg-gray-800 border border-gray-700 text-red-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
+    <header class="text-center space-y-2 border-b border-wine-800 pb-4">
+      <h1 class="text-3xl md:text-5xl font-extrabold text-wine-500 tracking-wider">VAMPIRE: THE ETERNAL SCHEDULE</h1>
+      <p class="text-zinc-400 text-sm md:text-base">Coordinador de Mesas</p>
+      <div id="userTimezone" class="inline-block bg-zinc-800 border border-zinc-700 text-wine-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
         Detectando tu zona horaria...
       </div>
     </header>
 
     <!-- CREAR MESA ABIERTA -->
-    <section class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
-      <div class="border-b border-gray-700 pb-3">
-        <h2 class="text-xl font-bold text-amber-500 flex items-center gap-2">
+    <section class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="border-b border-zinc-700 pb-3">
+        <h2 class="text-xl font-bold text-wine-500 flex items-center gap-2">
           <span id="tableSectionIcon">⚔️</span> <span id="tableSectionTitle">Abrir Nueva Mesa de Juego</span>
         </h2>
-        <p id="tableSectionSubtitle" class="text-xs text-gray-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
+        <p id="tableSectionSubtitle" class="text-xs text-zinc-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
       </div>
 
-      <div class="flex gap-2 bg-gray-900 p-1.5 rounded-lg border border-gray-700 max-w-xs">
-        <button type="button" id="modeVirtualBtn" onclick="setTableModality('virtual')" class="flex-1 bg-amber-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition">
+      <div class="flex gap-2 bg-zinc-900 p-1.5 rounded-lg border border-zinc-700 max-w-xs">
+        <button type="button" id="modeVirtualBtn" onclick="setTableModality('virtual')" class="flex-1 bg-wine-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition">
           💻 Virtual
         </button>
-        <button type="button" id="modePresencialBtn" onclick="setTableModality('presencial')" class="flex-1 bg-gray-800 text-gray-400 font-bold py-1.5 px-3 rounded-md text-xs transition">
+        <button type="button" id="modePresencialBtn" onclick="setTableModality('presencial')" class="flex-1 bg-zinc-800 text-zinc-400 font-bold py-1.5 px-3 rounded-md text-xs transition">
           📍 Presencial
         </button>
       </div>
 
-      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+      <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-zinc-900 p-4 rounded-lg border border-zinc-700">
         <input type="hidden" id="tableModality" value="virtual">
         <div>
-          <label id="tableNameLabel" class="block text-xs font-semibold text-gray-400 mb-1">Nombre de Mesa</label>
-          <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+          <label id="tableNameLabel" class="block text-xs font-semibold text-zinc-400 mb-1">Nombre de Mesa</label>
+          <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Fecha y Hora</label>
-          <input type="text" id="tableDateTime" required placeholder="Seleccionar..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-amber-500">
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Fecha y Hora</label>
+          <input type="text" id="tableDateTime" required placeholder="Seleccionar..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-wine-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick</label>
-          <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Tu Nick</label>
+          <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
         </div>
 
         <div id="virtualFieldsGroup" style="display: contents;">
           <div>
-            <label class="block text-xs font-semibold text-gray-400 mb-1">Plataforma</label>
-            <select id="tablePlatform" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500">
+            <label class="block text-xs font-semibold text-zinc-400 mb-1">Plataforma</label>
+            <select id="tablePlatform" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
               <option value="Lackey">LackeyCCG</option>
               <option value="Succubus Club">Succubus Club</option>
             </select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-indigo-400 mb-1">🎧 Discord</label>
-            <input type="text" id="tableDiscord" placeholder="ej. VTES Español" class="w-full bg-gray-800 border border-indigo-700/60 rounded-lg px-3 py-1.5 text-indigo-200 text-sm focus:outline-none focus:border-indigo-400">
+            <input type="text" id="tableDiscord" placeholder="ej. VTES Español" class="w-full bg-zinc-800 border border-indigo-700/60 rounded-lg px-3 py-1.5 text-indigo-200 text-sm focus:outline-none focus:border-indigo-400">
           </div>
           <div>
             <label class="block text-xs font-semibold text-blue-400 mb-1">🎮 Pass Partida</label>
-            <input type="text" id="tableGamePassword" placeholder="ej. vtes123" class="w-full bg-gray-800 border border-blue-700/60 rounded-lg px-3 py-1.5 text-blue-200 text-sm focus:outline-none focus:border-blue-400">
+            <input type="text" id="tableGamePassword" placeholder="ej. vtes123" class="w-full bg-zinc-800 border border-blue-700/60 rounded-lg px-3 py-1.5 text-blue-200 text-sm focus:outline-none focus:border-blue-400">
           </div>
         </div>
 
         <div id="presencialFieldsGroup" style="display: none;">
           <div>
             <label class="block text-xs font-semibold text-emerald-400 mb-1">📍 Lugar</label>
-            <input type="text" id="tableVenue" placeholder="ej. Tienda Vórtice" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+            <input type="text" id="tableVenue" placeholder="ej. Tienda Vórtice" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
           </div>
           <div>
             <label class="block text-xs font-semibold text-emerald-400 mb-1">🕒 Tu hora de llegada (opcional)</label>
-            <input type="text" id="tableCreatorArrival" placeholder="Seleccionar hora..." class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm cursor-pointer focus:outline-none focus:border-emerald-400">
+            <input type="text" id="tableCreatorArrival" placeholder="Seleccionar hora..." class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm cursor-pointer focus:outline-none focus:border-emerald-400">
           </div>
           <div>
             <label class="block text-xs font-semibold text-emerald-400 mb-1">País</label>
-            <select id="tableCountry" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+            <select id="tableCountry" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
               <option value="México">México</option>
               <option value="Chile">Chile</option>
               <option value="España">España</option>
@@ -180,44 +200,44 @@
           </div>
           <div>
             <label class="block text-xs font-semibold text-emerald-400 mb-1">Ciudad</label>
-            <input type="text" id="tableCity" placeholder="ej. CDMX" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+            <input type="text" id="tableCity" placeholder="ej. CDMX" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
           </div>
           <div>
             <label class="block text-xs font-semibold text-emerald-400 mb-1">Link de Google Maps (opcional)</label>
-            <input type="text" id="tableMapsLink" placeholder="https://maps.app.goo.gl/..." class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
+            <input type="text" id="tableMapsLink" placeholder="https://maps.app.goo.gl/..." class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
           </div>
         </div>
 
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="block text-xs font-semibold text-amber-400">🔒 PIN Antiborrado</label>
-            <button type="button" onclick="showSecurityModal()" class="text-[10px] text-amber-400 hover:text-amber-300 underline bg-transparent border-0 cursor-pointer p-0">¿Para qué es?</button>
+            <label class="block text-xs font-semibold text-wine-400">🔒 PIN Antiborrado</label>
+            <button type="button" onclick="showSecurityModal()" class="text-[10px] text-wine-400 hover:text-wine-300 underline bg-transparent border-0 cursor-pointer p-0">¿Para qué es?</button>
           </div>
-          <input type="text" id="tableDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-gray-800 border border-amber-700/60 rounded-lg px-3 py-1.5 text-amber-300 text-sm font-mono focus:outline-none focus:border-amber-400">
+          <input type="text" id="tableDeletePin" required maxlength="4" pattern="[0-9]{4}" placeholder="ej. 1234" class="w-full bg-zinc-800 border border-wine-700/60 rounded-lg px-3 py-1.5 text-wine-300 text-sm font-mono focus:outline-none focus:border-wine-400">
         </div>
         <div class="flex items-end">
-          <button type="submit" id="createTableBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition">
+          <button type="submit" id="createTableBtn" class="w-full bg-wine-600 hover:bg-wine-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition">
             <span id="createTableBtnLabel">Abrir Mesa</span>
           </button>
         </div>
       </form>
 
-      <div id="presencialFiltersBar" style="display: none;" class="flex flex-wrap items-end gap-3 bg-gray-900/60 border border-emerald-700/30 rounded-lg p-3">
+      <div id="presencialFiltersBar" style="display: none;" class="flex flex-wrap items-end gap-3 bg-zinc-900/60 border border-emerald-700/30 rounded-lg p-3">
         <div class="flex-1 min-w-[140px]">
           <label class="block text-[11px] font-semibold text-emerald-400 mb-1">🌍 País</label>
-          <input type="text" id="filterCountry" placeholder="ej. México" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
+          <input type="text" id="filterCountry" placeholder="ej. México" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
         </div>
         <div class="flex-1 min-w-[140px]">
           <label class="block text-[11px] font-semibold text-emerald-400 mb-1">🏙️ Ciudad</label>
-          <select id="filterCity" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
+          <select id="filterCity" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
             <option value="">Todas</option>
           </select>
         </div>
         <div class="flex-1 min-w-[140px]">
           <label class="block text-[11px] font-semibold text-emerald-400 mb-1">🗓️ Fecha</label>
-          <input type="text" id="filterDate" placeholder="Cualquier fecha" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs cursor-pointer focus:outline-none focus:border-emerald-400">
+          <input type="text" id="filterDate" placeholder="Cualquier fecha" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs cursor-pointer focus:outline-none focus:border-emerald-400">
         </div>
-        <button type="button" id="clearFiltersBtn" onclick="clearPresencialFilters()" class="text-[11px] text-gray-400 hover:text-red-400 underline bg-transparent border-0 cursor-pointer px-1 py-2">
+        <button type="button" id="clearFiltersBtn" onclick="clearPresencialFilters()" class="text-[11px] text-zinc-400 hover:text-red-400 underline bg-transparent border-0 cursor-pointer px-1 py-2">
           Limpiar filtros
         </button>
       </div>
@@ -323,15 +343,15 @@
       virtualGroup.style.display = isVirtual ? 'contents' : 'none';
       presencialGroup.style.display = isVirtual ? 'none' : 'contents';
 
-      btnVirtual.classList.toggle('bg-amber-600', isVirtual);
+      btnVirtual.classList.toggle('bg-wine-600', isVirtual);
       btnVirtual.classList.toggle('text-white', isVirtual);
-      btnVirtual.classList.toggle('bg-gray-800', !isVirtual);
-      btnVirtual.classList.toggle('text-gray-400', !isVirtual);
+      btnVirtual.classList.toggle('bg-zinc-800', !isVirtual);
+      btnVirtual.classList.toggle('text-zinc-400', !isVirtual);
 
-      btnPresencial.classList.toggle('bg-amber-600', !isVirtual);
+      btnPresencial.classList.toggle('bg-wine-600', !isVirtual);
       btnPresencial.classList.toggle('text-white', !isVirtual);
-      btnPresencial.classList.toggle('bg-gray-800', isVirtual);
-      btnPresencial.classList.toggle('text-gray-400', isVirtual);
+      btnPresencial.classList.toggle('bg-zinc-800', isVirtual);
+      btnPresencial.classList.toggle('text-zinc-400', isVirtual);
 
       document.getElementById('tableSectionIcon').textContent = isVirtual ? '⚔️' : '📍';
       document.getElementById('tableSectionTitle').textContent = isVirtual ? 'Abrir Nueva Mesa de Juego' : 'Crear Nuevo Evento Presencial';
@@ -387,9 +407,10 @@
       return parts[0] * 60 + parts[1];
     }
 
-    // Convierte un nombre de ciudad en una llave válida para Firebase (no
-    // permite . # $ [ ] en las llaves). Usada solo para las estadísticas
-    // agregadas por ciudad; el nombre original se guarda aparte para mostrar.
+    // Convierte un texto (nombre de ciudad o nick de jugador) en una llave
+    // válida para Firebase (no permite . # $ [ ] / en las llaves). Usada
+    // para las estadísticas agregadas por ciudad y por jugador; el texto
+    // original se guarda aparte para mostrar.
     function sanitizeStatsKey(str) {
       const clean = (str || '').trim().replace(/[.#$\[\]\/]/g, '_');
       return clean || 'Desconocido';
@@ -556,6 +577,15 @@
           updates[`stats/presencialByCity/${cityKey}/joins`] = firebase.database.ServerValue.increment(1);
           updates[`stats/presencialByCity/${cityKey}/name`] = table.city || 'Desconocido';
           updates[`stats/presencialByCity/${cityKey}/country`] = table.country || '';
+
+          // Registro de nicks por evento presencial (para el detalle en
+          // estadísticas.html). Si el evento es anterior a esta función y
+          // todavía no tiene ciudad/país registrados aquí, se completan de
+          // una vez. La fecha de creación solo se guarda al crear el evento.
+          const nickKey = sanitizeStatsKey(nick);
+          updates[`stats/presencialEventsLog/${tableId}/players/${nickKey}`] = nick;
+          updates[`stats/presencialEventsLog/${tableId}/city`] = table.city || 'Desconocido';
+          updates[`stats/presencialEventsLog/${tableId}/country`] = table.country || '';
         } else {
           updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
         }
@@ -799,6 +829,17 @@
         updates[`stats/presencialByCity/${cityKey}/country`] = recordData.country || '';
         updates[`stats/presencialByCity/${cityKey}/eventsCreated`] = firebase.database.ServerValue.increment(1);
         updates[`stats/presencialByCity/${cityKey}/joins`] = firebase.database.ServerValue.increment(1);
+
+        // Registro detallado de este evento (ciudad, país, fecha y nicks
+        // de quienes participan) para el listado en estadisticas.html.
+        // Se conserva aunque el evento se borre o expire; estadisticas.html
+        // se encarga de podar los registros más antiguos si se acumulan
+        // demasiados (ver loadStats -> pruneOldEventsLog).
+        const creatorNickKey = sanitizeStatsKey(creator);
+        updates[`stats/presencialEventsLog/${newId}/city`] = recordData.city;
+        updates[`stats/presencialEventsLog/${newId}/country`] = recordData.country || '';
+        updates[`stats/presencialEventsLog/${newId}/createdAt`] = firebase.database.ServerValue.TIMESTAMP;
+        updates[`stats/presencialEventsLog/${newId}/players/${creatorNickKey}`] = creator;
       } else {
         updates['stats/virtualTablesCreated'] = firebase.database.ServerValue.increment(1);
         updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
@@ -1005,7 +1046,7 @@
 
     function renderCustomTables(tables, container) {
       if (tables.length === 0) {
-        container.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-4">${currentTableModalityFilter === 'presencial' ? 'No hay eventos presenciales creados. ¡Crea uno!' : 'No hay mesas abiertas creadas. ¡Abre una!'}</p>`;
+        container.innerHTML = `<p class="col-span-2 text-center text-zinc-500 py-4">${currentTableModalityFilter === 'presencial' ? 'No hay eventos presenciales creados. ¡Crea uno!' : 'No hay mesas abiertas creadas. ¡Abre una!'}</p>`;
         return;
       }
 
@@ -1039,13 +1080,13 @@
           ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 text-xs px-2.5 py-1 rounded-full font-bold">👥 ${count} confirmado${count === 1 ? '' : 's'}</span>`
           : isReady
             ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold border border-green-600">🔥 Mesa Completa (${count}/5)</span>`
-            : `<span class="bg-amber-900/60 text-amber-300 border border-amber-700/60 text-xs px-2.5 py-1 rounded-full font-bold">⏳ Faltan ${5 - count} jugador(es)</span>`;
+            : `<span class="bg-wine-900/60 text-wine-300 border border-wine-700/60 text-xs px-2.5 py-1 rounded-full font-bold">⏳ Faltan ${5 - count} jugador(es)</span>`;
 
         const discordHtml = `
           <div class="bg-indigo-950/40 border border-indigo-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-indigo-300">
             <span class="font-medium flex items-center gap-1">
               <span>🎧</span> <strong>Discord:</strong>
-              ${t.discord ? `<span class="text-indigo-200 font-normal">${escapeHtml(t.discord)}</span>` : `<span class="text-gray-500 italic">No especificado</span>`}
+              ${t.discord ? `<span class="text-indigo-200 font-normal">${escapeHtml(t.discord)}</span>` : `<span class="text-zinc-500 italic">No especificado</span>`}
             </span>
             <button onclick="editCustomTableDiscord('${t.id}', '${escapeHtml(t.discord || '')}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
               ✏️ ${t.discord ? 'Editar' : 'Definir'}
@@ -1057,7 +1098,7 @@
           <div class="bg-blue-950/40 border border-blue-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-blue-300">
             <span class="font-medium flex items-center gap-1">
               <span>🎮</span> <strong>Pass Partida:</strong>
-              ${t.gamePassword ? `<span id="gamepwd-${t.id}" class="hidden font-mono font-bold text-blue-200 bg-gray-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${t.id}')" class="text-blue-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition text-[11px] ml-1">👁️ Ver</button>` : `<span class="text-gray-500 italic">Sin contraseña</span>`}
+              ${t.gamePassword ? `<span id="gamepwd-${t.id}" class="hidden font-mono font-bold text-blue-200 bg-zinc-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${t.id}')" class="text-blue-400 hover:text-white bg-zinc-700 hover:bg-zinc-600 px-2 py-0.5 rounded transition text-[11px] ml-1">👁️ Ver</button>` : `<span class="text-zinc-500 italic">Sin contraseña</span>`}
             </span>
             <button onclick="editCustomTableGamePassword('${t.id}', '${escapeHtml(t.gamePassword || '')}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
               ✏️ ${t.gamePassword ? 'Editar' : 'Definir'}
@@ -1074,7 +1115,7 @@
             <div class="flex items-center justify-between pt-1">
               ${t.mapsLink
                 ? `<a href="${escapeHtml(t.mapsLink)}" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold">🗺️ Ver ubicación</a>`
-                : `<span class="text-gray-500 italic">Sin link de mapa</span>`}
+                : `<span class="text-zinc-500 italic">Sin link de mapa</span>`}
               <button onclick="editCustomTableMapsLink('${t.id}', '${escapeHtml(t.mapsLink || '')}')" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
                 ✏️ ${t.mapsLink ? 'Editar' : 'Agregar'} link
               </button>
@@ -1085,21 +1126,21 @@
         const cardId = `card-custom-${t.id}`;
 
         return `
-          <div id="${cardId}" class="bg-gray-900 border ${isPresencial ? 'border-emerald-600/50' : (isReady ? 'border-green-600/60' : 'border-amber-600/40')} rounded-xl p-4 shadow-md space-y-4">
-            <div class="flex justify-between items-start border-b border-gray-800 pb-2">
+          <div id="${cardId}" class="bg-zinc-900 border ${isPresencial ? 'border-emerald-600/50' : (isReady ? 'border-green-600/60' : 'border-wine-600/40')} rounded-xl p-4 shadow-md space-y-4">
+            <div class="flex justify-between items-start border-b border-zinc-800 pb-2">
               <div>
                 <div class="flex items-center gap-2">
-                  <h3 class="font-bold text-amber-400 text-base">${escapeHtml(t.name)}</h3>
+                  <h3 class="font-bold text-wine-400 text-base">${escapeHtml(t.name)}</h3>
                   ${isPresencial ? getLocationBadge() : getPlatformBadge(t.platform || 'Lackey')}
                 </div>
-                <p class="text-xs text-gray-400 mt-0.5">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span>${isPresencial ? ' <span class="text-emerald-500/70 text-[10px]">(hora local)</span>' : ''}</p>
+                <p class="text-xs text-zinc-400 mt-0.5">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span>${isPresencial ? ' <span class="text-emerald-500/70 text-[10px]">(hora local)</span>' : ''}</p>
               </div>
               <div class="flex flex-col items-end gap-1">
                 ${statusBadge}
                 <div class="flex items-center gap-2 mt-1">
-                  ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${t.id}', '_blank')" class="text-[10px] text-gray-500 hover:text-red-400 transition">🎲 Orden de Asientos</button>` : ''}
-                  <button onclick="editTableSchedule('${t.id}')" class="text-[10px] text-gray-500 hover:text-amber-400 transition">✏️ Editar horario</button>
-                  <button onclick="deleteEntry('${t.id}')" class="text-[10px] text-gray-500 hover:text-red-400 transition">Cerrar Mesa</button>
+                  ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${t.id}', '_blank')" class="text-[10px] text-zinc-500 hover:text-red-400 transition">🎲 Orden de Asientos</button>` : ''}
+                  <button onclick="editTableSchedule('${t.id}')" class="text-[10px] text-zinc-500 hover:text-wine-400 transition">✏️ Editar horario</button>
+                  <button onclick="deleteEntry('${t.id}')" class="text-[10px] text-zinc-500 hover:text-red-400 transition">Cerrar Mesa</button>
                 </div>
               </div>
             </div>
@@ -1109,13 +1150,13 @@
             </div>
 
             <div class="space-y-2">
-              <p class="text-xs font-semibold text-gray-400">${isPresencial ? `Asistentes confirmados (${count})` : `Jugadores confirmados (${count}/5)`}:</p>
+              <p class="text-xs font-semibold text-zinc-400">${isPresencial ? `Asistentes confirmados (${count})` : `Jugadores confirmados (${count}/5)`}:</p>
               <div class="flex flex-wrap gap-2">
                  ${displayPlayers.map(p => `
-                  <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
-                    ${escapeHtml(p.nick)}${p.arrival ? `<span class="text-amber-400/80 font-mono text-[10px]">· ${escapeHtml(p.arrival)}</span>` : ''}
-                    ${isPresencial ? `<button onclick="editPlayerArrival('${t.id}', '${escapeHtml(p.nick)}', '${escapeHtml(p.arrival || '')}')" class="text-amber-500/70 hover:text-amber-300 font-bold text-[11px]" title="Editar hora de llegada">✏️</button>` : ''}
-                    <button onclick="leaveTable('${t.id}', '${escapeHtml(p.nick)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
+                  <span class="inline-flex items-center gap-1.5 bg-wine-950/50 border border-wine-800/60 text-wine-200 text-xs px-2.5 py-1 rounded-lg font-medium">
+                    ${escapeHtml(p.nick)}${p.arrival ? `<span class="text-wine-400/80 font-mono text-[10px]">· ${escapeHtml(p.arrival)}</span>` : ''}
+                    ${isPresencial ? `<button onclick="editPlayerArrival('${t.id}', '${escapeHtml(p.nick)}', '${escapeHtml(p.arrival || '')}')" class="text-wine-500/70 hover:text-wine-300 font-bold text-[11px]" title="Editar hora de llegada">✏️</button>` : ''}
+                    <button onclick="leaveTable('${t.id}', '${escapeHtml(p.nick)}')" class="text-wine-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
                   </span>
                 `).join('')}
               </div>
@@ -1123,11 +1164,11 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
               ${!isFull ? `
-                <button onclick="joinTable('${t.id}')" class="w-full bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
+                <button onclick="joinTable('${t.id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
                   ➕ ${isPresencial ? '¡Confirmar asistencia!' : '¡Unirme a esta Mesa!'}
                 </button>
               ` : `
-                <div class="text-center text-xs text-gray-500 py-1.5 bg-gray-800 rounded">Mesa llena</div>
+                <div class="text-center text-xs text-zinc-500 py-1.5 bg-zinc-800 rounded">Mesa llena</div>
               `}
               <button onclick="shareTableInvitation('${t.id}')" class="w-full bg-green-700/30 hover:bg-green-600 text-green-300 hover:text-white border border-green-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1.5">
                 📲 Invitar por WhatsApp
