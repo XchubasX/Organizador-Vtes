@@ -45,13 +45,15 @@
     <!-- SELECCIÓN DE JUGADORES PRESENTES -->
     <section id="selectionSection" class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-4">
       <div class="flex gap-2 bg-zinc-900 p-1.5 rounded-lg border border-zinc-700 max-w-xs mx-auto">
-        <button type="button" id="modeSingleBtn" onclick="setDrawMode('single')" class="flex-1 bg-wine-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition">
-          Una Mesa
+        <button type="button" id="modeSingleBtn" onclick="setDrawMode('single')" class="flex-1 bg-wine-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition shadow-sm">
+          <span class="modeCheck">✓ </span>Una Mesa
         </button>
-        <button type="button" id="modeMultiBtn" onclick="setDrawMode('multi')" class="flex-1 bg-zinc-800 text-zinc-400 font-bold py-1.5 px-3 rounded-md text-xs transition">
-          Sorteo de Mesas
+        <button type="button" id="modeMultiBtn" onclick="setDrawMode('multi')" class="flex-1 bg-zinc-800 text-zinc-500 font-semibold py-1.5 px-3 rounded-md text-xs transition opacity-70">
+          <span class="modeCheck hidden">✓ </span>Sorteo de Mesas
         </button>
       </div>
+
+      <p id="modeDescription" class="text-xs text-zinc-500 text-center -mt-2"></p>
 
       <div>
         <h2 id="selectionTitle" class="text-lg font-bold text-wine-500">¿Quién juega en esta mesa?</h2>
@@ -63,6 +65,13 @@
       <div class="flex gap-2 pt-2">
         <input type="text" id="extraNameInput" placeholder="Agregar nombre..." class="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
         <button type="button" onclick="addExtraName()" class="bg-zinc-700 hover:bg-zinc-600 text-white font-bold px-4 py-1.5 rounded-lg text-sm transition">+ Agregar</button>
+      </div>
+
+      <div id="singleModeWarning" class="hidden bg-amber-900/20 border border-amber-700/40 rounded-lg p-3 space-y-2">
+        <p class="text-xs text-amber-300" id="singleModeWarningText"></p>
+        <button type="button" onclick="setDrawMode('multi')" class="text-xs font-semibold text-white bg-wine-600 hover:bg-wine-500 rounded-lg px-3 py-1.5 transition">
+          Cambiar a Sorteo de Mesas
+        </button>
       </div>
 
       <button type="button" id="sortearBtn" onclick="performDraw()" class="w-full bg-wine-700 hover:bg-wine-600 text-white font-bold py-3 rounded-lg text-base transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-wine-700" disabled>
@@ -188,23 +197,32 @@
 
       btnSingle.classList.toggle('bg-wine-600', isSingle);
       btnSingle.classList.toggle('text-white', isSingle);
+      btnSingle.classList.toggle('shadow-sm', isSingle);
       btnSingle.classList.toggle('bg-zinc-800', !isSingle);
-      btnSingle.classList.toggle('text-zinc-400', !isSingle);
+      btnSingle.classList.toggle('text-zinc-500', !isSingle);
+      btnSingle.classList.toggle('opacity-70', !isSingle);
+      btnSingle.querySelector('.modeCheck').classList.toggle('hidden', !isSingle);
 
       btnMulti.classList.toggle('bg-wine-600', !isSingle);
       btnMulti.classList.toggle('text-white', !isSingle);
+      btnMulti.classList.toggle('shadow-sm', !isSingle);
       btnMulti.classList.toggle('bg-zinc-800', isSingle);
-      btnMulti.classList.toggle('text-zinc-400', isSingle);
+      btnMulti.classList.toggle('text-zinc-500', isSingle);
+      btnMulti.classList.toggle('opacity-70', isSingle);
+      btnMulti.querySelector('.modeCheck').classList.toggle('hidden', isSingle);
 
       document.getElementById('selectionTitle').textContent = isSingle
         ? '¿Quién juega en esta mesa?'
         : '¿Quién está presente en el evento?';
       document.getElementById('sortearBtn').textContent = isSingle
-        ? '🎲 Sortear presa/depredador'
-        : '🎲 Sortear Mesas';
+        ? '🎲 Sortear (todos en una mesa)'
+        : '🎲 Repartir en mesas automáticamente';
       document.getElementById('minHint').textContent = isSingle
         ? 'Selecciona al menos 2 jugadores para poder sortear.'
         : 'Selecciona a todos los presentes — se repartirán solos en mesas de 4 o 5.';
+      document.getElementById('modeDescription').textContent = isSingle
+        ? 'Se sorteará un único orden con todos los que marques, sin importar cuántos sean.'
+        : 'Se repartirán automáticamente en mesas de 4 o 5 jugadores cada una.';
 
       document.getElementById('resultSection').classList.add('hidden');
       updateSortearBtnState();
@@ -214,7 +232,22 @@
       const checkedCount = candidateNames.filter(n => n.checked).length;
       const minRequired = drawMode === 'single' ? 2 : 1;
       document.getElementById('sortearBtn').disabled = checkedCount < minRequired;
+
+      // Advertencia: en modo "Una Mesa" con más de 5 marcados, es fácil que
+      // el usuario en realidad quisiera repartir en varias mesas. No bloquea
+      // el sorteo (puede que de verdad quiera una mesa de 6+), solo avisa.
+      const warning = document.getElementById('singleModeWarning');
+      if (drawMode === 'single' && checkedCount > 5) {
+        document.getElementById('singleModeWarningText').textContent =
+          `⚠️ Tienes ${checkedCount} jugadores marcados — en este modo quedarán todos juntos en una sola mesa, sin repartir.`;
+        warning.classList.remove('hidden');
+      } else {
+        warning.classList.add('hidden');
+      }
     }
+
+    // Inicializa los textos del modo por defecto ("Una Mesa") al cargar la página
+    setDrawMode('single');
 
     // Carga inicial: si viene un tableId en la URL, precarga los confirmados de ese evento
     if (tableId) {
