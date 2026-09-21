@@ -166,6 +166,10 @@
             <input type="text" id="tableVenue" placeholder="ej. Tienda Vórtice" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
           </div>
           <div>
+            <label class="block text-xs font-semibold text-emerald-400 mb-1">🕒 Tu hora de llegada (opcional)</label>
+            <input type="text" id="tableCreatorArrival" placeholder="Seleccionar hora..." class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm cursor-pointer focus:outline-none focus:border-emerald-400">
+          </div>
+          <div>
             <label class="block text-xs font-semibold text-emerald-400 mb-1">País</label>
             <select id="tableCountry" class="w-full bg-gray-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
               <option value="México">México</option>
@@ -285,6 +289,15 @@
       locale: "es"
     });
 
+    // Selector de solo-hora para la llegada estimada del organizador al crear un evento presencial
+    let pickerCreatorArrival = flatpickr("#tableCreatorArrival", {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: "H:i",
+      time_24hr: true,
+      locale: "es"
+    });
+
     let currentTableModalityFilter = 'virtual';
 
     function setTableModality(mode) {
@@ -360,6 +373,23 @@
       const parts = arrival.split(':').map(Number);
       if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return Infinity;
       return parts[0] * 60 + parts[1];
+    }
+
+    // ---------------------------------------------------------------------
+    // FORMATO DE FECHA/HORA "SIN CONVERTIR" PARA EVENTOS PRESENCIALES
+    // Un evento presencial ocurre en un lugar físico real, así que su hora
+    // debe verse igual para todos sin importar desde qué huso horario lo
+    // consulten (a diferencia de las mesas virtuales, donde sí interesa
+    // convertir). Usamos el huso horario "originTz" guardado al crear el
+    // evento para formatear la fecha/hora tal como la vive el lugar.
+    // ---------------------------------------------------------------------
+    function formatPresencialDateTime(utcISO, originTz, dateOpts, timeOpts) {
+      const d = new Date(utcISO);
+      const tz = originTz || undefined;
+      return {
+        date: d.toLocaleDateString('es-ES', { ...dateOpts, timeZone: tz }),
+        time: d.toLocaleTimeString('es-ES', { ...timeOpts, hour12: false, timeZone: tz })
+      };
     }
 
     // EDITAR HORARIO (con la misma autorización que Cerrar Mesa: dueño local o PIN)
@@ -498,6 +528,45 @@
       });
     }
 
+    // ---------------------------------------------------------------------
+    // EDITAR MI HORA DE LLEGADA (solo eventos presenciales)
+    // Acceso libre, sin PIN Antiborrado: es un dato informativo de bajo
+    // riesgo (no borra ni remueve a nadie), igual que los botones de
+    // Editar Discord / Pass Partida / Link de Maps que ya existían. Así
+    // cualquier asistente puede corregir su horario desde el celular sin
+    // fricción si le surge un imprevisto.
+    // ---------------------------------------------------------------------
+    function editPlayerArrival(tableId, nick, currentArrival) {
+      const input = prompt(`Hora de llegada de "${nick}" (formato HH:MM, 24 horas). Déjalo vacío para quitarla:`, currentArrival || '');
+      if (input === null) return; // Canceló
+
+      const trimmed = input.trim();
+      let newArrival = null;
+      if (trimmed !== '') {
+        const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+        if (!match) {
+          return alert('❌ Formato de hora no válido. Usa HH:MM, por ejemplo 18:30.');
+        }
+        const hh = match[1].padStart(2, '0');
+        const mm = match[2];
+        newArrival = `${hh}:${mm}`;
+      }
+
+      const tableRef = db.ref(`vtes_records/${tableId}`);
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return alert('La mesa ya no existe.');
+        const table = snapshot.val();
+        const players = (table.players || []).map(p => {
+          const norm = normalizePlayer(p);
+          if (norm.nick.toLowerCase() === nick.toLowerCase()) {
+            return { nick: norm.nick, arrival: newArrival };
+          }
+          return p;
+        });
+        tableRef.update({ players: players });
+      });
+    }
+
     // HELPER: Función para Compartir Invitación por WhatsApp (Mantiene los husos horarios específicos)
     function shareTableInvitation(tableId) {
       const t = currentGlobalData.find(item => item.id === tableId);
@@ -513,10 +582,10 @@
       msg += `⚔️ *${modality === 'presencial' ? 'Evento' : 'Mesa'}:* ${t.name}\n`;
 
       if (modality === 'presencial') {
-        // Mensaje para mesa PRESENCIAL: lugar, ciudad y hora local (sin husos horarios)
-        const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
-        const optionsDate = { weekday: 'long', month: 'short', day: 'numeric' };
-        const localWhen = `${date.toLocaleDateString(undefined, optionsDate)} - ${date.toLocaleTimeString(undefined, optionsTime)}`;
+        // Mensaje para mesa PRESENCIAL: lugar, ciudad y hora local del evento
+        // (huso de origen, sin conversión al huso de quien recibe el mensaje)
+        const fPresencial = formatPresencialDateTime(t.utcTime, t.originTz, { weekday: 'long', month: 'short', day: 'numeric' }, { hour: '2-digit', minute: '2-digit' });
+        const localWhen = `${fPresencial.date} - ${fPresencial.time} (hora local)`;
 
         msg += `📍 *Lugar:* ${t.venue || ''}\n`;
         if (t.city || t.country) msg += `🌆 *Ciudad:* ${t.city || ''}${t.country ? ', ' + t.country : ''}\n`;
@@ -570,15 +639,24 @@
     }
 
     // BARREDORA SILENCIOSA
+    // Mesas virtuales: se limpian 3 horas después de su horario (suficiente
+    // para cubrir una sesión de juego completa).
+    // Eventos presenciales: la asistencia llega escalonada durante todo el
+    // día (la hora guardada es solo una referencia, no el fin del evento),
+    // así que se les da una ventana de 24 horas desde su horario registrado
+    // en vez de 3. Esto garantiza que el evento se mantenga visible durante
+    // toda la jornada sin importar a qué hora del día se haya programado.
     function sweepExpiredTables(dataArray) {
       const now = new Date().getTime();
       const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+      const PRESENCIAL_WINDOW_MS = 24 * 60 * 60 * 1000;
       const validData = [];
 
       dataArray.forEach(item => {
         if (!item.utcTime) return;
         const itemTime = new Date(item.utcTime).getTime();
-        if (now > (itemTime + THREE_HOURS_MS)) {
+        const windowMs = item.modality === 'presencial' ? PRESENCIAL_WINDOW_MS : THREE_HOURS_MS;
+        if (now > (itemTime + windowMs)) {
           recordsRef.child(item.id).remove();
         } else {
           validData.push(item);
@@ -614,7 +692,6 @@
         type: 'custom_table',
         name: name,
         utcTime: selectedDate.toISOString(),
-        players: [creator],
         modality: modality,
         deletePin: deletePin,
         originTz: userTimezone
@@ -625,6 +702,7 @@
         const country = document.getElementById('tableCountry').value;
         const city = document.getElementById('tableCity').value.trim();
         const mapsLink = document.getElementById('tableMapsLink').value.trim();
+        const creatorArrival = document.getElementById('tableCreatorArrival').value.trim();
 
         if (!venue) return alert('Ingresa el Lugar.');
         if (!city) return alert('Ingresa la Ciudad.');
@@ -633,21 +711,28 @@
         recordData.country = country;
         recordData.city = city;
         recordData.mapsLink = mapsLink || '';
+        // El organizador queda registrado como el primer asistente, con su
+        // propia hora de llegada (opcional) igual que cualquier otro invitado.
+        recordData.players = [{ nick: creator, arrival: creatorArrival || null }];
       } else {
         recordData.platform = document.getElementById('tablePlatform').value;
         recordData.discord = document.getElementById('tableDiscord').value.trim() || '';
         recordData.gamePassword = document.getElementById('tableGamePassword').value.trim() || '';
+        recordData.players = [creator];
       }
 
       const newRef = recordsRef.push();
       const newId = newRef.key;
 
-      localStorage.setItem(`vtes_owner_${newId}`, creator.toLowerCase());
+      // La marca de "dueño de este dispositivo" no depende del contenido del
+      // Nick (evita romperse si en el futuro el campo llega vacío o cambia).
+      localStorage.setItem(`vtes_owner_${newId}`, '1');
 
       newRef.set(recordData);
 
       document.getElementById('customTableForm').reset();
       pickerCustomTable.clear();
+      pickerCreatorArrival.clear();
       setTableModality('virtual');
     });
 
@@ -719,12 +804,10 @@
         players = players.filter(p => normalizePlayer(p).nick.toLowerCase() !== playerToRemove.toLowerCase());
         localStorage.removeItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
 
-        if (players.length === 0) {
-          tableRef.remove();
-          localStorage.removeItem(localOwnerKey);
-        } else {
-          tableRef.update({ players: players });
-        }
+        // La mesa/evento ya NO se borra automáticamente al quedar en 0
+        // asistentes: solo se cierra por acción explícita del creador/PIN
+        // (deleteEntry) o por la barredora al vencer su ventana de tiempo.
+        tableRef.update({ players: players });
       });
     }
 
@@ -831,13 +914,22 @@
       tables.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
 
       container.innerHTML = tables.map(t => {
-        const dateObj = new Date(t.utcTime);
-        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-        const formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
         const count = (t.players || []).length;
         const isPresencial = t.modality === 'presencial';
         const isFull = !isPresencial && count >= 5;
         const isReady = !isPresencial && count >= 4;
+
+        let formattedDate, formattedTime;
+        if (isPresencial) {
+          // Hora local del lugar del evento (huso de origen), sin convertir
+          const fCard = formatPresencialDateTime(t.utcTime, t.originTz, { weekday: 'short', month: 'short', day: 'numeric' }, { hour: '2-digit', minute: '2-digit' });
+          formattedDate = fCard.date;
+          formattedTime = fCard.time;
+        } else {
+          const dateObj = new Date(t.utcTime);
+          formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+          formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
 
         // Jugadores normalizados (retrocompatibles) y, si es presencial, ordenados por hora de llegada
         let displayPlayers = (t.players || []).map(normalizePlayer);
@@ -902,7 +994,7 @@
                   <h3 class="font-bold text-amber-400 text-base">${escapeHtml(t.name)}</h3>
                   ${isPresencial ? getLocationBadge() : getPlatformBadge(t.platform || 'Lackey')}
                 </div>
-                <p class="text-xs text-gray-400 mt-0.5">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span></p>
+                <p class="text-xs text-gray-400 mt-0.5">${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span>${isPresencial ? ' <span class="text-emerald-500/70 text-[10px]">(hora local)</span>' : ''}</p>
               </div>
               <div class="flex flex-col items-end gap-1">
                 ${statusBadge}
@@ -923,6 +1015,7 @@
                  ${displayPlayers.map(p => `
                   <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
                     ${escapeHtml(p.nick)}${p.arrival ? `<span class="text-amber-400/80 font-mono text-[10px]">· ${escapeHtml(p.arrival)}</span>` : ''}
+                    ${isPresencial ? `<button onclick="editPlayerArrival('${t.id}', '${escapeHtml(p.nick)}', '${escapeHtml(p.arrival || '')}')" class="text-amber-500/70 hover:text-amber-300 font-bold text-[11px]" title="Editar hora de llegada">✏️</button>` : ''}
                     <button onclick="leaveTable('${t.id}', '${escapeHtml(p.nick)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
                   </span>
                 `).join('')}
