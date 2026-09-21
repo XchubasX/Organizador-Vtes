@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redirigiendo...</title>
+<script>
+  // GitHub Pages no soporta rutas "bonitas" como /Organizador-Vtes/Zaragoza de forma
+  // nativa: cualquier ruta que no sea un archivo real cae en este archivo (404.html).
+  // Tomamos el segmento de la URL que sigue al nombre del repositorio (la ciudad) y
+  // redirigimos a index.html pasándoselo como parámetro, para que la página lo lea y
+  // aplique el filtro de ciudad automáticamente (ver initCityFromUrl en index.html).
+  (function () {
+    var parts = window.location.pathname.split('/').filter(Boolean);
+    var basePath = '/' + (parts[0] || '') + '/';
+    var citySegment = parts.length > 1 ? parts[1] : '';
+
+    try { citySegment = decodeURIComponent(citySegment); } catch (e) {}
+
+    var redirectUrl = basePath + (citySegment ? ('?city=' + encodeURIComponent(citySegment)) : '');
+    window.location.replace(redirectUrl);
+  })();
+</script>
+</head>
+<body>
+  <p style="font-family: sans-serif; text-align: center; margin-top: 40px; color: #888;">Redirigiendo...</p>
+</body>
+</html>
