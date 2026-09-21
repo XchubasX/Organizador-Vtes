@@ -24,8 +24,17 @@
 
     <!-- SELECCIÓN DE JUGADORES PRESENTES -->
     <section id="selectionSection" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="flex gap-2 bg-gray-900 p-1.5 rounded-lg border border-gray-700 max-w-xs mx-auto">
+        <button type="button" id="modeSingleBtn" onclick="setDrawMode('single')" class="flex-1 bg-amber-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition">
+          Una Mesa
+        </button>
+        <button type="button" id="modeMultiBtn" onclick="setDrawMode('multi')" class="flex-1 bg-gray-800 text-gray-400 font-bold py-1.5 px-3 rounded-md text-xs transition">
+          Sorteo de Mesas
+        </button>
+      </div>
+
       <div>
-        <h2 class="text-lg font-bold text-amber-500">¿Quién juega en esta mesa?</h2>
+        <h2 id="selectionTitle" class="text-lg font-bold text-amber-500">¿Quién juega en esta mesa?</h2>
         <p class="text-xs text-gray-400 mt-1">Marca a los que están presentes. Puedes agregar o quitar nombres antes de sortear — útil si alguien no llegó o si se suma alguien de última hora.</p>
       </div>
 
@@ -39,16 +48,14 @@
       <button type="button" id="sortearBtn" onclick="performDraw()" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-lg text-base transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-700" disabled>
         🎲 Sortear presa/depredador
       </button>
-      <p class="text-center text-[11px] text-gray-500">Selecciona al menos 2 jugadores para poder sortear.</p>
+      <p id="minHint" class="text-center text-[11px] text-gray-500">Selecciona al menos 2 jugadores para poder sortear.</p>
     </section>
 
     <!-- RESULTADO -->
     <section id="resultSection" class="bg-gray-800 border border-red-800/50 rounded-xl p-6 shadow-xl space-y-4 hidden">
       <h2 class="text-lg font-bold text-red-500 text-center tracking-wide">RESULTADO DEL SORTEO</h2>
 
-      <div id="wheelContainer" class="flex justify-center"></div>
-
-      <ol id="orderList" class="text-sm text-gray-300 space-y-1.5 pt-2 border-t border-gray-700"></ol>
+      <div id="resultContent" class="space-y-6"></div>
 
       <button type="button" onclick="performDraw()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 rounded-lg text-sm transition">
         🔄 Volver a sortear
@@ -146,9 +153,47 @@
       }
     });
 
+    // ---------------------------------------------------------------------
+    // MODO DE SORTEO: "single" (una mesa, tal como ya existía) o "multi"
+    // (reparte automáticamente a todos los seleccionados en las mesas que
+    // hagan falta, de 4 o 5 jugadores cada una).
+    // ---------------------------------------------------------------------
+    let drawMode = 'single';
+
+    function setDrawMode(mode) {
+      drawMode = mode;
+      const isSingle = mode === 'single';
+      const btnSingle = document.getElementById('modeSingleBtn');
+      const btnMulti = document.getElementById('modeMultiBtn');
+
+      btnSingle.classList.toggle('bg-amber-600', isSingle);
+      btnSingle.classList.toggle('text-white', isSingle);
+      btnSingle.classList.toggle('bg-gray-800', !isSingle);
+      btnSingle.classList.toggle('text-gray-400', !isSingle);
+
+      btnMulti.classList.toggle('bg-amber-600', !isSingle);
+      btnMulti.classList.toggle('text-white', !isSingle);
+      btnMulti.classList.toggle('bg-gray-800', isSingle);
+      btnMulti.classList.toggle('text-gray-400', isSingle);
+
+      document.getElementById('selectionTitle').textContent = isSingle
+        ? '¿Quién juega en esta mesa?'
+        : '¿Quién está presente en el evento?';
+      document.getElementById('sortearBtn').textContent = isSingle
+        ? '🎲 Sortear presa/depredador'
+        : '🎲 Sortear Mesas';
+      document.getElementById('minHint').textContent = isSingle
+        ? 'Selecciona al menos 2 jugadores para poder sortear.'
+        : 'Selecciona a todos los presentes — se repartirán solos en mesas de 4 o 5.';
+
+      document.getElementById('resultSection').classList.add('hidden');
+      updateSortearBtnState();
+    }
+
     function updateSortearBtnState() {
       const checkedCount = candidateNames.filter(n => n.checked).length;
-      document.getElementById('sortearBtn').disabled = checkedCount < 2;
+      const minRequired = drawMode === 'single' ? 2 : 1;
+      document.getElementById('sortearBtn').disabled = checkedCount < minRequired;
     }
 
     // Carga inicial: si viene un tableId en la URL, precarga los confirmados de ese evento
@@ -184,18 +229,106 @@
 
     function performDraw() {
       const selected = candidateNames.filter(n => n.checked).map(n => n.nick);
-      if (selected.length < 2) return;
 
-      const order = shuffle(selected);
-      renderWheel(order);
-      renderOrderList(order);
+      if (drawMode === 'single') {
+        if (selected.length < 2) return;
+        renderSingleResult(shuffle(selected));
+      } else {
+        if (selected.length < 1) return;
+        renderMultiResult(shuffle(selected));
+      }
 
       document.getElementById('resultSection').classList.remove('hidden');
       document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function renderOrderList(order) {
-      const list = document.getElementById('orderList');
+    function renderSingleResult(order) {
+      document.getElementById('resultContent').innerHTML = `
+        <div id="wheelContainer-single" class="flex justify-center"></div>
+        <ol id="orderList-single" class="text-sm text-gray-300 space-y-1.5 pt-2 border-t border-gray-700"></ol>
+      `;
+      renderWheel(order, 'wheelContainer-single');
+      renderOrderList(order, 'orderList-single');
+    }
+
+    // ---------------------------------------------------------------------
+    // REPARTO AUTOMÁTICO EN MESAS DE 4 O 5
+    // Encuentra el menor número de personas "sin mesa" (leftover) tal que el
+    // resto se pueda repartir exacto en mesas de 4 y/o 5, priorizando el
+    // mayor número posible de mesas de 5 sobre las de 4. Nunca genera mesas
+    // de menos de 4 ni de más de 5 — lo que no alcanza queda marcado aparte
+    // como "Mesa Incompleta" para que el organizador decida qué hacer.
+    // ---------------------------------------------------------------------
+    function computeTableSizes(n) {
+      if (n <= 0) return { sizes: [], leftover: Math.max(n, 0) };
+
+      for (let leftover = 0; leftover <= n; leftover++) {
+        const remaining = n - leftover;
+        if (remaining === 0) return { sizes: [], leftover };
+
+        for (let fives = Math.floor(remaining / 5); fives >= 0; fives--) {
+          const rest = remaining - fives * 5;
+          if (rest % 4 === 0) {
+            const fours = rest / 4;
+            const sizes = [];
+            for (let i = 0; i < fives; i++) sizes.push(5);
+            for (let i = 0; i < fours; i++) sizes.push(4);
+            return { sizes, leftover };
+          }
+        }
+      }
+      return { sizes: [], leftover: n };
+    }
+
+    function renderMultiResult(shuffled) {
+      const { sizes, leftover } = computeTableSizes(shuffled.length);
+      const container = document.getElementById('resultContent');
+
+      if (sizes.length === 0 && leftover === 0) {
+        container.innerHTML = `<p class="text-center text-gray-500 text-sm">No hay jugadores seleccionados.</p>`;
+        return;
+      }
+
+      let html = '';
+      let cursor = 0;
+
+      sizes.forEach((size, tableIdx) => {
+        cursor += size;
+        html += `
+          <div class="border border-gray-700 rounded-xl p-4 space-y-3">
+            <h3 class="text-center text-amber-400 font-bold text-sm">Mesa ${tableIdx + 1} <span class="text-gray-500 font-normal">(${size} jugadores)</span></h3>
+            <div id="wheelContainer-multi-${tableIdx}" class="flex justify-center"></div>
+            <ol id="orderList-multi-${tableIdx}" class="text-sm text-gray-300 space-y-1.5 pt-2 border-t border-gray-700"></ol>
+          </div>
+        `;
+      });
+
+      if (leftover > 0) {
+        const leftoverPlayers = shuffled.slice(cursor);
+        html += `
+          <div class="border border-red-700/50 rounded-xl p-4 space-y-2 bg-red-950/20">
+            <h3 class="text-center text-red-400 font-bold text-sm">⚠️ Mesa Incompleta <span class="font-normal">(${leftover} ${leftover === 1 ? 'persona' : 'personas'})</span></h3>
+            <p class="text-center text-xs text-gray-400">No alcanzan para formar una mesa de 4 o 5. Decide manualmente qué hacer con ellos (sumarlos a otra mesa, esperar a alguien más, etc.).</p>
+            <div class="flex flex-wrap justify-center gap-2 pt-1">
+              ${leftoverPlayers.map(name => `<span class="bg-red-950/50 border border-red-800/60 text-red-200 text-xs px-2.5 py-1 rounded-lg">${escapeHtml(name)}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+
+      cursor = 0;
+      sizes.forEach((size, tableIdx) => {
+        const tablePlayers = shuffled.slice(cursor, cursor + size);
+        cursor += size;
+        renderWheel(tablePlayers, `wheelContainer-multi-${tableIdx}`);
+        renderOrderList(tablePlayers, `orderList-multi-${tableIdx}`);
+      });
+    }
+
+    function renderOrderList(order, containerId) {
+      const list = document.getElementById(containerId);
       list.innerHTML = order.map((name, idx) => {
         const preyIdx = (idx + 1) % order.length;
         return `<li class="flex items-center gap-2">
@@ -207,7 +340,7 @@
       }).join('');
     }
 
-    function renderWheel(order) {
+    function renderWheel(order, containerId) {
       const n = order.length;
       const size = 320;
       const cx = size / 2;
@@ -234,7 +367,7 @@
         const y1 = from.y + (dy / dist) * shrink;
         const x2 = to.x - (dx / dist) * shrink;
         const y2 = to.y - (dy / dist) * shrink;
-        edges += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowhead)" opacity="0.75" />`;
+        edges += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowhead-${containerId})" opacity="0.75" />`;
       }
 
       let nodes = '';
@@ -248,10 +381,10 @@
         `;
       });
 
-      document.getElementById('wheelContainer').innerHTML = `
+      document.getElementById(containerId).innerHTML = `
         <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="max-w-full h-auto">
           <defs>
-            <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <marker id="arrowhead-${containerId}" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
               <path d="M0,0 L8,4 L0,8 Z" fill="#dc2626" />
             </marker>
           </defs>
