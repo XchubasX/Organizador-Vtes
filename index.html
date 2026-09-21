@@ -27,7 +27,7 @@
       <img src="./darkpack_logo_small.webp?w=375&q=75&fm=webp" data-fallback-alt="Logo Dark Pack Oficial" class="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-red-600/80 shadow-2xl object-cover bg-black" alt="Dark Pack Logo" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'48\' fill=\'black\' stroke=\'%23dc2626\' stroke-width=\'4\'/><text x=\'50\' y=\'45\' fill=\'white\' font-size=\'14\' font-weight=\'bold\' text-anchor=\'middle\' font-family=\'sans-serif\'>DARK</text><text x=\'50\' y=\'65\' fill=\'white\' font-size=\'14\' font-weight=\'bold\' text-anchor=\'middle\' font-family=\'sans-serif\'>PACK</text></svg>';">
     </a>
   </aside>
-  
+
 
   <!-- MODAL EXPLICATIVO DE SEGURIDAD (VENTANA FLOTANTE) -->
   <div id="securityModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
@@ -73,8 +73,33 @@
     </div>
   </div>
 
+  <!-- MODAL UNIRSE / CONFIRMAR ASISTENCIA (con hora de llegada para eventos presenciales) -->
+  <div id="joinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gray-800 border border-emerald-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 border-b border-gray-700 pb-3">
+        <span class="text-2xl">🧛</span>
+        <h3 class="text-lg font-bold text-emerald-400">Confirmar Asistencia</h3>
+      </div>
+      <p id="joinModalEventName" class="text-xs text-gray-400"></p>
+      <form id="joinForm" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Tu Nick</label>
+          <input type="text" id="joinNick" required placeholder="ej. Hardestadt" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Hora estimada de llegada (opcional)</label>
+          <input type="text" id="joinArrival" placeholder="Seleccionar hora..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm cursor-pointer focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeJoinModal()" class="text-xs text-gray-400 hover:text-white px-4 py-2 rounded-lg transition">Cancelar</button>
+          <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="max-w-5xl mx-auto space-y-8">
-    
+
     <!-- Encabezado -->
     <header class="text-center space-y-2 border-b border-red-800 pb-4">
       <h1 class="text-3xl md:text-5xl font-extrabold text-red-600 tracking-wider">VAMPIRE: THE ETERNAL SCHEDULE</h1>
@@ -251,6 +276,15 @@
       onChange: () => renderAll(currentGlobalData)
     });
 
+    // Selector de solo-hora para la llegada estimada en el modal de Unirse (eventos presenciales)
+    let pickerJoinArrival = flatpickr("#joinArrival", {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: "H:i",
+      time_24hr: true,
+      locale: "es"
+    });
+
     let currentTableModalityFilter = 'virtual';
 
     function setTableModality(mode) {
@@ -294,6 +328,38 @@
 
     function closeSecurityModal() {
       document.getElementById('securityModal').classList.add('hidden');
+    }
+
+    // ---------------------------------------------------------------------
+    // NORMALIZACIÓN DE JUGADORES (retrocompatible)
+    // Cada entrada de "players" puede venir en 3 formatos posibles:
+    //   1. Objeto nuevo:      { nick: "Jesus", arrival: "18:00" }
+    //   2. String simple:     "Gabi"                (registros antiguos)
+    //   3. String con hora "pegada" a mano por el usuario: "Jesus 18:00"
+    // normalizePlayer() interpreta cualquiera de los 3 y siempre entrega
+    // { nick, arrival }. Esto no modifica nada en Firebase: la separación
+    // ocurre solo al momento de mostrar/ordenar, por lo que es 100% seguro
+    // para los eventos ya creados.
+    // ---------------------------------------------------------------------
+    function normalizePlayer(p) {
+      if (p && typeof p === 'object') {
+        return { nick: p.nick || '', arrival: p.arrival || null };
+      }
+      const str = (p || '').toString();
+      const match = str.match(/^(.*\S)\s+(\d{1,2}):(\d{2})\s*$/);
+      if (match) {
+        const hh = match[2].padStart(2, '0');
+        const mm = match[3];
+        return { nick: match[1], arrival: `${hh}:${mm}` };
+      }
+      return { nick: str, arrival: null };
+    }
+
+    function arrivalToMinutes(arrival) {
+      if (!arrival) return Infinity;
+      const parts = arrival.split(':').map(Number);
+      if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return Infinity;
+      return parts[0] * 60 + parts[1];
     }
 
     // EDITAR HORARIO (con la misma autorización que Cerrar Mesa: dueño local o PIN)
@@ -351,13 +417,100 @@
       closeEditScheduleModal();
     });
 
+    // ---------------------------------------------------------------------
+    // UNIRSE A UNA MESA / CONFIRMAR ASISTENCIA
+    // En modalidad virtual se conserva el flujo simple de siempre (prompt).
+    // En modalidad presencial se abre un modal para capturar Nick + hora
+    // estimada de llegada (opcional).
+    // ---------------------------------------------------------------------
+    let currentJoinTableId = null;
+
+    function joinTable(tableId) {
+      const tableRef = db.ref(`vtes_records/${tableId}`);
+
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return alert('La mesa ya no existe.');
+        const table = snapshot.val();
+
+        if (table.modality === 'presencial') {
+          openJoinModal(tableId, table);
+        } else {
+          const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
+          if (!playerNick || !playerNick.trim()) return;
+          addPlayerToTable(tableId, playerNick.trim(), null);
+        }
+      });
+    }
+
+    function openJoinModal(tableId, table) {
+      currentJoinTableId = tableId;
+      document.getElementById('joinModalEventName').textContent = `"${table.name}"`;
+      document.getElementById('joinNick').value = '';
+      pickerJoinArrival.clear();
+      if (table.utcTime) {
+        pickerJoinArrival.setDate(new Date(table.utcTime));
+      }
+      document.getElementById('joinModal').classList.remove('hidden');
+    }
+
+    function closeJoinModal() {
+      document.getElementById('joinModal').classList.add('hidden');
+      document.getElementById('joinForm').reset();
+      currentJoinTableId = null;
+    }
+
+    document.getElementById('joinForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nick = document.getElementById('joinNick').value.trim();
+      const arrival = document.getElementById('joinArrival').value.trim();
+      if (!nick || !currentJoinTableId) return;
+
+      addPlayerToTable(currentJoinTableId, nick, arrival || null);
+      closeJoinModal();
+    });
+
+    function addPlayerToTable(tableId, nick, arrival) {
+      const tableRef = db.ref(`vtes_records/${tableId}`);
+
+      tableRef.get().then(snapshot => {
+        if (!snapshot.exists()) return alert('La mesa ya no existe.');
+        const table = snapshot.val();
+        const players = table.players || [];
+
+        const existingNicks = players.map(p => normalizePlayer(p).nick.toLowerCase());
+        if (existingNicks.includes(nick.toLowerCase())) {
+          return alert(`El jugador "${nick}" ya está registrado en esta mesa.`);
+        }
+        if (table.modality !== 'presencial' && players.length >= 5) {
+          return alert('La mesa ya está llena (máximo 5 jugadores).');
+        }
+
+        const newEntry = table.modality === 'presencial'
+          ? { nick: nick, arrival: arrival || null }
+          : nick;
+
+        players.push(newEntry);
+
+        // Guardamos en el navegador local que ESTE usuario se unió con este Nick
+        localStorage.setItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`, nick);
+
+        tableRef.update({ players: players });
+      });
+    }
+
     // HELPER: Función para Compartir Invitación por WhatsApp (Mantiene los husos horarios específicos)
-    function shareTableInvitation(elementId, tableName, platform, utcISO, playersCount, discord, modality, venue, city, country, mapsLink) {
-      const date = new Date(utcISO);
+    function shareTableInvitation(tableId) {
+      const t = currentGlobalData.find(item => item.id === tableId);
+      if (!t) return alert('La mesa ya no existe.');
+
+      const date = new Date(t.utcTime);
       const siteUrl = window.location.href.split('#')[0];
+      const modality = t.modality || 'virtual';
+      const players = (t.players || []).map(normalizePlayer);
+      const playersCount = players.length;
 
       let msg = `🦇 *¡INVITACIÓN A MESA DE VTES!* 🦇\n\n`;
-      msg += `⚔️ *${modality === 'presencial' ? 'Evento' : 'Mesa'}:* ${tableName}\n`;
+      msg += `⚔️ *${modality === 'presencial' ? 'Evento' : 'Mesa'}:* ${t.name}\n`;
 
       if (modality === 'presencial') {
         // Mensaje para mesa PRESENCIAL: lugar, ciudad y hora local (sin husos horarios)
@@ -365,11 +518,32 @@
         const optionsDate = { weekday: 'long', month: 'short', day: 'numeric' };
         const localWhen = `${date.toLocaleDateString(undefined, optionsDate)} - ${date.toLocaleTimeString(undefined, optionsTime)}`;
 
-        msg += `📍 *Lugar:* ${venue}\n`;
-        if (city || country) msg += `🌆 *Ciudad:* ${city}${country ? ', ' + country : ''}\n`;
+        msg += `📍 *Lugar:* ${t.venue || ''}\n`;
+        if (t.city || t.country) msg += `🌆 *Ciudad:* ${t.city || ''}${t.country ? ', ' + t.country : ''}\n`;
         msg += `👥 *Asistentes confirmados:* ${playersCount}\n`;
         msg += `🗓️ *Cuándo:* ${localWhen}\n`;
-        if (mapsLink) msg += `🗺️ *Ubicación:* ${mapsLink}\n`;
+        if (t.mapsLink) msg += `🗺️ *Ubicación:* ${t.mapsLink}\n`;
+
+        // Agrupar asistentes por hora de llegada
+        const withTime = players.filter(p => p.arrival);
+        const withoutTime = players.filter(p => !p.arrival);
+
+        if (withTime.length > 0) {
+          msg += `\n🕒 *Horarios de llegada:*\n`;
+          const groups = {};
+          withTime.forEach(p => {
+            if (!groups[p.arrival]) groups[p.arrival] = [];
+            groups[p.arrival].push(p.nick);
+          });
+          Object.keys(groups)
+            .sort((a, b) => arrivalToMinutes(a) - arrivalToMinutes(b))
+            .forEach(time => {
+              msg += `${time} — ${groups[time].join(', ')}\n`;
+            });
+        }
+        if (withoutTime.length > 0) {
+          msg += `${withTime.length > 0 ? '' : '\n'}Sin hora especificada: ${withoutTime.map(p => p.nick).join(', ')}\n`;
+        }
       } else {
         // Mensaje para mesa VIRTUAL: husos horarios internacionales
         const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
@@ -379,9 +553,9 @@
         const timeEsp = `${date.toLocaleTimeString('es-ES', { ...optionsTime, timeZone: 'Europe/Madrid' })} (${date.toLocaleDateString('es-ES', { ...optionsDate, timeZone: 'Europe/Madrid' })})`;
         const timeChi = `${date.toLocaleTimeString('es-CL', { ...optionsTime, timeZone: 'America/Santiago' })} (${date.toLocaleDateString('es-CL', { ...optionsDate, timeZone: 'America/Santiago' })})`;
 
-        msg += `💻 *Plataforma:* ${platform}\n`;
+        msg += `💻 *Plataforma:* ${t.platform || 'Lackey'}\n`;
         msg += `👥 *Jugadores:* ${playersCount}/5\n`;
-        if (discord) msg += `🎧 *Discord:* ${discord}\n`;
+        if (t.discord) msg += `🎧 *Discord:* ${t.discord}\n`;
         msg += `\n🌍 *HORARIOS INTERNACIONALES:*\n`;
         msg += `🇲🇽 ${timeMex}\n`;
         msg += `🇪🇸 ${timeEsp}\n`;
@@ -504,34 +678,6 @@
       }
     }
 
-    function joinTable(tableId) {
-      const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
-      if (!playerNick || !playerNick.trim()) return;
-
-      const cleanNick = playerNick.trim();
-      const tableRef = db.ref(`vtes_records/${tableId}`);
-
-      tableRef.get().then(snapshot => {
-        if (!snapshot.exists()) return alert('La mesa ya no existe.');
-        const table = snapshot.val();
-        const players = table.players || [];
-
-        if (players.some(p => p.toLowerCase() === cleanNick.toLowerCase())) {
-          return alert(`El jugador "${cleanNick}" ya está registrado en esta mesa.`);
-        }
-        if (table.modality !== 'presencial' && players.length >= 5) {
-          return alert('La mesa ya está llena (máximo 5 jugadores).');
-        }
-
-        players.push(cleanNick);
-        
-        // Guardamos en el navegador local que ESTE usuario se unió con este Nick
-        localStorage.setItem(`vtes_joined_${tableId}_${cleanNick.toLowerCase()}`, cleanNick);
-
-        tableRef.update({ players: players });
-      });
-    }
-
     function leaveTable(tableId, playerToRemove) {
       const tableRef = db.ref(`vtes_records/${tableId}`);
 
@@ -552,8 +698,8 @@
 
         if (isCreator || isSelf) {
           const confirmAction = confirm(
-            isSelf 
-              ? `¿Deseas salir de la mesa "${table.name}"?` 
+            isSelf
+              ? `¿Deseas salir de la mesa "${table.name}"?`
               : `Como creador de la mesa, ¿deseas remover a "${playerToRemove}"?`
           );
           authorized = confirmAction;
@@ -570,7 +716,7 @@
 
         if (!authorized) return;
 
-        players = players.filter(p => p.toLowerCase() !== playerToRemove.toLowerCase());
+        players = players.filter(p => normalizePlayer(p).nick.toLowerCase() !== playerToRemove.toLowerCase());
         localStorage.removeItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
 
         if (players.length === 0) {
@@ -621,7 +767,7 @@
 
     function getPlatformBadge(platform) {
       const isLackey = (platform || '').toLowerCase().includes('lackey');
-      return isLackey 
+      return isLackey
         ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">💻 LackeyCCG</span>`
         : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">🦇 Succubus Club</span>`;
     }
@@ -693,6 +839,12 @@
         const isFull = !isPresencial && count >= 5;
         const isReady = !isPresencial && count >= 4;
 
+        // Jugadores normalizados (retrocompatibles) y, si es presencial, ordenados por hora de llegada
+        let displayPlayers = (t.players || []).map(normalizePlayer);
+        if (isPresencial) {
+          displayPlayers = displayPlayers.slice().sort((a, b) => arrivalToMinutes(a.arrival) - arrivalToMinutes(b.arrival));
+        }
+
         let statusBadge = isPresencial
           ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 text-xs px-2.5 py-1 rounded-full font-bold">👥 ${count} confirmado${count === 1 ? '' : 's'}</span>`
           : isReady
@@ -702,7 +854,7 @@
         const discordHtml = `
           <div class="bg-indigo-950/40 border border-indigo-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-indigo-300">
             <span class="font-medium flex items-center gap-1">
-              <span>🎧</span> <strong>Discord:</strong> 
+              <span>🎧</span> <strong>Discord:</strong>
               ${t.discord ? `<span class="text-indigo-200 font-normal">${escapeHtml(t.discord)}</span>` : `<span class="text-gray-500 italic">No especificado</span>`}
             </span>
             <button onclick="editCustomTableDiscord('${t.id}', '${escapeHtml(t.discord || '')}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
@@ -714,7 +866,7 @@
         const gamePwdHtml = `
           <div class="bg-blue-950/40 border border-blue-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-blue-300">
             <span class="font-medium flex items-center gap-1">
-              <span>🎮</span> <strong>Pass Partida:</strong> 
+              <span>🎮</span> <strong>Pass Partida:</strong>
               ${t.gamePassword ? `<span id="gamepwd-${t.id}" class="hidden font-mono font-bold text-blue-200 bg-gray-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${t.id}')" class="text-blue-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition text-[11px] ml-1">👁️ Ver</button>` : `<span class="text-gray-500 italic">Sin contraseña</span>`}
             </span>
             <button onclick="editCustomTableGamePassword('${t.id}', '${escapeHtml(t.gamePassword || '')}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
@@ -768,10 +920,10 @@
             <div class="space-y-2">
               <p class="text-xs font-semibold text-gray-400">${isPresencial ? `Asistentes confirmados (${count})` : `Jugadores confirmados (${count}/5)`}:</p>
               <div class="flex flex-wrap gap-2">
-                 ${(t.players || []).map(p => `
+                 ${displayPlayers.map(p => `
                   <span class="inline-flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 text-amber-200 text-xs px-2.5 py-1 rounded-lg font-medium">
-                    ${escapeHtml(p)}
-                    <button onclick="leaveTable('${t.id}', '${escapeHtml(p)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
+                    ${escapeHtml(p.nick)}${p.arrival ? `<span class="text-amber-400/80 font-mono text-[10px]">· ${escapeHtml(p.arrival)}</span>` : ''}
+                    <button onclick="leaveTable('${t.id}', '${escapeHtml(p.nick)}')" class="text-amber-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>
                   </span>
                 `).join('')}
               </div>
@@ -785,7 +937,7 @@
               ` : `
                 <div class="text-center text-xs text-gray-500 py-1.5 bg-gray-800 rounded">Mesa llena</div>
               `}
-              <button onclick="shareTableInvitation('${cardId}', '${escapeHtml(t.name)}', '${escapeHtml(t.platform || 'Lackey')}', '${t.utcTime}', ${count}, '${escapeHtml(t.discord || '')}', '${t.modality || 'virtual'}', '${escapeHtml(t.venue || '')}', '${escapeHtml(t.city || '')}', '${escapeHtml(t.country || '')}', '${escapeHtml(t.mapsLink || '')}')" class="w-full bg-green-700/30 hover:bg-green-600 text-green-300 hover:text-white border border-green-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1.5">
+              <button onclick="shareTableInvitation('${t.id}')" class="w-full bg-green-700/30 hover:bg-green-600 text-green-300 hover:text-white border border-green-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1.5">
                 📲 Invitar por WhatsApp
               </button>
             </div>
