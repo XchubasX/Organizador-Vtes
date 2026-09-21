@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sorteo de Mesa - VTES</title>
+  <title>Orden de Asientos - VTES</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase App & Database SDKs (solo lectura del evento) -->
@@ -17,7 +17,7 @@
   <div class="max-w-2xl mx-auto space-y-6">
 
     <header class="text-center space-y-2 border-b border-red-800 pb-4">
-      <h1 class="text-2xl md:text-4xl font-extrabold text-red-600 tracking-wider">🎲 SORTEO DE MESA</h1>
+      <h1 class="text-2xl md:text-4xl font-extrabold text-red-600 tracking-wider">🎲 ORDEN DE ASIENTOS</h1>
       <p id="eventLabel" class="text-gray-400 text-sm">Cargando evento...</p>
       <a href="index.html" class="inline-block text-xs text-amber-400 hover:text-amber-300 underline">← Volver al Organizador</a>
     </header>
@@ -44,13 +44,9 @@
 
     <!-- RESULTADO -->
     <section id="resultSection" class="bg-gray-800 border border-red-800/50 rounded-xl p-6 shadow-xl space-y-4 hidden">
-      <h2 class="text-lg font-bold text-red-500 text-center tracking-wide">🩸 CADENA DE SANGRE 🩸</h2>
+      <h2 class="text-lg font-bold text-red-500 text-center tracking-wide">RESULTADO DEL SORTEO</h2>
 
       <div id="wheelContainer" class="flex justify-center"></div>
-
-      <p class="text-center text-[11px] text-gray-400 leading-relaxed">
-        El número indica el orden de turno. Cada jugador es <strong class="text-red-400">depredador</strong> del jugador anterior en el círculo (el primero es depredador del último, cerrando la cadena).
-      </p>
 
       <ol id="orderList" class="text-sm text-gray-300 space-y-1.5 pt-2 border-t border-gray-700"></ol>
 
@@ -201,12 +197,12 @@
     function renderOrderList(order) {
       const list = document.getElementById('orderList');
       list.innerHTML = order.map((name, idx) => {
-        const predatorIdx = (idx - 1 + order.length) % order.length;
+        const preyIdx = (idx + 1) % order.length;
         return `<li class="flex items-center gap-2">
           <span class="text-amber-400 font-bold w-5">${idx + 1}.</span>
           <span class="flex-1">${escapeHtml(name)}</span>
           ${idx === 0 ? '<span class="text-emerald-400 text-[10px] bg-emerald-950/50 border border-emerald-700/50 px-2 py-0.5 rounded-full">Empieza el juego</span>' : ''}
-          <span class="text-gray-500 text-[10px]">depredador: ${escapeHtml(order[predatorIdx])}</span>
+          <span class="text-gray-500 text-[10px]">presa: ${escapeHtml(order[preyIdx])}</span>
         </li>`;
       }).join('');
     }
