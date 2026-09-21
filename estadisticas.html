@@ -6,27 +6,47 @@
   <title>Estadísticas - VTES Scheduler</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            wine: {
+              50: '#fdf2f4', 100: '#fbe4e8', 200: '#f0c2cb', 300: '#d98fa0',
+              400: '#c05a72', 500: '#a8425a', 600: '#8c2f45', 700: '#6d2436',
+              800: '#551c2a', 900: '#3f141f', 950: '#2a0d15'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
   <!-- Firebase App & Database SDKs (solo lectura de contadores) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <!-- Firebase App Check (la base de datos exige token válido incluso para lectura) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
+<body class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
 
   <div class="max-w-3xl mx-auto space-y-6">
 
-    <header class="text-center space-y-2 border-b border-red-800 pb-4">
-      <h1 class="text-2xl md:text-4xl font-extrabold text-red-600 tracking-wider">📊 ESTADÍSTICAS</h1>
-      <p class="text-gray-400 text-sm">VTES Scheduler</p>
+    <header class="text-center space-y-2 border-b border-wine-800 pb-4">
+      <h1 class="text-2xl md:text-4xl font-extrabold text-wine-500 tracking-wider">📊 ESTADÍSTICAS</h1>
+      <p class="text-zinc-400 text-sm">VTES Scheduler</p>
     </header>
 
     <!-- GATE DE CONTRASEÑA (disuasorio, no es seguridad real — ver comentario en el script) -->
-    <section id="gateSection" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-4 max-w-sm mx-auto">
-      <p class="text-sm text-gray-400 text-center">Esta página es privada. Ingresa la contraseña para ver las estadísticas.</p>
+    <section id="gateSection" class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-4 max-w-sm mx-auto">
+      <p class="text-sm text-zinc-400 text-center">Esta página es privada. Ingresa la contraseña para ver las estadísticas.</p>
       <form id="gateForm" class="space-y-3">
-        <input type="password" id="gatePassword" placeholder="Contraseña" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-amber-500" autocomplete="off">
-        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm transition">
+        <input type="password" id="gatePassword" placeholder="Contraseña" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-wine-500" autocomplete="off">
+        <button type="submit" class="w-full bg-wine-600 hover:bg-wine-500 text-white font-bold py-2 rounded-lg text-sm transition">
           Entrar
         </button>
       </form>
@@ -37,46 +57,52 @@
     <div id="statsContent" class="space-y-6 hidden">
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-gray-800 border border-amber-700/40 rounded-xl p-4 text-center">
-          <p class="text-2xl font-bold text-amber-400" id="statVirtualTables">0</p>
-          <p class="text-[11px] text-gray-400 mt-1">Mesas virtuales creadas</p>
+        <div class="bg-zinc-800 border border-wine-700/40 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-wine-400" id="statVirtualTables">0</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Mesas virtuales creadas</p>
         </div>
-        <div class="bg-gray-800 border border-emerald-700/40 rounded-xl p-4 text-center">
+        <div class="bg-zinc-800 border border-emerald-700/40 rounded-xl p-4 text-center">
           <p class="text-2xl font-bold text-emerald-400" id="statPresencialEvents">0</p>
-          <p class="text-[11px] text-gray-400 mt-1">Eventos presenciales creados</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Eventos presenciales creados</p>
         </div>
-        <div class="bg-gray-800 border border-amber-700/40 rounded-xl p-4 text-center">
-          <p class="text-2xl font-bold text-amber-400" id="statVirtualJoins">0</p>
-          <p class="text-[11px] text-gray-400 mt-1">Inscripciones a mesas virtuales</p>
+        <div class="bg-zinc-800 border border-wine-700/40 rounded-xl p-4 text-center">
+          <p class="text-2xl font-bold text-wine-400" id="statVirtualJoins">0</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Inscripciones a mesas virtuales</p>
         </div>
-        <div class="bg-gray-800 border border-emerald-700/40 rounded-xl p-4 text-center">
+        <div class="bg-zinc-800 border border-emerald-700/40 rounded-xl p-4 text-center">
           <p class="text-2xl font-bold text-emerald-400" id="statPresencialJoins">0</p>
-          <p class="text-[11px] text-gray-400 mt-1">Inscripciones a eventos presenciales</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Inscripciones a eventos presenciales</p>
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
+        <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-center">
           <p class="text-xl font-bold text-white" id="statVirtualAvg">—</p>
-          <p class="text-[11px] text-gray-400 mt-1">Promedio de jugadores por mesa virtual</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Promedio de jugadores por mesa virtual</p>
         </div>
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
+        <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-center">
           <p class="text-xl font-bold text-white" id="statPresencialAvg">—</p>
-          <p class="text-[11px] text-gray-400 mt-1">Promedio de asistentes por evento presencial</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Promedio de asistentes por evento presencial</p>
         </div>
       </div>
 
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl space-y-3">
-        <h2 class="text-lg font-bold text-amber-500">Eventos presenciales por ciudad</h2>
+      <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-3">
+        <h2 class="text-lg font-bold text-wine-500">Eventos presenciales por ciudad</h2>
         <div id="cityBreakdown" class="space-y-2"></div>
       </div>
 
-      <p class="text-center text-[11px] text-gray-600">
+      <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-3">
+        <h2 class="text-lg font-bold text-wine-500">Registro de eventos presenciales</h2>
+        <p class="text-[11px] text-zinc-500">Se conservan los últimos 500 eventos; los más antiguos se eliminan automáticamente al abrir esta página.</p>
+        <div id="eventsLog" class="space-y-2"></div>
+      </div>
+
+      <p class="text-center text-[11px] text-zinc-600">
         Los contadores son históricos: no bajan aunque una mesa o evento se elimine, se cierre o expire.
       </p>
 
       <div class="text-center">
-        <a href="index.html" class="inline-block text-xs text-amber-400 hover:text-amber-300 underline">← Volver al Organizador</a>
+        <a href="index.html" class="inline-block text-xs text-wine-400 hover:text-wine-300 underline">← Volver al Organizador</a>
       </div>
     </div>
 
@@ -133,6 +159,30 @@
       }
     });
 
+    // ---------------------------------------------------------------------
+    // Máximo de eventos presenciales a conservar en el registro de nicks
+    // (stats/presencialEventsLog). Es el único nodo de "stats" que no es un
+    // simple contador, así que se poda para que no crezca sin límite: cada
+    // vez que se abre esta página, si hay más de este número de eventos
+    // registrados, se borran los más antiguos hasta dejar solo estos.
+    // No afecta a los contadores numéricos (mesas creadas, promedios, etc.).
+    // ---------------------------------------------------------------------
+    const MAX_EVENTS_LOG = 500;
+
+    function pruneOldEventsLog(eventsLog) {
+      const ids = Object.keys(eventsLog);
+      if (ids.length <= MAX_EVENTS_LOG) return;
+
+      // Ordenamos del más nuevo al más antiguo (sin createdAt = se trata
+      // como el más antiguo posible, para que se borre primero).
+      const sorted = ids.sort((a, b) => (eventsLog[b].createdAt || 0) - (eventsLog[a].createdAt || 0));
+      const toDelete = sorted.slice(MAX_EVENTS_LOG);
+
+      const updates = {};
+      toDelete.forEach(id => { updates[`stats/presencialEventsLog/${id}`] = null; });
+      db.ref().update(updates);
+    }
+
     function loadStats() {
       db.ref('stats').get().then(snapshot => {
         const stats = snapshot.val() || {};
@@ -155,7 +205,7 @@
 
         const cityContainer = document.getElementById('cityBreakdown');
         if (cityKeys.length === 0) {
-          cityContainer.innerHTML = `<p class="text-xs text-gray-500 italic">Todavía no hay eventos presenciales registrados.</p>`;
+          cityContainer.innerHTML = `<p class="text-xs text-zinc-500 italic">Todavía no hay eventos presenciales registrados.</p>`;
         } else {
           cityContainer.innerHTML = cityKeys.map(key => {
             const c = byCity[key];
@@ -163,13 +213,40 @@
             const joins = c.joins || 0;
             const avg = events > 0 ? (joins / events).toFixed(1) : '—';
             return `
-              <div class="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-                <span class="font-medium text-emerald-300">${escapeHtml(c.name || key)}${c.country ? `<span class="text-gray-500 font-normal">, ${escapeHtml(c.country)}</span>` : ''}</span>
-                <span class="text-xs text-gray-400">${events} evento${events === 1 ? '' : 's'} · ${joins} asistente${joins === 1 ? '' : 's'} · prom. ${avg}</span>
+              <div class="flex items-center justify-between bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
+                <span class="font-medium text-emerald-300">${escapeHtml(c.name || key)}${c.country ? `<span class="text-zinc-500 font-normal">, ${escapeHtml(c.country)}</span>` : ''}</span>
+                <span class="text-xs text-zinc-400">${events} evento${events === 1 ? '' : 's'} · ${joins} asistente${joins === 1 ? '' : 's'} · prom. ${avg}</span>
               </div>
             `;
           }).join('');
         }
+
+        // Registro de eventos presenciales (con nicks de participantes)
+        const eventsLog = stats.presencialEventsLog || {};
+        const eventIds = Object.keys(eventsLog).sort((a, b) => (eventsLog[b].createdAt || 0) - (eventsLog[a].createdAt || 0));
+
+        const eventsContainer = document.getElementById('eventsLog');
+        if (eventIds.length === 0) {
+          eventsContainer.innerHTML = `<p class="text-xs text-zinc-500 italic">Todavía no hay eventos presenciales registrados.</p>`;
+        } else {
+          eventsContainer.innerHTML = eventIds.map(id => {
+            const ev = eventsLog[id];
+            const players = ev.players ? Object.values(ev.players) : [];
+            const dateStr = ev.createdAt ? new Date(ev.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Fecha desconocida';
+            const nicksStr = players.length > 0 ? players.map(escapeHtml).join(', ') : '<span class="italic text-zinc-600">sin registros</span>';
+            return `
+              <div class="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-emerald-300">${escapeHtml(ev.city || 'Desconocido')}${ev.country ? `<span class="text-zinc-500 font-normal">, ${escapeHtml(ev.country)}</span>` : ''}</span>
+                  <span class="text-[11px] text-zinc-500">${dateStr}</span>
+                </div>
+                <p class="text-[11px] text-zinc-400">${players.length} jugador${players.length === 1 ? '' : 'es'}: ${nicksStr}</p>
+              </div>
+            `;
+          }).join('');
+        }
+
+        pruneOldEventsLog(eventsLog);
       }).catch(() => {
         document.getElementById('statsContent').innerHTML = `<p class="text-center text-red-400 text-sm">No se pudieron cargar las estadísticas.</p>`;
       });
