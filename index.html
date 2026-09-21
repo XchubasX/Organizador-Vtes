@@ -387,6 +387,14 @@
       return parts[0] * 60 + parts[1];
     }
 
+    // Convierte un nombre de ciudad en una llave válida para Firebase (no
+    // permite . # $ [ ] en las llaves). Usada solo para las estadísticas
+    // agregadas por ciudad; el nombre original se guarda aparte para mostrar.
+    function sanitizeStatsKey(str) {
+      const clean = (str || '').trim().replace(/[.#$\[\]\/]/g, '_');
+      return clean || 'Desconocido';
+    }
+
     // ---------------------------------------------------------------------
     // FORMATO DE FECHA/HORA "SIN CONVERTIR" PARA EVENTOS PRESENCIALES
     // Un evento presencial ocurre en un lugar físico real, así que su hora
@@ -536,7 +544,23 @@
         // Guardamos en el navegador local que ESTE usuario se unió con este Nick
         localStorage.setItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`, nick);
 
-        tableRef.update({ players: players });
+        // Estadísticas: se agrupan en la misma llamada que guarda al jugador,
+        // para no duplicar el número de escrituras a Firebase. Estos
+        // contadores son históricos (no se borran aunque la mesa expire).
+        const updates = {};
+        updates[`vtes_records/${tableId}/players`] = players;
+
+        if (table.modality === 'presencial') {
+          const cityKey = sanitizeStatsKey(table.city);
+          updates['stats/presencialJoins'] = firebase.database.ServerValue.increment(1);
+          updates[`stats/presencialByCity/${cityKey}/joins`] = firebase.database.ServerValue.increment(1);
+          updates[`stats/presencialByCity/${cityKey}/name`] = table.city || 'Desconocido';
+          updates[`stats/presencialByCity/${cityKey}/country`] = table.country || '';
+        } else {
+          updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
+        }
+
+        db.ref().update(updates);
       });
     }
 
@@ -761,7 +785,26 @@
       // Nick (evita romperse si en el futuro el campo llega vacío o cambia).
       localStorage.setItem(`vtes_owner_${newId}`, '1');
 
-      newRef.set(recordData);
+      // Estadísticas: se agrupan en la misma llamada que crea el registro,
+      // para no duplicar el número de escrituras a Firebase. Estos
+      // contadores son históricos (no se borran aunque la mesa expire o se cierre).
+      const updates = {};
+      updates[`vtes_records/${newId}`] = recordData;
+
+      if (modality === 'presencial') {
+        const cityKey = sanitizeStatsKey(recordData.city);
+        updates['stats/presencialEventsCreated'] = firebase.database.ServerValue.increment(1);
+        updates['stats/presencialJoins'] = firebase.database.ServerValue.increment(1);
+        updates[`stats/presencialByCity/${cityKey}/name`] = recordData.city;
+        updates[`stats/presencialByCity/${cityKey}/country`] = recordData.country || '';
+        updates[`stats/presencialByCity/${cityKey}/eventsCreated`] = firebase.database.ServerValue.increment(1);
+        updates[`stats/presencialByCity/${cityKey}/joins`] = firebase.database.ServerValue.increment(1);
+      } else {
+        updates['stats/virtualTablesCreated'] = firebase.database.ServerValue.increment(1);
+        updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
+      }
+
+      db.ref().update(updates);
 
       document.getElementById('customTableForm').reset();
       pickerCustomTable.clear();
