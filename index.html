@@ -6,6 +6,9 @@
   <title>VTES Matchmaking & Mesas Abiertas</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- EmailJS: envía el formulario de "Reportar bug / Sugerencia" directo a un correo,
+       sin guardar ningún dato en Firebase (ver botón flotante 💬 más abajo) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,6 +45,41 @@
 <body class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
 
 <!-- SELLO DARK PACK FLOTANTE (Esquina Inferior Izquierda) -->
+  <!-- BOTÓN FLOTANTE: REPORTAR BUG / SUGERENCIA -->
+  <button type="button" onclick="openFeedbackModal()" title="Reportar un bug o sugerencia" class="fixed bottom-4 right-4 z-40 bg-wine-600 hover:bg-wine-500 text-white rounded-full w-12 h-12 shadow-lg shadow-wine-900/40 flex items-center justify-center text-xl transition transform hover:scale-105">
+    💬
+  </button>
+
+  <!-- MODAL: REPORTAR BUG / SUGERENCIA (no guarda nada en Firebase, se envía por correo vía EmailJS) -->
+  <div id="feedbackModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-800 border border-zinc-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 border-b border-zinc-700 pb-3">
+        <span class="text-2xl">💬</span>
+        <h3 class="text-lg font-bold text-wine-400">Reportar un bug o sugerencia</h3>
+      </div>
+      <p class="text-xs text-zinc-400">Tu mensaje se envía directo por correo. No se guarda nada en la base de datos del sitio.</p>
+      <form id="feedbackForm" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Mensaje</label>
+          <textarea id="feedbackMessage" required rows="4" maxlength="2000" placeholder="Describe el bug o la funcionalidad que te gustaría..." class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-wine-500 resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Tu correo (opcional, solo si quieres que te respondamos)</label>
+          <input type="email" id="feedbackEmail" placeholder="tucorreo@ejemplo.com" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-wine-500">
+        </div>
+        <p id="feedbackStatus" class="text-xs hidden"></p>
+        <div class="flex gap-2 pt-1">
+          <button type="submit" id="feedbackSubmitBtn" class="flex-1 bg-wine-600 hover:bg-wine-500 text-white font-bold py-2 rounded-lg text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+            Enviar
+          </button>
+          <button type="button" onclick="closeFeedbackModal()" class="text-sm font-medium text-zinc-400 hover:text-zinc-200 border border-zinc-700 rounded-lg px-4 transition">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <aside aria-label="Dark Pack Certified" class="fixed bottom-4 left-4 z-40 block group">
     <a href="https://www.paradoxinteractive.com/games/world-of-darkness/community/dark-pack-agreement" target="_blank" rel="noopener" class="block transition transform hover:scale-105" title="Material amparado bajo el acuerdo Dark Pack de Paradox Interactive">
       <img src="./darkpack_logo_small.webp?w=375&q=75&fm=webp" data-fallback-alt="Logo Dark Pack Oficial" class="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-red-600/80 shadow-2xl object-cover bg-black" alt="Dark Pack Logo" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'48\' fill=\'black\' stroke=\'%23dc2626\' stroke-width=\'4\'/><text x=\'50\' y=\'45\' fill=\'white\' font-size=\'14\' font-weight=\'bold\' text-anchor=\'middle\' font-family=\'sans-serif\'>DARK</text><text x=\'50\' y=\'65\' fill=\'white\' font-size=\'14\' font-weight=\'bold\' text-anchor=\'middle\' font-family=\'sans-serif\'>PACK</text></svg>';">
@@ -1182,6 +1220,59 @@
     function escapeHtml(str) {
       return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
+
+    // ---------------------------------------------------------------------
+    // BOTÓN DE CONTACTO: REPORTAR BUG / SUGERENCIA
+    // Se envía por correo directo vía EmailJS — no se escribe nada en
+    // Firebase, no se guarda ningún dato del usuario en el sitio. El correo
+    // (si el usuario lo deja) solo viaja como "reply-to" del correo que le
+    // llega al administrador, igual que cualquier email normal.
+    // ---------------------------------------------------------------------
+    emailjs.init({ publicKey: 'MIO26Qm3IZUFiwvB3' });
+
+    function openFeedbackModal() {
+      document.getElementById('feedbackModal').classList.remove('hidden');
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedbackModal').classList.add('hidden');
+      document.getElementById('feedbackForm').reset();
+      const status = document.getElementById('feedbackStatus');
+      status.classList.add('hidden');
+      status.textContent = '';
+    }
+
+    document.getElementById('feedbackForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const message = document.getElementById('feedbackMessage').value.trim();
+      const email = document.getElementById('feedbackEmail').value.trim();
+      if (!message) return;
+
+      const btn = document.getElementById('feedbackSubmitBtn');
+      const status = document.getElementById('feedbackStatus');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+
+      emailjs.send('service_ehnpqcs', 'template_d1h2h9k', {
+        message: message,
+        page: 'index',
+        reply_to: email || '(no proporcionado)'
+      }).then(() => {
+        status.textContent = '✅ ¡Gracias! Tu mensaje fue enviado.';
+        status.className = 'text-xs text-emerald-400';
+        status.classList.remove('hidden');
+        document.getElementById('feedbackForm').reset();
+        btn.disabled = false;
+        btn.textContent = 'Enviar';
+        setTimeout(closeFeedbackModal, 2000);
+      }).catch(() => {
+        status.textContent = '❌ No se pudo enviar. Intenta de nuevo en un momento.';
+        status.className = 'text-xs text-red-400';
+        status.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Enviar';
+      });
+    });
   </script>
   <footer style="text-align: center; padding: 20px; font-size: 0.85rem; opacity: 0.8;">
   <p>
