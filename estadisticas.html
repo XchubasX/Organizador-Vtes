@@ -4,113 +4,207 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Estadísticas - VTES Scheduler</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            wine: {
-              50: '#fdf2f4', 100: '#fbe4e8', 200: '#f0c2cb', 300: '#d98fa0',
-              400: '#c05a72', 500: '#a8425a', 600: '#8c2f45', 700: '#6d2436',
-              800: '#551c2a', 900: '#3f141f', 950: '#2a0d15'
-            }
-          }
-        }
-      }
-    }
-  </script>
 
-  <!-- Firebase App & Database SDKs (solo lectura de contadores) -->
+  <!-- Firebase App & Database SDKs (lectura de estadísticas + poda de fichas viejas) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <!-- Firebase App Check (la base de datos exige token válido incluso para lectura) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
+
+  <style>
+    /* Misma apariencia oscura del sitio (zinc + vino). Colores de las gráficas
+       validados para daltonismo sobre la superficie #27272a:
+       virtual #d95926 vs presencial #199e70 → separación CVD ΔE 9.4 (meta ≥ 8). */
+    :root {
+      color-scheme: dark;
+      --bg: #18181b; --surface: #27272a; --surface-2: #1f1f23; --deep: #0f0f11; --line: #3f3f46; --grid: #34343a;
+      --text: #f4f4f5; --text-2: #c4c4cc; --muted: #a1a1aa; --dim: #71717a;
+      --wine: #a8425a; --wine-strong: #8c2f45; --wine-soft: #d98fa0; --wine-deep: #3f141f;
+      --series-virtual: #d95926; --series-presencial: #199e70;
+      --seq-0: #2b2b30; --seq-1: #104281; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #5598e7; --seq-5: #9ec5f4;
+      --good: #4ade80; --bad: #f87171; --amber: #fcd34d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 15px; line-height: 1.55; padding: 0 16px; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding-block: 32px 72px; display: grid; gap: 24px; }
+    h1, h2, h3 { margin: 0; text-wrap: balance; }
+    p { margin: 0; }
+    .hidden { display: none !important; }
+    header { display: grid; gap: 6px; border-bottom: 1px solid var(--wine-deep); padding-bottom: 16px; }
+    header h1 { font-size: clamp(26px, 4.5vw, 36px); font-weight: 800; color: var(--wine); }
+    header p { color: var(--muted); font-size: 14px; }
+
+    /* Contraseña */
+    .gate { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; gap: 12px; max-width: 360px; width: 100%; margin: 24px auto; text-align: center; }
+    .gate p { color: var(--muted); font-size: 14px; }
+    .gate input { background: var(--deep); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; color: var(--text); font: inherit; text-align: center; }
+    .gate input:focus { outline: none; border-color: var(--wine); }
+    .btn { background: var(--wine-strong); color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+    .btn:hover { background: var(--wine); }
+    .err { color: var(--bad); font-size: 13px; }
+
+    .notice { background: #1e1b4b; border: 1px solid #4338ca; color: #c7d2fe; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
+    .notice b { color: #fff; }
+
+    /* Resumen */
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+    .kpi .q { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .kpi .v { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .kpi .d { font-size: 12.5px; color: var(--text-2); }
+    .up { color: var(--good); font-weight: 700; }
+    .down { color: var(--bad); font-weight: 700; }
+
+    /* Gráficas */
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+    .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: flex-start; }
+    .panel h2 { font-size: 17px; font-weight: 700; }
+    .panel .sub { font-size: 13px; color: var(--muted); max-width: 62ch; }
+    .answer { font-size: 13.5px; color: var(--text-2); border-left: 2px solid var(--wine); padding-left: 10px; }
+    .answer b { color: var(--text); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 780px) { .grid2 { grid-template-columns: 1fr; } }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--text-2); }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    svg text { fill: var(--muted); font-family: 'Inter', system-ui, sans-serif; font-size: 11px; }
+    svg .val { fill: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+    svg .mark:hover, svg .mark:focus { opacity: .85; outline: none; }
+    .seg { display: inline-flex; background: var(--deep); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+    .seg button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); }
+    .seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--wine-soft); outline-offset: 2px; }
+    .scale { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+    .scale span.sw { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
+    .hscroll { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    td { padding: 8px; border-bottom: 1px solid var(--grid); color: var(--text-2); }
+    td:first-child { color: var(--text); font-weight: 600; }
+    td.n, th.n { text-align: right; }
+    .empty { color: var(--dim); font-size: 13px; font-style: italic; }
+
+    details.old { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+    details.old summary { cursor: pointer; font-size: 13.5px; color: var(--text-2); font-weight: 600; }
+    details.old .rows { display: grid; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+    details.old .rows b { color: var(--text); font-variant-numeric: tabular-nums; }
+    .back { text-align: center; }
+    .back a { color: var(--wine-soft); font-size: 13px; }
+
+    #tip { position: fixed; pointer-events: none; background: #09090b; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12px; color: var(--text-2); box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 10; max-width: 240px; }
+    #tip b { color: var(--text); font-size: 13px; }
+    #tip .k { display: inline-block; width: 12px; height: 2px; vertical-align: 3px; margin-right: 6px; }
+  </style>
 </head>
-<body class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
+<body>
+  <div class="wrap">
 
-  <div class="max-w-3xl mx-auto space-y-6">
-
-    <header class="text-center space-y-2 border-b border-wine-800 pb-4">
-      <h1 class="text-2xl md:text-4xl font-extrabold text-wine-500 tracking-wider">📊 ESTADÍSTICAS</h1>
-      <p class="text-zinc-400 text-sm">VTES Scheduler</p>
+    <header>
+      <h1>📊 Estadísticas</h1>
+      <p>VTES Scheduler · cada sección responde una pregunta. Pasa el cursor o toca las barras y casillas para ver los números.</p>
     </header>
 
     <!-- GATE DE CONTRASEÑA (disuasorio, no es seguridad real — ver comentario en el script) -->
-    <section id="gateSection" class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-4 max-w-sm mx-auto">
-      <p class="text-sm text-zinc-400 text-center">Esta página es privada. Ingresa la contraseña para ver las estadísticas.</p>
-      <form id="gateForm" class="space-y-3">
-        <input type="password" id="gatePassword" placeholder="Contraseña" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-wine-500" autocomplete="off">
-        <button type="submit" class="w-full bg-wine-600 hover:bg-wine-500 text-white font-bold py-2 rounded-lg text-sm transition">
-          Entrar
-        </button>
+    <section id="gateSection" class="gate">
+      <p>Esta página es privada. Ingresa la contraseña para ver las estadísticas.</p>
+      <form id="gateForm" style="display:grid;gap:10px">
+        <input type="password" id="gatePassword" placeholder="Contraseña" autocomplete="off" aria-label="Contraseña">
+        <button type="submit" class="btn">Entrar</button>
       </form>
-      <p id="gateError" class="text-center text-xs text-red-400 hidden">Contraseña incorrecta.</p>
+      <p id="gateError" class="err hidden">Contraseña incorrecta.</p>
     </section>
 
     <!-- CONTENIDO -->
-    <div id="statsContent" class="space-y-6 hidden">
+    <div id="statsContent" class="hidden" style="display:grid;gap:24px">
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-zinc-800 border border-wine-700/40 rounded-xl p-4 text-center">
-          <p class="text-2xl font-bold text-wine-400" id="statVirtualTables">0</p>
-          <p class="text-[11px] text-zinc-400 mt-1">Mesas virtuales creadas</p>
+      <p class="notice" id="dataNotice"></p>
+
+      <div class="kpis" id="kpis"></div>
+
+      <!-- 1. ¿CRECE EL USO? -->
+      <section class="panel" aria-labelledby="h1">
+        <div class="panel-head">
+          <div>
+            <h2 id="h1">¿Crece el uso?</h2>
+            <p class="sub">Mesas y eventos por semana de juego, últimas 8 semanas.</p>
+          </div>
+          <div class="legend"><span><i style="background:var(--series-virtual)"></i>Mesas virtuales</span><span><i style="background:var(--series-presencial)"></i>Eventos presenciales</span></div>
         </div>
-        <div class="bg-zinc-800 border border-emerald-700/40 rounded-xl p-4 text-center">
-          <p class="text-2xl font-bold text-emerald-400" id="statPresencialEvents">0</p>
-          <p class="text-[11px] text-zinc-400 mt-1">Eventos presenciales creados</p>
-        </div>
-        <div class="bg-zinc-800 border border-wine-700/40 rounded-xl p-4 text-center">
-          <p class="text-2xl font-bold text-wine-400" id="statVirtualJoins">0</p>
-          <p class="text-[11px] text-zinc-400 mt-1">Inscripciones a mesas virtuales</p>
-        </div>
-        <div class="bg-zinc-800 border border-emerald-700/40 rounded-xl p-4 text-center">
-          <p class="text-2xl font-bold text-emerald-400" id="statPresencialJoins">0</p>
-          <p class="text-[11px] text-zinc-400 mt-1">Inscripciones a eventos presenciales</p>
-        </div>
+        <div id="chartWeeks"></div>
+        <p class="answer" id="ansWeeks"></p>
+      </section>
+
+      <div class="grid2">
+        <!-- 2. ¿SE LLENAN? -->
+        <section class="panel" aria-labelledby="h2">
+          <div>
+            <h2 id="h2">¿Se llenan las mesas virtuales?</h2>
+            <p class="sub">Porcentaje de mesas que llegaron a 4 o más jugadores. Solo cuenta mesas cuya hora ya pasó.</p>
+          </div>
+          <div id="chartFill"></div>
+          <p class="answer" id="ansFill"></p>
+        </section>
+
+        <!-- 4. ¿CUÁNTOS JUGADORES? -->
+        <section class="panel" aria-labelledby="h4">
+          <div>
+            <h2 id="h4">¿Cuántos jugadores distintos hay?</h2>
+            <p class="sub">Nicks diferentes que se unieron a alguna mesa o evento, por mes.</p>
+          </div>
+          <div id="chartPlayers"></div>
+          <p class="answer" id="ansPlayers"></p>
+        </section>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
-        <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-center">
-          <p class="text-xl font-bold text-white" id="statVirtualAvg">—</p>
-          <p class="text-[11px] text-zinc-400 mt-1">Promedio de jugadores por mesa virtual</p>
+      <!-- 3. ¿CUÁNDO? -->
+      <section class="panel" aria-labelledby="h3">
+        <div class="panel-head">
+          <div>
+            <h2 id="h3">¿Cuándo se llenan las mesas?</h2>
+            <p class="sub">Mesas virtuales que llegaron a 4 o más jugadores, según el día y la hora de juego (últimas 8 semanas).</p>
+          </div>
+          <div class="seg" role="group" aria-label="Zona horaria">
+            <button type="button" id="tzMx" aria-pressed="true">Hora de México</button>
+            <button type="button" id="tzEs" aria-pressed="false">Hora de España</button>
+          </div>
         </div>
-        <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-center">
-          <p class="text-xl font-bold text-white" id="statPresencialAvg">—</p>
-          <p class="text-[11px] text-zinc-400 mt-1">Promedio de asistentes por evento presencial</p>
+        <div class="hscroll"><div id="chartHeat" style="min-width:560px"></div></div>
+        <div class="scale" id="heatScale"></div>
+        <p class="answer" id="ansHeat"></p>
+      </section>
+
+      <!-- CIUDADES -->
+      <section class="panel" aria-labelledby="h5">
+        <div>
+          <h2 id="h5">Eventos presenciales por ciudad</h2>
+          <p class="sub">Últimos 3 meses, ordenado por eventos.</p>
         </div>
-      </div>
+        <div class="hscroll">
+          <table>
+            <thead><tr><th>Ciudad</th><th class="n">Eventos</th><th class="n">Asistentes promedio</th><th class="n">Jugadores distintos</th><th>Último evento</th></tr></thead>
+            <tbody id="cityRows"></tbody>
+          </table>
+        </div>
+      </section>
 
-      <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-3">
-        <h2 class="text-lg font-bold text-wine-500">Eventos presenciales por ciudad</h2>
-        <div id="cityBreakdown" class="space-y-2"></div>
-      </div>
+      <!-- CONTADORES ANTERIORES (se conservan como referencia) -->
+      <details class="old">
+        <summary>Contadores anteriores (desde el 21 sep 2026)</summary>
+        <div class="rows" id="oldCounters"></div>
+      </details>
 
-      <div class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-3">
-        <h2 class="text-lg font-bold text-wine-500">Registro de eventos presenciales</h2>
-        <p class="text-[11px] text-zinc-500">Se conservan los últimos 500 eventos; los más antiguos se eliminan automáticamente al abrir esta página.</p>
-        <div id="eventsLog" class="space-y-2"></div>
-      </div>
-
-      <p class="text-center text-[11px] text-zinc-600">
-        Los contadores son históricos: no bajan aunque una mesa o evento se elimine, se cierre o expire.
-      </p>
-
-      <div class="text-center">
-        <a href="index.html" class="inline-block text-xs text-wine-400 hover:text-wine-300 underline">← Volver al Organizador</a>
-      </div>
+      <div class="back"><a href="index.html">← Volver al Organizador</a></div>
     </div>
-
   </div>
 
+  <div id="tip" hidden></div>
+
   <script>
-    // Configuración de tu proyecto en Firebase (misma que index.html — solo se usa para leer
-    // los contadores de estadísticas; esta página no escribe nada en la base de datos)
+    // Configuración de tu proyecto en Firebase (misma que index.html)
     const firebaseConfig = {
       apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
       authDomain: "vtes-scheduler.firebaseapp.com",
@@ -136,14 +230,14 @@
     // IMPORTANTE: esto NO es seguridad real. Las reglas de la base de datos
     // son las mismas para todo el sitio (protegidas por App Check, no por
     // usuario/contraseña), así que alguien con conocimientos técnicos podría
-    // leer estos contadores directamente desde la consola del navegador sin
+    // leer estos datos directamente desde la consola del navegador sin
     // pasar por esta pantalla. Esta página tampoco está enlazada desde
     // ningún otro lugar del sitio — solo se llega a ella si se conoce la URL.
     // ---------------------------------------------------------------------
     const STATS_PASSWORD = 'vtes2026';
 
     function escapeHtml(str) {
-      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      return String(str ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
     document.getElementById('gateForm').addEventListener('submit', (e) => {
@@ -160,98 +254,321 @@
     });
 
     // ---------------------------------------------------------------------
-    // Máximo de eventos presenciales a conservar en el registro de nicks
-    // (stats/presencialEventsLog). Es el único nodo de "stats" que no es un
-    // simple contador, así que se poda para que no crezca sin límite: cada
-    // vez que se abre esta página, si hay más de este número de eventos
-    // registrados, se borran los más antiguos hasta dejar solo estos.
-    // No afecta a los contadores numéricos (mesas creadas, promedios, etc.).
+    // PODA DE DATOS VIEJOS (se ejecuta cada vez que se abre esta página)
+    // - stats/tablesLog: se borran las fichas con fecha de juego de hace
+    //   más de 12 meses (guardan nicks, así que no deben crecer sin límite).
+    // - stats/presencialEventsLog (registro anterior): máximo 500 eventos.
     // ---------------------------------------------------------------------
+    const TABLES_LOG_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
     const MAX_EVENTS_LOG = 500;
 
-    function pruneOldEventsLog(eventsLog) {
-      const ids = Object.keys(eventsLog);
-      if (ids.length <= MAX_EVENTS_LOG) return;
-
-      // Ordenamos del más nuevo al más antiguo (sin createdAt = se trata
-      // como el más antiguo posible, para que se borre primero).
-      const sorted = ids.sort((a, b) => (eventsLog[b].createdAt || 0) - (eventsLog[a].createdAt || 0));
-      const toDelete = sorted.slice(MAX_EVENTS_LOG);
-
+    function pruneOldData(tablesLog, eventsLog) {
       const updates = {};
-      toDelete.forEach(id => { updates[`stats/presencialEventsLog/${id}`] = null; });
-      db.ref().update(updates);
+      const cutoff = Date.now() - TABLES_LOG_MAX_AGE_MS;
+      Object.entries(tablesLog).forEach(([id, t]) => {
+        const time = Date.parse(t.startAt);
+        if (!isNaN(time) && time < cutoff) updates[`stats/tablesLog/${id}`] = null;
+      });
+      const ids = Object.keys(eventsLog);
+      if (ids.length > MAX_EVENTS_LOG) {
+        ids.sort((a, b) => (eventsLog[b].createdAt || 0) - (eventsLog[a].createdAt || 0))
+          .slice(MAX_EVENTS_LOG)
+          .forEach(id => { updates[`stats/presencialEventsLog/${id}`] = null; });
+      }
+      if (Object.keys(updates).length) db.ref().update(updates).catch(() => {});
     }
+
+    // ---------------------------------------------------------------------
+    // UTILIDADES DE FECHA
+    // ---------------------------------------------------------------------
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const DAYS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+    const DAYS_LONG = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+
+    // Lunes 00:00 (hora de quien mira) de la semana de una fecha
+    function startOfWeek(date) {
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      return d;
+    }
+    function shortDate(d) { return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', ''); }
+
+    // Día de la semana (0 = lunes) y hora en una zona horaria dada
+    function dayHourIn(date, timeZone) {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short', hour: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+      const wd = parts.find(p => p.type === 'weekday').value;
+      const hour = Number(parts.find(p => p.type === 'hour').value);
+      return { day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(wd), hour };
+    }
+
+    // ---------------------------------------------------------------------
+    // TOOLTIP (una sola burbuja para todas las gráficas)
+    // ---------------------------------------------------------------------
+    const tip = document.getElementById('tip');
+    function showTip(x, y, html) {
+      tip.innerHTML = html; tip.hidden = false;
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      tip.style.left = Math.min(x + 14, innerWidth - w - 8) + 'px';
+      tip.style.top = Math.min(y + 14, innerHeight - h - 8) + 'px';
+    }
+    function bindTips(root) {
+      root.querySelectorAll('[data-tip]').forEach(el => {
+        const html = el.getAttribute('data-tip');
+        el.addEventListener('pointermove', e => showTip(e.clientX, e.clientY, html));
+        el.addEventListener('pointerleave', () => { tip.hidden = true; });
+        el.addEventListener('focus', () => { const r = el.getBoundingClientRect(); showTip(r.left + r.width / 2, r.top, html); });
+        el.addEventListener('blur', () => { tip.hidden = true; });
+      });
+    }
+
+    // Barra con 4px redondeados arriba y base cuadrada
+    function barPath(x, y, w, h, r = 4) {
+      if (h <= 0) return '';
+      r = Math.min(r, w / 2, h);
+      return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+    }
+    function niceStep(max) { return max <= 5 ? 1 : max <= 10 ? 2 : max <= 25 ? 5 : max <= 50 ? 10 : 20; }
+    function niceMax(v, step) { return Math.max(step, Math.ceil(v / step) * step); }
+
+    // Gráfica de barras genérica (una o dos series por grupo)
+    function barChart({ el, labels, series, W = 640, H = 220, pct = false, labelEvery = 1, tipFor, aria }) {
+      const L = pct ? 36 : 30, R = 8, T = 16, B = 26;
+      const all = series.flatMap(s => s.values.filter(v => v != null));
+      const step = pct ? 50 : niceStep(Math.max(1, ...all));
+      const max = pct ? 100 : niceMax(Math.max(1, ...all), step);
+      const pw = W - L - R, ph = H - T - B, band = pw / labels.length;
+      const bw = Math.min(series.length > 1 ? 20 : 24, band / (series.length > 1 ? 3 : 1.8));
+      const y = v => T + ph - (v / max) * ph;
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(aria)}">`;
+      for (let t = 0; t <= max; t += step) s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t}${pct ? '%' : ''}</text>`;
+      labels.forEach((lab, i) => {
+        const cx = L + band * i + band / 2;
+        const tipHtml = escapeHtml(tipFor(i));
+        series.forEach((ser, k) => {
+          const v = ser.values[i];
+          if (v == null) return;
+          const x = series.length > 1 ? (k === 0 ? cx - bw - 1 : cx + 1) : cx - bw / 2;
+          if (v > 0) s += `<path class="mark" tabindex="0" data-tip="${tipHtml}" d="${barPath(x, y(v), bw, T + ph - y(v))}" fill="var(${ser.color})"/>`;
+          else s += `<rect class="mark" tabindex="0" data-tip="${tipHtml}" x="${x}" y="${T + ph - 2}" width="${bw}" height="2" fill="var(--line)"/>`;
+          if (i === labels.length - 1) s += `<text class="val" x="${x + bw / 2}" y="${y(v) - 5}" text-anchor="middle">${v}${pct ? '%' : ''}</text>`;
+        });
+        if (i % labelEvery === (labels.length - 1) % labelEvery) s += `<text x="${cx}" y="${H - 8}" text-anchor="middle">${escapeHtml(lab)}</text>`;
+      });
+      s += `<line x1="${L}" x2="${W - R}" y1="${T + ph}" y2="${T + ph}" stroke="var(--line)"/></svg>`;
+      el.innerHTML = s;
+      bindTips(el);
+    }
+    // El texto del tooltip se arma como HTML seguro: las partes variables pasan por escapeHtml
+    function tipLines(lines) { return lines.join('<br>'); }
+
+    // ---------------------------------------------------------------------
+    // CARGA Y CÁLCULO
+    // ---------------------------------------------------------------------
+    let heatZone = 'America/Mexico_City';
+    let heatRecords = [];
 
     function loadStats() {
       db.ref('stats').get().then(snapshot => {
         const stats = snapshot.val() || {};
+        const tablesLog = stats.tablesLog || {};
+        const records = Object.entries(tablesLog)
+          .map(([id, t]) => ({ id, ...t, start: new Date(t.startAt), playerKeys: Object.keys(t.players || {}) }))
+          .filter(r => !isNaN(r.start.getTime()));
 
-        const virtualTables = stats.virtualTablesCreated || 0;
-        const virtualJoins = stats.virtualJoins || 0;
-        const presencialEvents = stats.presencialEventsCreated || 0;
-        const presencialJoins = stats.presencialJoins || 0;
-
-        document.getElementById('statVirtualTables').textContent = virtualTables;
-        document.getElementById('statPresencialEvents').textContent = presencialEvents;
-        document.getElementById('statVirtualJoins').textContent = virtualJoins;
-        document.getElementById('statPresencialJoins').textContent = presencialJoins;
-
-        document.getElementById('statVirtualAvg').textContent = virtualTables > 0 ? (virtualJoins / virtualTables).toFixed(1) : '—';
-        document.getElementById('statPresencialAvg').textContent = presencialEvents > 0 ? (presencialJoins / presencialEvents).toFixed(1) : '—';
-
-        const byCity = stats.presencialByCity || {};
-        const cityKeys = Object.keys(byCity).sort((a, b) => (byCity[b].eventsCreated || 0) - (byCity[a].eventsCreated || 0));
-
-        const cityContainer = document.getElementById('cityBreakdown');
-        if (cityKeys.length === 0) {
-          cityContainer.innerHTML = `<p class="text-xs text-zinc-500 italic">Todavía no hay eventos presenciales registrados.</p>`;
-        } else {
-          cityContainer.innerHTML = cityKeys.map(key => {
-            const c = byCity[key];
-            const events = c.eventsCreated || 0;
-            const joins = c.joins || 0;
-            const avg = events > 0 ? (joins / events).toFixed(1) : '—';
-            return `
-              <div class="flex items-center justify-between bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
-                <span class="font-medium text-emerald-300">${escapeHtml(c.name || key)}${c.country ? `<span class="text-zinc-500 font-normal">, ${escapeHtml(c.country)}</span>` : ''}</span>
-                <span class="text-xs text-zinc-400">${events} evento${events === 1 ? '' : 's'} · ${joins} asistente${joins === 1 ? '' : 's'} · prom. ${avg}</span>
-              </div>
-            `;
-          }).join('');
-        }
-
-        // Registro de eventos presenciales (con nicks de participantes)
-        const eventsLog = stats.presencialEventsLog || {};
-        const eventIds = Object.keys(eventsLog).sort((a, b) => (eventsLog[b].createdAt || 0) - (eventsLog[a].createdAt || 0));
-
-        const eventsContainer = document.getElementById('eventsLog');
-        if (eventIds.length === 0) {
-          eventsContainer.innerHTML = `<p class="text-xs text-zinc-500 italic">Todavía no hay eventos presenciales registrados.</p>`;
-        } else {
-          eventsContainer.innerHTML = eventIds.map(id => {
-            const ev = eventsLog[id];
-            const players = ev.players ? Object.values(ev.players) : [];
-            const dateStr = ev.createdAt ? new Date(ev.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Fecha desconocida';
-            const nicksStr = players.length > 0 ? players.map(escapeHtml).join(', ') : '<span class="italic text-zinc-600">sin registros</span>';
-            return `
-              <div class="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm space-y-1">
-                <div class="flex items-center justify-between">
-                  <span class="font-medium text-emerald-300">${escapeHtml(ev.city || 'Desconocido')}${ev.country ? `<span class="text-zinc-500 font-normal">, ${escapeHtml(ev.country)}</span>` : ''}</span>
-                  <span class="text-[11px] text-zinc-500">${dateStr}</span>
-                </div>
-                <p class="text-[11px] text-zinc-400">${players.length} jugador${players.length === 1 ? '' : 'es'}: ${nicksStr}</p>
-              </div>
-            `;
-          }).join('');
-        }
-
-        pruneOldEventsLog(eventsLog);
+        renderNotice(records);
+        renderAll(records);
+        renderOldCounters(stats);
+        pruneOldData(tablesLog, stats.presencialEventsLog || {});
       }).catch(() => {
-        document.getElementById('statsContent').innerHTML = `<p class="text-center text-red-400 text-sm">No se pudieron cargar las estadísticas.</p>`;
+        document.getElementById('statsContent').innerHTML = `<p class="err" style="text-align:center">No se pudieron cargar las estadísticas. Revisa tu conexión e inténtalo de nuevo.</p>`;
       });
     }
-  </script>
 
+    function renderNotice(records) {
+      const el = document.getElementById('dataNotice');
+      if (records.length === 0) {
+        el.innerHTML = 'Todavía no hay fichas registradas. Se empiezan a guardar desde que se activó esta versión: cada mesa nueva, y cada mesa existente en cuanto alguien se une o edita su horario. <b>En unas 4 semanas las gráficas ya dirán algo útil.</b>';
+        return;
+      }
+      const first = records.reduce((a, r) => (r.createdAt && r.createdAt < a ? r.createdAt : a), Date.now());
+      el.innerHTML = `Datos desde el <b>${escapeHtml(new Date(first).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }))}</b> · <b>${records.length}</b> mesa${records.length === 1 ? '' : 's'} y evento${records.length === 1 ? '' : 's'} registrados. Las mesas anteriores a esa fecha no tienen ficha.`;
+    }
+
+    function renderAll(records) {
+      const now = new Date();
+      const thisWeek = startOfWeek(now);
+      const weeks = Array.from({ length: 8 }, (_, i) => new Date(thisWeek.getTime() - (7 - i) * 7 * DAY_MS));
+      // Ajuste por cambios de horario: se normaliza cada lunes a medianoche local
+      weeks.forEach(w => w.setHours(0, 0, 0, 0));
+      const weekIndex = d => {
+        const ws = startOfWeek(d).getTime();
+        return weeks.findIndex(w => Math.abs(w.getTime() - ws) < 2 * 3600 * 1000);
+      };
+      const weekLabels = weeks.map(shortDate);
+
+      // 1. Por semana
+      const virt = Array(8).fill(0), pres = Array(8).fill(0);
+      records.forEach(r => {
+        const i = weekIndex(r.start);
+        if (i < 0) return;
+        if (r.modality === 'presencial') pres[i]++; else virt[i]++;
+      });
+      barChart({
+        el: document.getElementById('chartWeeks'), labels: weekLabels,
+        series: [{ values: virt, color: '--series-virtual' }, { values: pres, color: '--series-presencial' }],
+        tipFor: i => `Semana del ${weekLabels[i]}: ${virt[i]} virtuales, ${pres[i]} presenciales`,
+        aria: `Mesas por semana. Última semana: ${virt[7]} virtuales y ${pres[7]} presenciales.`
+      });
+      const last4 = virt.slice(4).reduce((a, b) => a + b, 0) + pres.slice(4).reduce((a, b) => a + b, 0);
+      const prev4 = virt.slice(0, 4).reduce((a, b) => a + b, 0) + pres.slice(0, 4).reduce((a, b) => a + b, 0);
+      let ansW;
+      if (last4 + prev4 === 0) ansW = 'Todavía no hay mesas registradas en estas 8 semanas.';
+      else if (prev4 === 0) ansW = `En las últimas 4 semanas hubo <b>${last4}</b> mesas y eventos. Todavía no hay datos de las 4 anteriores para comparar.`;
+      else {
+        const ch = Math.round((last4 / prev4 - 1) * 100);
+        const verdict = ch >= 10 ? 'Sí, crece' : ch <= -10 ? 'No, baja' : 'Se mantiene estable';
+        ansW = `${verdict}: en las últimas 4 semanas hubo <b>${last4}</b> mesas y eventos, contra <b>${prev4}</b> en las 4 anteriores (<b>${ch > 0 ? '+' : ''}${ch}%</b>).`;
+      }
+      document.getElementById('ansWeeks').innerHTML = ansW;
+
+      // 2. Porcentaje de mesas virtuales llenas (solo las que ya pasaron)
+      const vTot = Array(8).fill(0), vFill = Array(8).fill(0);
+      records.forEach(r => {
+        if (r.modality === 'presencial' || r.start > now) return;
+        const i = weekIndex(r.start);
+        if (i < 0) return;
+        vTot[i]++; if (r.filled) vFill[i]++;
+      });
+      const pctArr = vTot.map((t, i) => (t ? Math.round(vFill[i] / t * 100) : null));
+      barChart({
+        el: document.getElementById('chartFill'), labels: weekLabels, W: 320, H: 190, pct: true, labelEvery: 2,
+        series: [{ values: pctArr, color: '--seq-3' }],
+        tipFor: i => vTot[i] ? `Semana del ${weekLabels[i]}: ${pctArr[i]}% llenas (${vFill[i]} de ${vTot[i]})` : `Semana del ${weekLabels[i]}: sin mesas virtuales`,
+        aria: 'Porcentaje de mesas virtuales llenas por semana'
+      });
+      const sumT = vTot.reduce((a, b) => a + b, 0), sumF = vFill.reduce((a, b) => a + b, 0);
+      document.getElementById('ansFill').innerHTML = sumT
+        ? `<b>${Math.round(sumF / sumT * 100)}%</b> de las mesas virtuales se llenaron (${sumF} de ${sumT}). Las otras <b>${sumT - sumF}</b> se quedaron con 3 o menos jugadores.`
+        : 'Todavía no hay mesas virtuales terminadas en estas 8 semanas.';
+
+      // 4. Jugadores distintos por mes (últimos 6 meses) y nuevos este mes
+      const months = Array.from({ length: 6 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1));
+      const monthKey = d => `${d.getFullYear()}-${d.getMonth()}`;
+      const sets = months.map(() => new Set());
+      const firstSeen = {};
+      records.forEach(r => {
+        const mk = monthKey(r.start);
+        const i = months.findIndex(m => monthKey(m) === mk);
+        r.playerKeys.forEach(k => {
+          if (i >= 0) sets[i].add(k);
+          if (!firstSeen[k] || r.start < firstSeen[k]) firstSeen[k] = r.start;
+        });
+      });
+      const counts = sets.map(s => s.size);
+      const monthLabels = months.map(m => m.toLocaleDateString('es-ES', { month: 'short' }).replace('.', ''));
+      barChart({
+        el: document.getElementById('chartPlayers'), labels: monthLabels, W: 320, H: 190,
+        series: [{ values: counts, color: '--seq-4' }],
+        tipFor: i => `${counts[i]} jugadores distintos en ${months[i].toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}`,
+        aria: `Jugadores distintos por mes. Este mes: ${counts[5]}.`
+      });
+      const newThisMonth = Object.values(firstSeen).filter(d => monthKey(d) === monthKey(now)).length;
+      document.getElementById('ansPlayers').innerHTML = counts[5]
+        ? `<b>${counts[5]}</b> jugadores distintos este mes${counts[4] ? ` (contra ${counts[4]} el mes pasado)` : ''}. <b>${newThisMonth}</b> aparecieron por primera vez en los registros este mes.`
+        : 'Todavía no hay jugadores registrados este mes.';
+
+      // 3. Mapa de calor (mesas virtuales llenas, últimas 8 semanas)
+      const since = weeks[0].getTime();
+      heatRecords = records.filter(r => r.modality !== 'presencial' && r.filled && r.start.getTime() >= since);
+      drawHeat();
+
+      // Ciudades (presenciales, últimos 3 meses)
+      const cityCut = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+      const byCity = {};
+      records.filter(r => r.modality === 'presencial' && r.start >= cityCut).forEach(r => {
+        const key = `${(r.city || 'Desconocido').trim().toLowerCase()}|${(r.country || '').toLowerCase()}`;
+        const c = byCity[key] || (byCity[key] = { name: r.city || 'Desconocido', country: r.country || '', events: 0, attend: 0, players: new Set(), last: r.start });
+        c.events++; c.attend += r.playerKeys.length;
+        r.playerKeys.forEach(k => c.players.add(k));
+        if (r.start > c.last) c.last = r.start;
+      });
+      const cities = Object.values(byCity).sort((a, b) => b.events - a.events || b.last - a.last);
+      document.getElementById('cityRows').innerHTML = cities.length
+        ? cities.map(c => `<tr><td>${escapeHtml(c.name)}${c.country ? `<span style="color:var(--muted);font-weight:400">, ${escapeHtml(c.country)}</span>` : ''}</td><td class="n">${c.events}</td><td class="n">${(c.attend / c.events).toFixed(1)}</td><td class="n">${c.players.size}</td><td>${escapeHtml(shortDate(c.last))}</td></tr>`).join('')
+        : '<tr><td colspan="5" class="empty">Todavía no hay eventos presenciales registrados en los últimos 3 meses.</td></tr>';
+
+      // Resumen
+      const weekNow = virt[7] + pres[7], weekPrev = virt[6] + pres[6];
+      const diff = weekNow - weekPrev;
+      const diffHtml = diff === 0 ? 'igual que la semana pasada' : `<span class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '▲' : '▼'} ${Math.abs(diff)}</span> vs. semana pasada`;
+      const pDiff = counts[5] - counts[4];
+      document.getElementById('kpis').innerHTML = `
+        <div class="kpi"><span class="q">Mesas y eventos esta semana</span><span class="v">${weekNow}</span><span class="d">${diffHtml}</span></div>
+        <div class="kpi"><span class="q">Mesas virtuales que se llenaron</span><span class="v">${sumT ? Math.round(sumF / sumT * 100) + '%' : '—'}</span><span class="d">${sumT ? `${sumF} de ${sumT} en 8 semanas` : 'sin mesas terminadas aún'}</span></div>
+        <div class="kpi"><span class="q">Jugadores distintos este mes</span><span class="v">${counts[5]}</span><span class="d">${pDiff === 0 ? 'igual que el mes pasado' : `<span class="${pDiff > 0 ? 'up' : 'down'}">${pDiff > 0 ? '▲' : '▼'} ${Math.abs(pDiff)}</span> vs. mes pasado`}</span></div>
+        <div class="kpi"><span class="q">Mejor momento para abrir mesa</span><span class="v" id="kpiBest">—</span><span class="d" id="kpiBestD">sin datos suficientes aún</span></div>`;
+      updateBestKpi();
+    }
+
+    const SEQ = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
+    let bestSlot = null;
+
+    function drawHeat() {
+      const grid = DAYS.map(() => Array(24).fill(0));
+      heatRecords.forEach(r => { const { day, hour } = dayHourIn(r.start, heatZone); if (day >= 0) grid[day][hour]++; });
+      const max = Math.max(0, ...grid.flat());
+      const level = n => (n === 0 ? 0 : Math.min(5, 1 + Math.floor((n - 1) / Math.max(1, max) * 5)));
+      const W = 640, L = 36, T = 4, cw = (W - L) / 24, ch = 22, H = T + ch * 7 + 22;
+      const zoneLabel = heatZone === 'America/Mexico_City' ? 'hora de México' : 'hora de España';
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Mesas llenas por día y hora (${zoneLabel})">`;
+      grid.forEach((row, d) => {
+        s += `<text x="${L - 8}" y="${T + ch * d + ch / 2 + 4}" text-anchor="end">${DAYS[d]}</text>`;
+        row.forEach((n, h) => {
+          const hh = String(h).padStart(2, '0');
+          const tipHtml = escapeHtml(`${n} mesa${n === 1 ? '' : 's'} llena${n === 1 ? '' : 's'} · ${DAYS_LONG[d]}, ${hh}:00 a ${hh}:59`);
+          s += `<rect class="mark" tabindex="${n ? 0 : -1}" data-tip="${tipHtml}" x="${L + cw * h + 1}" y="${T + ch * d + 1}" width="${cw - 2}" height="${ch - 2}" rx="3" fill="var(${SEQ[level(n)]})"/>`;
+        });
+      });
+      for (let h = 0; h < 24; h += 3) s += `<text x="${L + cw * h + cw / 2}" y="${H - 6}" text-anchor="middle">${String(h).padStart(2, '0')}:00</text>`;
+      s += '</svg>';
+      const el = document.getElementById('chartHeat'); el.innerHTML = s; bindTips(el);
+
+      bestSlot = null;
+      grid.forEach((row, d) => row.forEach((n, h) => { if (n > 0 && (!bestSlot || n > bestSlot.n)) bestSlot = { n, d, h }; }));
+      document.getElementById('ansHeat').innerHTML = bestSlot
+        ? `El mejor momento es el <b>${DAYS_LONG[bestSlot.d]} a las ${String(bestSlot.h).padStart(2, '0')}:00</b> (${zoneLabel}): ahí se llenaron ${bestSlot.n} mesa${bestSlot.n === 1 ? '' : 's'}.`
+        : 'Todavía no hay mesas virtuales llenas en estas 8 semanas.';
+      document.getElementById('tzMx').setAttribute('aria-pressed', heatZone === 'America/Mexico_City');
+      document.getElementById('tzEs').setAttribute('aria-pressed', heatZone === 'Europe/Madrid');
+      updateBestKpi();
+    }
+
+    function updateBestKpi() {
+      const v = document.getElementById('kpiBest'), d = document.getElementById('kpiBestD');
+      if (!v || !d) return;
+      if (bestSlot) {
+        v.textContent = `${DAYS[bestSlot.d]} ${String(bestSlot.h).padStart(2, '0')}:00`;
+        d.textContent = heatZone === 'America/Mexico_City' ? 'hora de México' : 'hora de España';
+      } else {
+        v.textContent = '—';
+        d.textContent = 'sin datos suficientes aún';
+      }
+    }
+
+    document.getElementById('heatScale').innerHTML = 'Menos ' + SEQ.map(v => `<span class="sw" style="background:var(${v})"></span>`).join('') + ' Más';
+    document.getElementById('tzMx').addEventListener('click', () => { heatZone = 'America/Mexico_City'; drawHeat(); });
+    document.getElementById('tzEs').addEventListener('click', () => { heatZone = 'Europe/Madrid'; drawHeat(); });
+
+    function renderOldCounters(stats) {
+      const row = (label, v) => `<span>${label}: <b>${v || 0}</b></span>`;
+      document.getElementById('oldCounters').innerHTML = [
+        row('Mesas virtuales creadas', stats.virtualTablesCreated),
+        row('Inscripciones a mesas virtuales', stats.virtualJoins),
+        row('Eventos presenciales creados', stats.presencialEventsCreated),
+        row('Inscripciones a eventos presenciales', stats.presencialJoins),
+        '<span style="color:var(--dim)">Estos contadores suman cada inscripción (si alguien se sale y vuelve a entrar cuenta dos veces), por eso las gráficas de arriba usan las fichas por mesa.</span>'
+      ].join('');
+    }
+  </script>
 </body>
 </html>

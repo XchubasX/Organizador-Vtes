@@ -974,6 +974,34 @@
     }
 
     // ---------------------------------------------------------------------
+    // FICHA POR MESA PARA ESTADÍSTICAS (stats/tablesLog/{id})
+    // Se guarda una ficha por cada mesa/evento que NO se borra cuando la
+    // mesa se cierra o vence (estadisticas.html la usa para las gráficas y
+    // borra sola las fichas de más de 12 meses). Contiene solo: tipo, fecha
+    // de juego, fecha de creación, zona horaria, ciudad/país, nicks que se
+    // unieron y si una mesa virtual llegó a 4+ jugadores.
+    // Los datos base (tipo, fecha, zona, ciudad) se reescriben en cada
+    // escritura: así las mesas creadas antes de que existiera la ficha
+    // también quedan registradas en cuanto alguien se une o edita.
+    // ---------------------------------------------------------------------
+    function addTableLogBase(updates, tableId, t) {
+      const base = `stats/tablesLog/${tableId}`;
+      const isPresencial = t.modality === 'presencial';
+      updates[`${base}/modality`] = isPresencial ? 'presencial' : 'virtual';
+      updates[`${base}/startAt`] = t.utcTime;
+      updates[`${base}/originTz`] = t.originTz || '';
+      if (isPresencial) {
+        updates[`${base}/city`] = t.city || '';
+        updates[`${base}/country`] = t.country || '';
+      }
+    }
+
+    // Llave del nick en la ficha: sin distinguir mayúsculas ("Ana" = "ana")
+    function tableLogNickKey(nick) {
+      return sanitizeStatsKey((nick || '').toLowerCase());
+    }
+
+    // ---------------------------------------------------------------------
     // FORMATO DE FECHA/HORA "SIN CONVERTIR" PARA EVENTOS PRESENCIALES
     // Un evento presencial ocurre en un lugar físico real, así que su hora
     // debe verse igual para todos sin importar desde qué huso horario lo
@@ -1035,7 +1063,12 @@
         return showToast('❌ No puedes mover el horario al pasado. Elige una fecha y hora futura.', 'error');
       }
 
-      db.ref(`vtes_records/${currentEditTableId}`).update({ utcTime: newDate.toISOString() })
+      // Se actualiza la mesa y su ficha de estadísticas en un solo paso
+      const updates = {};
+      updates[`vtes_records/${currentEditTableId}/utcTime`] = newDate.toISOString();
+      const editedTable = currentGlobalData.find(t => t.id === currentEditTableId);
+      if (editedTable) addTableLogBase(updates, currentEditTableId, { ...editedTable, utcTime: newDate.toISOString() });
+      db.ref().update(updates)
         .then(() => showToast('✅ Horario actualizado'))
         .catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
       closeEditScheduleModal();
@@ -1153,6 +1186,13 @@
           updates[`stats/presencialEventsLog/${tableId}/country`] = table.country || '';
         } else {
           updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
+        }
+
+        // Ficha para estadísticas: el nick y, si una mesa virtual llega a 4+, se marca como llena
+        addTableLogBase(updates, tableId, table);
+        updates[`stats/tablesLog/${tableId}/players/${tableLogNickKey(nick)}`] = nick;
+        if (table.modality !== 'presencial' && players.length >= 4) {
+          updates[`stats/tablesLog/${tableId}/filled`] = true;
         }
 
         // Guardamos en el navegador local que ESTE usuario se unió con este Nick
@@ -1600,6 +1640,11 @@
         updates['stats/virtualTablesCreated'] = firebase.database.ServerValue.increment(1);
         updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
       }
+
+      // Ficha para estadísticas
+      addTableLogBase(updates, newId, recordData);
+      updates[`stats/tablesLog/${newId}/createdAt`] = firebase.database.ServerValue.TIMESTAMP;
+      updates[`stats/tablesLog/${newId}/players/${tableLogNickKey(creator)}`] = creator;
 
       saveNick(creator);
 
