@@ -123,9 +123,23 @@
           <label class="block text-xs font-semibold text-zinc-400 mb-1">Nueva Fecha y Hora</label>
           <input type="text" id="editScheduleDateTime" required placeholder="Seleccionar..." class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white cursor-pointer focus:outline-none focus:border-wine-500">
         </div>
+        <!-- ¿QUÉ NOCHE? (solo aparece si la hora es de madrugada: 00:00 a 05:59) -->
+        <fieldset id="editNightQ" class="hidden border border-indigo-600/70 bg-indigo-950/40 rounded-xl p-3 space-y-2">
+          <legend class="text-sm font-bold text-indigo-200 px-1">🌙 ¿Qué noche?</legend>
+          <p class="text-xs text-zinc-400">Elegiste una hora de madrugada. Toca la noche que quieres.</p>
+          <label class="flex gap-2.5 items-start bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 cursor-pointer has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-950">
+            <input type="radio" name="editNight" id="editNightPrev" value="prev" class="mt-1 accent-indigo-400">
+            <span class="text-sm text-zinc-200"><span id="editNightPrevText"></span><span id="editNightPrevSub" class="block text-xs text-zinc-400 font-mono"></span></span>
+          </label>
+          <label class="flex gap-2.5 items-start bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 cursor-pointer has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-950">
+            <input type="radio" name="editNight" id="editNightThis" value="this" class="mt-1 accent-indigo-400">
+            <span class="text-sm text-zinc-200"><span id="editNightThisText"></span><span id="editNightThisSub" class="block text-xs text-zinc-400 font-mono"></span></span>
+          </label>
+        </fieldset>
+        <p id="editSummary" class="hidden text-xs rounded-lg px-3 py-2 border" aria-live="polite"></p>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeEditScheduleModal()" class="text-xs text-zinc-400 hover:text-white px-4 py-2 rounded-lg transition">Cancelar</button>
-          <button type="submit" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Guardar</button>
+          <button type="submit" id="editScheduleSaveBtn" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md disabled:opacity-40 disabled:cursor-not-allowed">Guardar</button>
         </div>
       </form>
     </div>
@@ -267,6 +281,24 @@
           <label class="block text-xs font-semibold text-zinc-400 mb-1">Fecha y Hora</label>
           <input type="text" id="tableDateTime" required placeholder="Seleccionar..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm cursor-pointer focus:outline-none focus:border-wine-500">
         </div>
+        <!-- ¿QUÉ NOCHE? + RESUMEN (ocupa todo el ancho; la pregunta solo aparece si la hora es de madrugada: 00:00 a 05:59) -->
+        <div id="createNightBlock" class="hidden col-span-full space-y-2">
+          <fieldset id="createNightQ" class="hidden border border-indigo-600/70 bg-indigo-950/40 rounded-xl p-3 space-y-2">
+            <legend class="text-sm font-bold text-indigo-200 px-1">🌙 ¿Qué noche?</legend>
+            <p class="text-xs text-zinc-400">Elegiste una hora de madrugada. Toca la noche que quieres; no hay ninguna marcada.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <label class="flex gap-2.5 items-start bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 cursor-pointer has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-950">
+                <input type="radio" name="createNight" id="createNightPrev" value="prev" class="mt-1 accent-indigo-400">
+                <span class="text-sm text-zinc-200"><span id="createNightPrevText"></span><span id="createNightPrevSub" class="block text-xs text-zinc-400 font-mono"></span></span>
+              </label>
+              <label class="flex gap-2.5 items-start bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 cursor-pointer has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-950">
+                <input type="radio" name="createNight" id="createNightThis" value="this" class="mt-1 accent-indigo-400">
+                <span class="text-sm text-zinc-200"><span id="createNightThisText"></span><span id="createNightThisSub" class="block text-xs text-zinc-400 font-mono"></span></span>
+              </label>
+            </div>
+          </fieldset>
+          <p id="createSummary" class="text-xs rounded-lg px-3 py-2 border" aria-live="polite"></p>
+        </div>
         <div>
           <label class="block text-xs font-semibold text-zinc-400 mb-1">Tu Nick</label>
           <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
@@ -327,7 +359,7 @@
           <input type="text" id="tableDeletePin" required maxlength="4" pattern="[0-9]{4}" inputmode="numeric" autocomplete="off" title="4 números" placeholder="ej. 1234" class="w-full bg-zinc-800 border border-wine-700/60 rounded-lg px-3 py-1.5 text-wine-300 text-sm font-mono focus:outline-none focus:border-wine-400">
         </div>
         <div class="flex items-end">
-          <button type="submit" id="createTableBtn" class="w-full bg-wine-600 hover:bg-wine-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition">
+          <button type="submit" id="createTableBtn" class="w-full bg-wine-600 hover:bg-wine-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
             <span id="createTableBtnLabel">Abrir Mesa</span>
           </button>
         </div>
@@ -406,8 +438,149 @@
       minDate: "today"
     };
 
-    let pickerCustomTable = flatpickr("#tableDateTime", configFlatpickr);
-    let pickerEditSchedule = flatpickr("#editScheduleDateTime", configFlatpickr);
+    let pickerCustomTable = flatpickr("#tableDateTime", { ...configFlatpickr, onChange: () => updateNightUI('create') });
+    let pickerEditSchedule = flatpickr("#editScheduleDateTime", { ...configFlatpickr, onChange: () => updateNightUI('edit') });
+
+    // ---------------------------------------------------------------------
+    // ¿QUÉ NOCHE? — evita la confusión de la medianoche
+    // Mucha gente piensa en las 00:00 como el FINAL del día, cuando en
+    // realidad es el INICIO del día siguiente (caso real: "viernes 00:00"
+    // creado para jugar el viernes en la noche quedó en la noche del
+    // jueves). Si la hora elegida es de madrugada (00:00 a 05:59), se
+    // pregunta qué noche se quiso decir; no hay ninguna opción marcada y
+    // no se puede guardar sin elegir. Para cualquier otra hora no aparece
+    // nada. El calendario no se mueve: el día elegido se queda como está.
+    //   - "prev": la noche del día anterior al elegido → se guarda tal cual
+    //   - "this": la noche del día elegido al siguiente → se guarda +1 día
+    // En Firebase se sigue guardando la misma fecha/hora exacta (utcTime).
+    // ---------------------------------------------------------------------
+    const NIGHT_END_HOUR = 6; // de 00:00 a 05:59 se considera madrugada
+    const nightUiKey = { create: null, edit: null };
+
+    function parsePickerValue(value) {
+      if (!value) return null;
+      const d = new Date(value.replace(' ', 'T'));
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function addDays(date, n) {
+      const d = new Date(date.getTime());
+      d.setDate(d.getDate() + n);
+      return d;
+    }
+
+    function weekdayName(date) {
+      return date.toLocaleDateString('es-ES', { weekday: 'long' });
+    }
+
+    function shortDayLabel(date) {
+      return date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }).replace(',', '');
+    }
+
+    function hhmm(date) {
+      return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function getNightChoice(prefix) {
+      const checked = document.querySelector(`input[name="${prefix}Night"]:checked`);
+      return checked ? checked.value : null;
+    }
+
+    // Devuelve { date, isNight, needsChoice } con la fecha/hora que se guardará
+    function resolveChosenDate(prefix) {
+      const inputId = prefix === 'create' ? 'tableDateTime' : 'editScheduleDateTime';
+      const picked = parsePickerValue(document.getElementById(inputId).value);
+      if (!picked) return { date: null, isNight: false, needsChoice: false };
+      const isNight = picked.getHours() < NIGHT_END_HOUR;
+      if (!isNight) return { date: picked, isNight, needsChoice: false };
+      const choice = getNightChoice(prefix);
+      if (!choice) return { date: null, isNight, needsChoice: true };
+      return { date: choice === 'this' ? addDays(picked, 1) : picked, isNight, needsChoice: false };
+    }
+
+    const SUMMARY_BASE = 'text-xs rounded-lg px-3 py-2 border';
+
+    function updateNightUI(prefix, { preselect = null } = {}) {
+      const inputId = prefix === 'create' ? 'tableDateTime' : 'editScheduleDateTime';
+      const picked = parsePickerValue(document.getElementById(inputId).value);
+      const question = document.getElementById(`${prefix}NightQ`);
+      const summary = document.getElementById(`${prefix}Summary`);
+      const saveBtn = document.getElementById(prefix === 'create' ? 'createTableBtn' : 'editScheduleSaveBtn');
+      const container = prefix === 'create' ? document.getElementById('createNightBlock') : summary;
+
+      if (!picked) {
+        container.classList.add('hidden');
+        question.classList.add('hidden');
+        nightUiKey[prefix] = null;
+        saveBtn.disabled = false; // el campo vacío lo sigue validando el formulario
+        return;
+      }
+      container.classList.remove('hidden');
+      summary.classList.remove('hidden');
+
+      const isNight = picked.getHours() < NIGHT_END_HOUR;
+      // Si cambia el día o se entra/sale de la madrugada, se borra la elección previa
+      const key = `${picked.toDateString()}|${isNight}`;
+      if (nightUiKey[prefix] !== key) {
+        document.querySelectorAll(`input[name="${prefix}Night"]`).forEach(r => { r.checked = false; });
+        nightUiKey[prefix] = key;
+      }
+      if (preselect) {
+        const r = document.getElementById(`${prefix}Night${preselect === 'prev' ? 'Prev' : 'This'}`);
+        if (r) r.checked = true;
+      }
+
+      question.classList.toggle('hidden', !isNight);
+      if (isNight) {
+        const prevDay = addDays(picked, -1), nextDay = addDays(picked, 1);
+        document.getElementById(`${prefix}NightPrevText`).innerHTML = `La noche del <b>${weekdayName(prevDay)} al ${weekdayName(picked)}</b>`;
+        document.getElementById(`${prefix}NightPrevSub`).textContent = `se guarda: ${shortDayLabel(picked)}, ${hhmm(picked)}`;
+        document.getElementById(`${prefix}NightThisText`).innerHTML = `La noche del <b>${weekdayName(picked)} al ${weekdayName(nextDay)}</b>`;
+        document.getElementById(`${prefix}NightThisSub`).textContent = `se guarda: ${shortDayLabel(nextDay)}, ${hhmm(picked)}`;
+      }
+
+      const isPresencial = prefix === 'create'
+        ? document.getElementById('tableModality').value === 'presencial'
+        : (currentGlobalData.find(t => t.id === currentEditTableId) || {}).modality === 'presencial';
+      const noun = isPresencial ? 'Tu evento' : 'Tu mesa';
+      const resolved = resolveChosenDate(prefix);
+
+      if (resolved.needsChoice) {
+        summary.className = `${SUMMARY_BASE} border-dashed border-indigo-500 text-indigo-200`;
+        summary.textContent = `🌙 Elige qué noche para poder ${prefix === 'create' ? 'crear' : 'guardar'}.`;
+        saveBtn.disabled = true;
+      } else if (resolved.date.getTime() < Date.now()) {
+        summary.className = `${SUMMARY_BASE} border-red-800 text-red-300`;
+        summary.textContent = isNight
+          ? '❌ Esa noche ya pasó. Elige la otra noche u otro día.'
+          : '❌ Esa fecha y hora ya pasaron. Elige una futura.';
+        saveBtn.disabled = true;
+      } else {
+        const d = resolved.date;
+        const dateText = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        const nightText = isNight ? ` · la noche del ${weekdayName(addDays(d, -1))} al ${weekdayName(d)}` : '';
+        summary.className = `${SUMMARY_BASE} border-zinc-700 bg-zinc-900 text-zinc-300`;
+        summary.innerHTML = `📅 ${noun}: <b class="text-white">${escapeHtml(dateText)} a las ${hhmm(d)}</b>${escapeHtml(nightText)} · tu hora`;
+        saveBtn.disabled = false;
+      }
+    }
+
+    ['create', 'edit'].forEach(prefix => {
+      document.querySelectorAll(`input[name="${prefix}Night"]`).forEach(r => r.addEventListener('change', () => updateNightUI(prefix)));
+      const inputId = prefix === 'create' ? 'tableDateTime' : 'editScheduleDateTime';
+      document.getElementById(inputId).addEventListener('change', () => updateNightUI(prefix));
+      document.getElementById(inputId).addEventListener('input', () => updateNightUI(prefix));
+    });
+
+    // Etiqueta "🌙 noche del viernes": si en la zona horaria indicada la hora
+    // cae de madrugada, devuelve el nombre del día anterior; si no, ''.
+    function nightOfName(utcISO, timeZone) {
+      const d = new Date(utcISO);
+      const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: timeZone || undefined }).format(d));
+      if (!(hour < NIGHT_END_HOUR)) return '';
+      // 7 horas antes siempre cae en la tarde/noche del día anterior
+      return new Date(d.getTime() - 7 * 3600 * 1000).toLocaleDateString('es-ES', { weekday: 'long', timeZone: timeZone || undefined });
+    }
     let pickerFilterDate = flatpickr("#filterDate", {
       dateFormat: "Y-m-d",
       locale: "es",
@@ -476,6 +649,7 @@
       document.getElementById('createTableBtnLabel').textContent = isVirtual ? 'Abrir Mesa' : 'Crear Evento';
       document.getElementById('openCreateFormLabel').textContent = isVirtual ? 'Crear mesa' : 'Crear evento presencial';
       document.getElementById('presencialFiltersBar').style.display = isVirtual ? 'none' : 'flex';
+      updateNightUI('create'); // el resumen dice "Tu mesa" o "Tu evento"
 
       // La lista de abajo se filtra para mostrar solo lo que coincide con la modalidad seleccionada
       currentTableModalityFilter = mode;
@@ -532,7 +706,8 @@
       const f = formatPresencialDateTime(recordData.utcTime, recordData.originTz, { weekday: 'long', day: 'numeric', month: 'long' }, { hour: '2-digit', minute: '2-digit' });
       document.getElementById('createdModalTitle').textContent = isPresencial ? '¡Evento creado con éxito!' : '¡Mesa creada con éxito!';
       document.getElementById('createdModalName').textContent = recordData.name;
-      document.getElementById('createdModalWhen').textContent = `${f.date} - ${f.time}${isPresencial ? ` · ${recordData.venue}, ${recordData.city}` : ` · ${recordData.platform}`}`;
+      const night = nightOfName(recordData.utcTime, recordData.originTz);
+      document.getElementById('createdModalWhen').textContent = `${f.date} - ${f.time}${night ? ` (noche del ${night})` : ''}${isPresencial ? ` · ${recordData.venue}, ${recordData.city}` : ` · ${recordData.platform}`}`;
       document.getElementById('createdModal').classList.remove('hidden');
     }
 
@@ -730,6 +905,13 @@
       return { text: '🎲 En curso', soon: true };
     }
 
+    // Etiqueta de la tarjeta: presenciales en la hora del lugar, virtuales en la de quien mira
+    function nightBadgeHtml(t) {
+      const tz = t.modality === 'presencial' ? t.originTz : undefined;
+      const night = nightOfName(t.utcTime, tz);
+      return night ? `<span class="bg-indigo-950 text-indigo-200 border border-indigo-600/70 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">🌙 noche del ${escapeHtml(night)}</span>` : '';
+    }
+
     function relativeBadgeHtml(utcISO) {
       const r = relativeTimeLabel(utcISO);
       return `<span class="rel-time ${r.soon ? 'bg-amber-950 text-amber-300 border-amber-700/70' : 'bg-zinc-800 text-zinc-300 border-zinc-600'} border text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap" data-time="${escapeHtml(utcISO)}">${r.text}</span>`;
@@ -826,7 +1008,11 @@
     function openEditScheduleModal(tableId, tableName, currentUtcTime) {
       currentEditTableId = tableId;
       document.getElementById('editScheduleTableName').textContent = `"${tableName}" — horario actual: ${new Date(currentUtcTime).toLocaleString()}`;
-      pickerEditSchedule.setDate(new Date(currentUtcTime));
+      const current = new Date(currentUtcTime);
+      pickerEditSchedule.setDate(current);
+      // Si la mesa es de madrugada, la pregunta ya viene con su noche marcada
+      nightUiKey.edit = null;
+      updateNightUI('edit', { preselect: current.getHours() < NIGHT_END_HOUR ? 'prev' : null });
       document.getElementById('editScheduleModal').classList.remove('hidden');
     }
 
@@ -840,7 +1026,11 @@
       const newLocalInput = document.getElementById('editScheduleDateTime').value;
       if (!newLocalInput || !currentEditTableId) return;
 
-      const newDate = new Date(newLocalInput.replace(' ', 'T'));
+      const resolved = resolveChosenDate('edit');
+      if (resolved.needsChoice) {
+        return showToast('🌙 Elige qué noche antes de guardar.', 'error');
+      }
+      const newDate = resolved.date;
       if (newDate.getTime() < Date.now()) {
         return showToast('❌ No puedes mover el horario al pasado. Elige una fecha y hora futura.', 'error');
       }
@@ -1036,7 +1226,8 @@
         // Mensaje para mesa PRESENCIAL: lugar, ciudad y hora local del evento
         // (huso de origen, sin conversión al huso de quien recibe el mensaje)
         const fPresencial = formatPresencialDateTime(t.utcTime, t.originTz, { weekday: 'long', month: 'short', day: 'numeric' }, { hour: '2-digit', minute: '2-digit' });
-        const localWhen = `${fPresencial.date} - ${fPresencial.time} (hora local)`;
+        const nightP = nightOfName(t.utcTime, t.originTz);
+        const localWhen = `${fPresencial.date} - ${fPresencial.time} (hora local${nightP ? `, noche del ${nightP}` : ''})`;
 
         msg += `📍 *Lugar:* ${t.venue || ''}\n`;
         if (t.city || t.country) msg += `🌆 *Ciudad:* ${t.city || ''}${t.country ? ', ' + t.country : ''}\n`;
@@ -1069,9 +1260,14 @@
         const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
         const optionsDate = { weekday: 'short', month: 'short', day: 'numeric' };
 
-        const timeMex = `${date.toLocaleTimeString('es-MX', { ...optionsTime, timeZone: 'America/Mexico_City' })} (${date.toLocaleDateString('es-MX', { ...optionsDate, timeZone: 'America/Mexico_City' })})`;
-        const timeEsp = `${date.toLocaleTimeString('es-ES', { ...optionsTime, timeZone: 'Europe/Madrid' })} (${date.toLocaleDateString('es-ES', { ...optionsDate, timeZone: 'Europe/Madrid' })})`;
-        const timeChi = `${date.toLocaleTimeString('es-CL', { ...optionsTime, timeZone: 'America/Santiago' })} (${date.toLocaleDateString('es-CL', { ...optionsDate, timeZone: 'America/Santiago' })})`;
+        // Hora de cada país + "(noche del viernes)" si allí cae de madrugada
+        const timeIn = (locale, tz) => {
+          const night = nightOfName(t.utcTime, tz);
+          return `${date.toLocaleTimeString(locale, { ...optionsTime, timeZone: tz })} (${date.toLocaleDateString(locale, { ...optionsDate, timeZone: tz })}${night ? `, noche del ${night}` : ''})`;
+        };
+        const timeMex = timeIn('es-MX', 'America/Mexico_City');
+        const timeEsp = timeIn('es-ES', 'Europe/Madrid');
+        const timeChi = timeIn('es-CL', 'America/Santiago');
 
         msg += `💻 *Plataforma:* ${t.platform || 'Lackey'}\n`;
         msg += `👥 *Jugadores:* ${playersCount}/5\n`;
@@ -1312,7 +1508,13 @@
 
       if (!localInput) return showToast('❌ Selecciona una fecha y hora.', 'error');
 
-      const selectedDate = new Date(localInput.replace(' ', 'T'));
+      // Fecha/hora final, ya con la noche elegida si la hora es de madrugada
+      const resolved = resolveChosenDate('create');
+      if (resolved.needsChoice) {
+        document.getElementById('createNightQ').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return showToast('🌙 Elige qué noche antes de crear la mesa.', 'error');
+      }
+      const selectedDate = resolved.date;
       if (selectedDate.getTime() < Date.now()) {
         return showToast('❌ No puedes crear una mesa en el pasado. Elige una fecha y hora futura.', 'error');
       }
@@ -1410,7 +1612,7 @@
         document.getElementById('customTableForm').reset();
         pickerCustomTable.clear();
         pickerCreatorArrival.clear();
-        setTableModality(modality);
+        setTableModality(modality); // también oculta la pregunta "¿Qué noche?" (campo vacío)
         closeCreateForm();
 
         // Si hay filtros activos que esconderían el evento nuevo, se limpian.
@@ -1766,6 +1968,7 @@
                 </div>
                 <p class="text-xs text-zinc-400 mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
                   <span>${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span> ${isPresencial ? '<span class="text-emerald-400">(hora local)</span>' : '<span class="text-zinc-500">(tu hora)</span>'}</span>
+                  ${nightBadgeHtml(t)}
                   ${relativeBadgeHtml(t.utcTime)}
                 </p>
               </div>
