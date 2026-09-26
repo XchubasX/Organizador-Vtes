@@ -81,6 +81,7 @@
             <li>Toca <strong>➕ Crear</strong>, llena los datos y elige un <strong>PIN de 4 números</strong>.</li>
             <li>El PIN te deja editar o cerrar tu mesa desde otro dispositivo. No se puede recuperar, así que guárdalo.</li>
             <li>Si eliges una hora de madrugada (00:00 a 05:59), el sitio te pregunta qué noche quieres decir.</li>
+            <li>Los eventos presenciales pueden repetirse <strong>🔁 cada semana</strong>: el enlace no cambia y la lista de asistentes empieza vacía cada semana.</li>
           </ul>
         </section>
         <section>
@@ -411,6 +412,12 @@
             <label class="block text-xs font-semibold text-emerald-400 mb-1">Link de Google Maps (opcional)</label>
             <input type="text" id="tableMapsLink" inputmode="url" autocomplete="off" placeholder="https://maps.app.goo.gl/..." class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
             <p id="tableMapsLinkError" class="text-[11px] text-red-400 mt-1 hidden">Pega un link que empiece con https:// (por ejemplo, de Google Maps).</p>
+          </div>
+          <div class="flex items-end">
+            <label for="tableRecurring" class="flex items-center gap-2 text-sm text-emerald-200 cursor-pointer py-1.5">
+              <input type="checkbox" id="tableRecurring" class="w-4 h-4 accent-emerald-500">
+              🔁 Se repite cada semana
+            </label>
           </div>
         </div>
 
@@ -806,7 +813,8 @@
       document.getElementById('createdModalTitle').textContent = isPresencial ? '¡Evento creado con éxito!' : '¡Mesa creada con éxito!';
       document.getElementById('createdModalName').textContent = recordData.name;
       const night = nightOfName(recordData.utcTime, recordData.originTz);
-      document.getElementById('createdModalWhen').textContent = `${f.date} - ${f.time}${night ? ` (noche del ${night})` : ''}${isPresencial ? ` · ${recordData.venue}, ${recordData.city}` : ` · ${recordData.platform}`}`;
+      const weekly = recordData.recurrence === 'weekly' ? ` · se repite cada ${weekdayInZone(recordData.utcTime, recordData.originTz)}` : '';
+      document.getElementById('createdModalWhen').textContent = `${f.date} - ${f.time}${night ? ` (noche del ${night})` : ''}${isPresencial ? ` · ${recordData.venue}, ${recordData.city}` : ` · ${recordData.platform}`}${weekly}`;
       document.getElementById('createdModal').classList.remove('hidden');
     }
 
@@ -1083,8 +1091,22 @@
     // escritura: así las mesas creadas antes de que existiera la ficha
     // también quedan registradas en cuanto alguien se une o edita.
     // ---------------------------------------------------------------------
+    // Fecha local (AAAAMMDD) de un instante en una zona horaria
+    function localYMD(utcISO, tz) {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: tz || undefined, year: 'numeric', month: '2-digit', day: '2-digit' })
+        .format(new Date(utcISO)).replace(/-/g, '');
+    }
+
+    // Llave de la ficha: los eventos semanales tienen UNA FICHA POR SEMANA
+    // (id_AAAAMMDD), para que cada jueves cuente como un evento distinto.
+    function tableLogKey(tableId, t) {
+      return t.recurrence === 'weekly' ? `${tableId}_${localYMD(t.utcTime, t.originTz)}` : tableId;
+    }
+
+    // Escribe los datos base de la ficha y devuelve su llave
     function addTableLogBase(updates, tableId, t) {
-      const base = `stats/tablesLog/${tableId}`;
+      const key = tableLogKey(tableId, t);
+      const base = `stats/tablesLog/${key}`;
       const isPresencial = t.modality === 'presencial';
       updates[`${base}/modality`] = isPresencial ? 'presencial' : 'virtual';
       updates[`${base}/startAt`] = t.utcTime;
@@ -1096,6 +1118,48 @@
         // Formato de la mesa virtual (requiere la regla "format" en stats/tablesLog)
         updates[`${base}/format`] = t.format;
       }
+      return key;
+    }
+
+    // ---------------------------------------------------------------------
+    // EVENTOS SEMANALES (recurrence: "weekly", solo presenciales)
+    // Cuando pasa la semana, el MISMO evento salta al mismo día y hora
+    // local de la semana siguiente (el enlace no cambia) y la lista de
+    // asistentes empieza vacía. La semana se suma en el calendario DEL
+    // LUGAR (originTz), no en horas: así un evento de los jueves 19:00 en
+    // Zaragoza sigue siendo a las 19:00 aunque cambie el horario de verano.
+    // ---------------------------------------------------------------------
+    function tzOffsetMinutes(tz, date) {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz || undefined, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+        .formatToParts(date).map(x => [x.type, x.value]));
+      const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+      return Math.round((asUtc - Math.floor(date.getTime() / 1000) * 1000) / 60000);
+    }
+
+    // Mismo día de la semana y hora local, n semanas después
+    function addWeeksInZone(utcISO, tz, n) {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz || undefined, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+        .formatToParts(new Date(utcISO)).map(x => [x.type, x.value]));
+      const wall = Date.UTC(+p.year, +p.month - 1, +p.day + 7 * n, +p.hour, +p.minute);
+      let guess = wall;
+      for (let k = 0; k < 3; k++) guess = wall - tzOffsetMinutes(tz, new Date(guess)) * 60000;
+      return new Date(guess).toISOString();
+    }
+
+    // Próxima fecha de un evento semanal que todavía no haya vencido.
+    // Se calcula siempre desde la fecha guardada: si dos navegadores lo
+    // hacen al mismo tiempo, llegan al mismo resultado (no salta dos veces).
+    function nextWeeklyOccurrence(t, nowMs) {
+      let n = 0, iso = t.utcTime;
+      while (Date.parse(iso) + PRESENCIAL_WINDOW_MS <= nowMs && n < 520) {
+        n++;
+        iso = addWeeksInZone(t.utcTime, t.originTz, n);
+      }
+      return iso;
+    }
+
+    function weekdayInZone(utcISO, tz) {
+      return new Date(utcISO).toLocaleDateString('es-ES', { weekday: 'long', timeZone: tz || undefined });
     }
 
     // Llave del nick en la ficha: sin distinguir mayúsculas ("Ana" = "ana")
@@ -1169,7 +1233,18 @@
       const updates = {};
       updates[`vtes_records/${currentEditTableId}/utcTime`] = newDate.toISOString();
       const editedTable = currentGlobalData.find(t => t.id === currentEditTableId);
-      if (editedTable) addTableLogBase(updates, currentEditTableId, { ...editedTable, utcTime: newDate.toISOString() });
+      if (editedTable) {
+        const newKey = addTableLogBase(updates, currentEditTableId, { ...editedTable, utcTime: newDate.toISOString() });
+        const oldKey = tableLogKey(currentEditTableId, editedTable);
+        if (oldKey !== newKey) {
+          // Evento semanal movido a otro día: la ficha de esta semana se
+          // mueve también (con sus asistentes) en lugar de quedar duplicada
+          updates[`stats/tablesLog/${oldKey}`] = null;
+          (editedTable.players || []).map(normalizePlayer).forEach(pl => {
+            if (pl.nick) updates[`stats/tablesLog/${newKey}/players/${tableLogNickKey(pl.nick)}`] = pl.nick;
+          });
+        }
+      }
       db.ref().update(updates)
         .then(() => showToast('✅ Horario actualizado'))
         .catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
@@ -1291,10 +1366,10 @@
         }
 
         // Ficha para estadísticas: el nick y, si una mesa virtual llega a 4+, se marca como llena
-        addTableLogBase(updates, tableId, table);
-        updates[`stats/tablesLog/${tableId}/players/${tableLogNickKey(nick)}`] = nick;
+        const logKey = addTableLogBase(updates, tableId, table);
+        updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(nick)}`] = nick;
         if (table.modality !== 'presencial' && players.length >= 4) {
-          updates[`stats/tablesLog/${tableId}/filled`] = true;
+          updates[`stats/tablesLog/${logKey}/filled`] = true;
         }
 
         // Guardamos en el navegador local que ESTE usuario se unió con este Nick
@@ -1373,6 +1448,7 @@
 
         msg += `📍 *Lugar:* ${t.venue || ''}\n`;
         if (t.city || t.country) msg += `🌆 *Ciudad:* ${t.city || ''}${t.country ? ', ' + t.country : ''}\n`;
+        if (t.recurrence === 'weekly') msg += `🔁 *Se repite:* cada ${weekdayInZone(t.utcTime, t.originTz)}\n`;
         msg += `👥 *Asistentes confirmados:* ${playersCount}\n`;
         msg += `📅 *Cuándo:* ${localWhen}\n`;
         if (t.mapsLink) msg += `🗺️ *Ubicación:* ${t.mapsLink}\n`;
@@ -1519,7 +1595,8 @@
         title: `VTES: ${t.name}`,
         start, end,
         location: isPresencial ? [t.venue, t.city, t.country].filter(Boolean).join(', ') : (t.platform || 'Lackey'),
-        details: details.join('\n')
+        details: details.join('\n'),
+        weekly: t.recurrence === 'weekly'
       };
     }
 
@@ -1536,7 +1613,8 @@
         + `&text=${encodeURIComponent(ev.title)}`
         + `&dates=${toCalendarStamp(ev.start)}/${toCalendarStamp(ev.end)}`
         + `&details=${encodeURIComponent(ev.details)}`
-        + `&location=${encodeURIComponent(ev.location)}`;
+        + `&location=${encodeURIComponent(ev.location)}`
+        + (ev.weekly ? `&recur=${encodeURIComponent('RRULE:FREQ=WEEKLY')}` : '');
       document.getElementById('calendarGoogleLink').href = googleUrl;
       document.getElementById('calendarModalName').textContent = `"${t.name}"`;
       document.getElementById('calendarModal').classList.remove('hidden');
@@ -1563,6 +1641,7 @@
         `SUMMARY:${esc(ev.title)}`,
         `LOCATION:${esc(ev.location)}`,
         `DESCRIPTION:${esc(ev.details)}`,
+        ...(ev.weekly ? ['RRULE:FREQ=WEEKLY'] : []),
         'END:VEVENT',
         'END:VCALENDAR'
       ].join('\r\n');
@@ -1577,6 +1656,8 @@
       showToast('📅 Archivo de calendario descargado');
     }
 
+    const PRESENCIAL_WINDOW_MS = 24 * 60 * 60 * 1000;
+
     // BARREDORA SILENCIOSA
     // Mesas virtuales: se limpian 3 horas después de su horario (suficiente
     // para cubrir una sesión de juego completa).
@@ -1588,7 +1669,6 @@
     function sweepExpiredTables(dataArray) {
       const now = new Date().getTime();
       const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-      const PRESENCIAL_WINDOW_MS = 24 * 60 * 60 * 1000;
       const validData = [];
 
       dataArray.forEach(item => {
@@ -1596,12 +1676,34 @@
         const itemTime = new Date(item.utcTime).getTime();
         const windowMs = item.modality === 'presencial' ? PRESENCIAL_WINDOW_MS : THREE_HOURS_MS;
         if (now > (itemTime + windowMs)) {
-          recordsRef.child(item.id).remove();
+          if (item.modality === 'presencial' && item.recurrence === 'weekly') {
+            // Evento semanal: salta a la semana siguiente en lugar de borrarse
+            rollWeeklyEvent(item.id);
+            validData.push({ ...item, utcTime: nextWeeklyOccurrence(item, now), players: [] });
+          } else {
+            recordsRef.child(item.id).remove();
+          }
         } else {
           validData.push(item);
         }
       });
       return validData;
+    }
+
+    // Mueve un evento semanal vencido a su próxima fecha y vacía la lista.
+    // Usa una transacción: si otro navegador ya lo movió, no hace nada.
+    const rollingOver = new Set();
+    function rollWeeklyEvent(id) {
+      if (rollingOver.has(id)) return;
+      rollingOver.add(id);
+      recordsRef.child(id).transaction(cur => {
+        if (!cur || cur.recurrence !== 'weekly') return; // ya no existe o dejó de repetirse
+        const nowMs = Date.now();
+        if (Date.parse(cur.utcTime) + PRESENCIAL_WINDOW_MS > nowMs) return; // ya lo movió otro navegador
+        cur.utcTime = nextWeeklyOccurrence(cur, nowMs);
+        delete cur.players;
+        return cur;
+      }).catch(() => {}).finally(() => rollingOver.delete(id));
     }
 
     // ---------------------------------------------------------------------
@@ -1698,6 +1800,8 @@
         recordData.country = country;
         recordData.city = city;
         recordData.mapsLink = mapsLink || '';
+        // Evento semanal: el mismo evento salta a la semana siguiente al vencer
+        if (document.getElementById('tableRecurring').checked) recordData.recurrence = 'weekly';
         // El organizador queda registrado como el primer asistente, con su
         // propia hora de llegada (opcional) igual que cualquier otro invitado.
         recordData.players = [{ nick: creator, arrival: creatorArrival || null }];
@@ -1756,9 +1860,9 @@
       }
 
       // Ficha para estadísticas
-      addTableLogBase(updates, newId, recordData);
-      updates[`stats/tablesLog/${newId}/createdAt`] = firebase.database.ServerValue.TIMESTAMP;
-      updates[`stats/tablesLog/${newId}/players/${tableLogNickKey(creator)}`] = creator;
+      const newLogKey = addTableLogBase(updates, newId, recordData);
+      updates[`stats/tablesLog/${newLogKey}/createdAt`] = firebase.database.ServerValue.TIMESTAMP;
+      updates[`stats/tablesLog/${newLogKey}/players/${tableLogNickKey(creator)}`] = creator;
 
       saveNick(creator);
 
@@ -1892,6 +1996,43 @@
       if (el) el.classList.toggle('hidden');
     }
 
+    // ---------------------------------------------------------------------
+    // SALTAR ESTA SEMANA (eventos semanales)
+    // Mueve el evento una semana adelante sin detener la serie (por
+    // ejemplo, un jueves festivo). Misma autorización que Editar horario.
+    // La ficha de estadísticas de la semana saltada se borra: no se jugó.
+    // ---------------------------------------------------------------------
+    function skipWeek(id) {
+      const tableRef = db.ref(`vtes_records/${id}`);
+      tableRef.get().then(async snapshot => {
+        if (!snapshot.exists()) return showToast('❌ Este evento ya no existe.', 'error');
+        const table = snapshot.val();
+        if (table.recurrence !== 'weekly') return;
+        const nextIso = addWeeksInZone(table.utcTime, table.originTz, 1);
+        const f = formatPresencialDateTime(nextIso, table.originTz, { weekday: 'long', day: 'numeric', month: 'long' }, { hour: '2-digit', minute: '2-digit' });
+
+        const ok = await authorizeTableAction(id, table, {
+          actionText: 'saltar esta semana',
+          confirmTitle: '⏭️ Saltar esta semana',
+          confirmMessage: `"${table.name}" pasará al ${f.date} a las ${f.time}. La lista de asistentes de esta semana se vaciará.`,
+          confirmLabel: 'Saltar'
+        });
+        if (!ok) return;
+
+        const skippedKey = tableLogKey(id, table);
+        tableRef.transaction(cur => {
+          if (!cur || cur.utcTime !== table.utcTime) return; // alguien lo cambió mientras tanto
+          cur.utcTime = nextIso;
+          delete cur.players;
+          return cur;
+        }).then(result => {
+          if (!result || !result.committed) return showToast('❌ El evento cambió mientras tanto. Revisa la fecha y vuelve a intentar.', 'error');
+          db.ref(`stats/tablesLog/${skippedKey}`).remove().catch(() => {});
+          showToast(`✅ Movido al ${f.date}`);
+        }).catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
+      });
+    }
+
     // ELIMINAR O CERRAR MESA / EVENTO (dueño del navegador + confirmación, o PIN Antiborrado)
     function deleteEntry(id) {
       const tableRef = db.ref(`vtes_records/${id}`);
@@ -1904,7 +2045,9 @@
         const ok = await authorizeTableAction(id, table, {
           actionText: `cerrar ${itemLabel}`,
           confirmTitle: '🗑️ Cerrar',
-          confirmMessage: `¿Seguro que quieres cerrar ${itemLabel}? Se eliminará para todos y no se puede deshacer.`,
+          confirmMessage: table.recurrence === 'weekly'
+            ? `¿Seguro que quieres cerrar ${itemLabel}? Se eliminará para todos y dejará de repetirse cada semana. No se puede deshacer. (Si solo quieres saltar una semana, usa "⏭️ Saltar esta semana".)`
+            : `¿Seguro que quieres cerrar ${itemLabel}? Se eliminará para todos y no se puede deshacer.`,
           confirmLabel: 'Cerrar definitivamente',
           danger: true
         });
@@ -2146,6 +2289,7 @@
                 <div class="flex flex-wrap items-center gap-1.5 min-w-0">
                   ${isPresencial ? getLocationBadge() : getPlatformBadge(t.platform || 'Lackey')}
                   ${isPresencial ? '' : getFormatBadge(t.format)}
+                  ${isPresencial && t.recurrence === 'weekly' ? `<span class="bg-emerald-950 text-emerald-200 border border-emerald-600/70 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">🔁 Cada ${escapeHtml(weekdayInZone(t.utcTime, t.originTz))}</span>` : ''}
                   ${iOwn ? `<span class="bg-purple-950 text-purple-200 border border-purple-600/70 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">👑 Organizas tú</span>` : ''}
                 </div>
                 <div class="shrink-0">${statusBadge}</div>
@@ -2199,6 +2343,7 @@
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-zinc-800 pt-2 text-[11px]">
               <span class="flex items-center gap-3">
                 ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-500 hover:text-red-400 transition py-1">🎲 Orden de Asientos</button>` : ''}
+                ${isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-500 hover:text-emerald-300 transition py-1">⏭️ Saltar esta semana</button>` : ''}
                 ${t.notes ? '' : `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-500 hover:text-white transition py-1">📝 Agregar nota</button>`}
               </span>
               <span class="flex items-center gap-3">
