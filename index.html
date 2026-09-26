@@ -131,6 +131,24 @@
     </div>
   </div>
 
+  <!-- MODAL: MESA / EVENTO CREADO CON ÉXITO -->
+  <div id="createdModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-800 border border-green-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-3 text-center">
+      <div class="text-4xl">✅</div>
+      <h3 id="createdModalTitle" class="text-lg font-bold text-green-400">¡Mesa creada con éxito!</h3>
+      <p id="createdModalName" class="text-base font-semibold text-white"></p>
+      <p id="createdModalWhen" class="text-xs text-zinc-400"></p>
+      <p class="text-xs text-zinc-400 leading-relaxed pt-1">
+        Ya aparece en la lista. Recuerda tu <strong class="text-wine-400">PIN Antiborrado</strong>: lo necesitarás para editar o cerrar desde otro dispositivo.
+      </p>
+      <div class="pt-2">
+        <button type="button" onclick="closeCreatedModal()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-xl text-sm transition shadow-md">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL UNIRSE / CONFIRMAR ASISTENCIA (con hora de llegada para eventos presenciales) -->
   <div id="joinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-zinc-800 border border-emerald-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
@@ -167,22 +185,34 @@
       </div>
     </header>
 
-    <!-- CREAR MESA ABIERTA -->
-    <section class="bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-4">
-      <div class="border-b border-zinc-700 pb-3">
-        <h2 class="text-xl font-bold text-wine-500 flex items-center gap-2">
-          <span id="tableSectionIcon">⚔️</span> <span id="tableSectionTitle">Abrir Nueva Mesa de Juego</span>
-        </h2>
-        <p id="tableSectionSubtitle" class="text-xs text-zinc-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
+    <!-- MESAS Y EVENTOS: pestañas arriba, luego el botón para crear, luego la lista -->
+    <section class="space-y-4">
+
+      <!-- PESTAÑAS VIRTUAL / PRESENCIAL (controlan la lista y el formulario, con contador) -->
+      <div class="flex gap-2 bg-zinc-800 p-1.5 rounded-xl border border-zinc-700">
+        <button type="button" id="modeVirtualBtn" onclick="setTableModality('virtual')" class="flex-1 bg-wine-600 text-white font-bold py-2.5 px-3 rounded-lg text-sm transition flex items-center justify-center gap-2">
+          💻 Virtual <span id="countVirtual" class="font-mono text-[11px] bg-black/30 px-2 py-0.5 rounded-full">0</span>
+        </button>
+        <button type="button" id="modePresencialBtn" onclick="setTableModality('presencial')" class="flex-1 bg-zinc-800 text-zinc-400 font-bold py-2.5 px-3 rounded-lg text-sm transition flex items-center justify-center gap-2">
+          📍 Presencial <span id="countPresencial" class="font-mono text-[11px] bg-black/30 px-2 py-0.5 rounded-full">0</span>
+        </button>
       </div>
 
-      <div class="flex gap-2 bg-zinc-900 p-1.5 rounded-lg border border-zinc-700 max-w-xs">
-        <button type="button" id="modeVirtualBtn" onclick="setTableModality('virtual')" class="flex-1 bg-wine-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition">
-          💻 Virtual
-        </button>
-        <button type="button" id="modePresencialBtn" onclick="setTableModality('presencial')" class="flex-1 bg-zinc-800 text-zinc-400 font-bold py-1.5 px-3 rounded-md text-xs transition">
-          📍 Presencial
-        </button>
+      <!-- BOTÓN PARA ABRIR EL FORMULARIO DE CREACIÓN -->
+      <button type="button" id="openCreateFormBtn" onclick="openCreateForm()" class="w-full md:w-auto bg-wine-600 hover:bg-wine-500 text-white font-bold py-2.5 px-5 rounded-lg text-sm transition shadow-md">
+        ➕ <span id="openCreateFormLabel">Crear mesa</span>
+      </button>
+
+    <!-- FORMULARIO DE CREACIÓN (oculto hasta que se pulsa "Crear") -->
+    <div id="createFormPanel" class="hidden bg-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="border-b border-zinc-700 pb-3 flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-xl font-bold text-wine-500 flex items-center gap-2">
+            <span id="tableSectionIcon">⚔️</span> <span id="tableSectionTitle">Abrir Nueva Mesa de Juego</span>
+          </h2>
+          <p id="tableSectionSubtitle" class="text-xs text-zinc-400 mt-1">Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.</p>
+        </div>
+        <button type="button" onclick="closeCreateForm()" class="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded-lg px-3 py-1.5 transition shrink-0">Cancelar</button>
       </div>
 
       <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-zinc-900 p-4 rounded-lg border border-zinc-700">
@@ -259,6 +289,7 @@
           </button>
         </div>
       </form>
+    </div>
 
       <div id="presencialFiltersBar" style="display: none;" class="flex flex-wrap items-end gap-3 bg-zinc-900/60 border border-emerald-700/30 rounded-lg p-3">
         <div class="flex-1 min-w-[140px]">
@@ -398,11 +429,80 @@
         ? 'Crea una mesa en tu plataforma preferida con horario fijo para que otros se sumen.'
         : 'Organiza una quedada presencial para que otros confirmen asistencia.';
       document.getElementById('createTableBtnLabel').textContent = isVirtual ? 'Abrir Mesa' : 'Crear Evento';
+      document.getElementById('openCreateFormLabel').textContent = isVirtual ? 'Crear mesa' : 'Crear evento presencial';
       document.getElementById('presencialFiltersBar').style.display = isVirtual ? 'none' : 'flex';
 
       // La lista de abajo se filtra para mostrar solo lo que coincide con la modalidad seleccionada
       currentTableModalityFilter = mode;
       renderAll(currentGlobalData);
+    }
+
+    // ---------------------------------------------------------------------
+    // FORMULARIO PLEGABLE: la lista se ve primero; el formulario de
+    // creación solo se abre al pulsar "➕ Crear mesa / evento".
+    // ---------------------------------------------------------------------
+    function openCreateForm() {
+      document.getElementById('createFormPanel').classList.remove('hidden');
+      document.getElementById('openCreateFormBtn').classList.add('hidden');
+      prefillCreatorNick();
+      document.getElementById('tableName').focus();
+    }
+
+    function closeCreateForm() {
+      document.getElementById('createFormPanel').classList.add('hidden');
+      document.getElementById('openCreateFormBtn').classList.remove('hidden');
+    }
+
+    // ---------------------------------------------------------------------
+    // RECORDAR EL NICK
+    // El último nick usado se guarda solo en el navegador de cada persona
+    // (no se envía nada nuevo a Firebase) y se deja escrito al crear o
+    // unirse a una mesa. Siempre se puede cambiar.
+    // ---------------------------------------------------------------------
+    const LAST_NICK_KEY = 'vtes_last_nick';
+
+    function getSavedNick() {
+      try { return localStorage.getItem(LAST_NICK_KEY) || ''; } catch (e) { return ''; }
+    }
+
+    function saveNick(nick) {
+      try { if (nick) localStorage.setItem(LAST_NICK_KEY, nick); } catch (e) { /* sin almacenamiento: no pasa nada */ }
+    }
+
+    function prefillCreatorNick() {
+      const input = document.getElementById('tableCreator');
+      if (!input.value) input.value = getSavedNick();
+    }
+
+    // ---------------------------------------------------------------------
+    // VENTANA DE CONFIRMACIÓN: MESA / EVENTO CREADO CON ÉXITO
+    // Aparece solo cuando Firebase confirma que se guardó. Al cerrarla,
+    // la página baja hasta la tarjeta nueva y la resalta unos segundos.
+    // ---------------------------------------------------------------------
+    let lastCreatedId = null;
+
+    function showCreatedModal(newId, recordData) {
+      lastCreatedId = newId;
+      const isPresencial = recordData.modality === 'presencial';
+      const f = formatPresencialDateTime(recordData.utcTime, recordData.originTz, { weekday: 'long', day: 'numeric', month: 'long' }, { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('createdModalTitle').textContent = isPresencial ? '¡Evento creado con éxito!' : '¡Mesa creada con éxito!';
+      document.getElementById('createdModalName').textContent = recordData.name;
+      document.getElementById('createdModalWhen').textContent = `${f.date} - ${f.time}${isPresencial ? ` · ${recordData.venue}, ${recordData.city}` : ` · ${recordData.platform}`}`;
+      document.getElementById('createdModal').classList.remove('hidden');
+    }
+
+    function closeCreatedModal() {
+      document.getElementById('createdModal').classList.add('hidden');
+      if (lastCreatedId) highlightCard(lastCreatedId);
+      lastCreatedId = null;
+    }
+
+    function highlightCard(tableId) {
+      const card = document.getElementById(`card-custom-${tableId}`);
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('ring-2', 'ring-green-400');
+      setTimeout(() => card.classList.remove('ring-2', 'ring-green-400'), 4000);
     }
 
     function showSecurityModal() {
@@ -544,7 +644,7 @@
         if (table.modality === 'presencial') {
           openJoinModal(tableId, table);
         } else {
-          const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:');
+          const playerNick = prompt('Ingresa tu Nick / Nombre para unirte a esta mesa:', getSavedNick());
           if (!playerNick || !playerNick.trim()) return;
           addPlayerToTable(tableId, playerNick.trim(), null);
         }
@@ -554,7 +654,7 @@
     function openJoinModal(tableId, table) {
       currentJoinTableId = tableId;
       document.getElementById('joinModalEventName').textContent = `"${table.name}"`;
-      document.getElementById('joinNick').value = '';
+      document.getElementById('joinNick').value = getSavedNick();
       pickerJoinArrival.clear();
       if (table.utcTime) {
         pickerJoinArrival.setDate(new Date(table.utcTime));
@@ -602,6 +702,7 @@
 
         // Guardamos en el navegador local que ESTE usuario se unió con este Nick
         localStorage.setItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`, nick);
+        saveNick(nick);
 
         // Estadísticas: se agrupan en la misma llamada que guarda al jugador,
         // para no duplicar el número de escrituras a Firebase. Estos
@@ -883,12 +984,33 @@
         updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
       }
 
-      db.ref().update(updates);
+      saveNick(creator);
 
-      document.getElementById('customTableForm').reset();
-      pickerCustomTable.clear();
-      pickerCreatorArrival.clear();
-      setTableModality('virtual');
+      const submitBtn = document.getElementById('createTableBtn');
+      submitBtn.disabled = true;
+
+      db.ref().update(updates).then(() => {
+        // Limpia el formulario pero SE QUEDA en la misma pestaña (Virtual o
+        // Presencial) donde se creó, para que la mesa nueva se vea en la lista.
+        document.getElementById('customTableForm').reset();
+        pickerCustomTable.clear();
+        pickerCreatorArrival.clear();
+        setTableModality(modality);
+        closeCreateForm();
+
+        // Si hay filtros activos que esconderían el evento nuevo, se limpian.
+        if (modality === 'presencial' && !matchesPresencialFilters(recordData)) {
+          clearPresencialFilters();
+        }
+
+        showCreatedModal(newId, recordData);
+      }).catch((error) => {
+        console.error(error);
+        localStorage.removeItem(`vtes_owner_${newId}`);
+        alert('❌ No se pudo crear. Revisa tu conexión a internet e inténtalo de nuevo.');
+      }).finally(() => {
+        submitBtn.disabled = false;
+      });
     });
 
     function editCustomTableDiscord(tableId, currentDiscord) {
@@ -1029,8 +1151,11 @@
 
       if (countryVal && !(t.country || '').toLowerCase().includes(countryVal)) return false;
       if (dateVal) {
-        const localDateStr = new Date(t.utcTime).toLocaleDateString('en-CA'); // formato YYYY-MM-DD
-        if (localDateStr !== dateVal) return false;
+        // Se compara con la fecha DEL LUGAR del evento (su huso de origen),
+        // que es la misma que se muestra en la tarjeta, no con la fecha de
+        // quien consulta. Formato YYYY-MM-DD.
+        const eventDateStr = new Date(t.utcTime).toLocaleDateString('en-CA', { timeZone: t.originTz || undefined });
+        if (eventDateStr !== dateVal) return false;
       }
       return true;
     }
@@ -1071,7 +1196,12 @@
     function renderAll(allData) {
       const customTablesContainer = document.getElementById('customTablesContainer');
 
-      const rawCustomTables = allData.filter(d => d.type === 'custom_table' && (d.modality || 'virtual') === currentTableModalityFilter);
+      // Contadores de las pestañas (total de cada modalidad, sin filtros)
+      const allTables = allData.filter(d => d.type === 'custom_table');
+      document.getElementById('countVirtual').textContent = allTables.filter(d => (d.modality || 'virtual') === 'virtual').length;
+      document.getElementById('countPresencial').textContent = allTables.filter(d => d.modality === 'presencial').length;
+
+      const rawCustomTables = allTables.filter(d => (d.modality || 'virtual') === currentTableModalityFilter);
 
       let customTables = rawCustomTables;
       if (currentTableModalityFilter === 'presencial') {
