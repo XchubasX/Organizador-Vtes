@@ -24,6 +24,8 @@
       --text: #f4f4f5; --text-2: #c4c4cc; --muted: #a1a1aa; --dim: #71717a;
       --wine: #a8425a; --wine-strong: #8c2f45; --wine-soft: #d98fa0; --wine-deep: #3f141f;
       --series-virtual: #d95926; --series-presencial: #199e70;
+      /* Formatos: Standard azul vs V5 naranja → separación CVD ΔE 26.8 sobre #27272a */
+      --series-standard: #3987e5; --series-v5: #d95926; --series-none: #52525b;
       --seq-0: #2b2b30; --seq-1: #104281; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #5598e7; --seq-5: #9ec5f4;
       --good: #4ade80; --bad: #f87171; --amber: #fcd34d;
     }
@@ -159,6 +161,22 @@
           <p class="answer" id="ansPlayers"></p>
         </section>
       </div>
+
+      <!-- 5. ¿QUÉ FORMATO JUEGA LA COMUNIDAD? -->
+      <section class="panel" aria-labelledby="hFmt">
+        <div>
+          <h2 id="hFmt">¿Qué formato juega la comunidad?</h2>
+          <p class="sub">Mesas virtuales de las últimas 8 semanas, según su formato.</p>
+        </div>
+        <div id="formatBar"></div>
+        <div class="hscroll">
+          <table>
+            <thead><tr><th>Formato</th><th class="n">Mesas</th><th class="n">% del total</th><th class="n">Se llenaron</th><th class="n">Jugadores distintos</th></tr></thead>
+            <tbody id="formatRows"></tbody>
+          </table>
+        </div>
+        <p class="answer" id="ansFormat"></p>
+      </section>
 
       <!-- 3. ¿CUÁNDO? -->
       <section class="panel" aria-labelledby="h3">
@@ -477,6 +495,9 @@
         ? `<b>${counts[5]}</b> jugadores distintos este mes${counts[4] ? ` (contra ${counts[4]} el mes pasado)` : ''}. <b>${newThisMonth}</b> aparecieron por primera vez en los registros este mes.`
         : 'Todavía no hay jugadores registrados este mes.';
 
+      // 5. Formatos (mesas virtuales, últimas 8 semanas)
+      renderFormats(records.filter(r => r.modality !== 'presencial' && r.start.getTime() >= weeks[0].getTime()), now);
+
       // 3. Mapa de calor (mesas virtuales llenas, últimas 8 semanas)
       const since = weeks[0].getTime();
       heatRecords = records.filter(r => r.modality !== 'presencial' && r.filled && r.start.getTime() >= since);
@@ -508,6 +529,70 @@
         <div class="kpi"><span class="q">Jugadores distintos este mes</span><span class="v">${counts[5]}</span><span class="d">${pDiff === 0 ? 'igual que el mes pasado' : `<span class="${pDiff > 0 ? 'up' : 'down'}">${pDiff > 0 ? '▲' : '▼'} ${Math.abs(pDiff)}</span> vs. mes pasado`}</span></div>
         <div class="kpi"><span class="q">Mejor momento para abrir mesa</span><span class="v" id="kpiBest">—</span><span class="d" id="kpiBestD">sin datos suficientes aún</span></div>`;
       updateBestKpi();
+    }
+
+    // ---------------------------------------------------------------------
+    // FORMATOS: Standard (Legacy) / V5 / sin dato (mesas anteriores al campo)
+    // ---------------------------------------------------------------------
+    const FORMATS = [
+      { key: 'standard', label: 'Standard (Legacy)', color: '--series-standard' },
+      { key: 'v5', label: 'V5', color: '--series-v5' },
+      { key: 'none', label: 'Sin formato (mesas anteriores)', color: '--series-none' }
+    ];
+
+    function renderFormats(virtualRecords, now) {
+      const groups = FORMATS.map(f => ({ ...f, tables: 0, past: 0, filled: 0, players: new Set() }));
+      virtualRecords.forEach(r => {
+        const g = groups.find(x => x.key === (r.format === 'standard' || r.format === 'v5' ? r.format : 'none'));
+        g.tables++;
+        if (r.start <= now) { g.past++; if (r.filled) g.filled++; }
+        r.playerKeys.forEach(k => g.players.add(k));
+      });
+      const total = groups.reduce((a, g) => a + g.tables, 0);
+      const shown = groups.filter(g => g.tables > 0 || g.key !== 'none');
+
+      // Barra de proporción (100%), con 2px de separación entre segmentos
+      const barEl = document.getElementById('formatBar');
+      if (!total) {
+        barEl.innerHTML = '<p class="empty">Todavía no hay mesas virtuales en estas 8 semanas.</p>';
+      } else {
+        const W = 640, H = 34, gap = 2;
+        const segs = groups.filter(g => g.tables > 0);
+        const usable = W - gap * (segs.length - 1);
+        let x = 0, svg = `<svg viewBox="0 0 ${W} ${H + 22}" role="img" aria-label="${escapeHtml(segs.map(g => `${g.label}: ${Math.round(g.tables / total * 100)}%`).join(', '))}">`;
+        segs.forEach((g, i) => {
+          const w = usable * g.tables / total;
+          const pct = Math.round(g.tables / total * 100);
+          const tipHtml = escapeHtml(`${g.label}: ${g.tables} mesa${g.tables === 1 ? '' : 's'} (${pct}%)`);
+          const rl = i === 0 ? 6 : 0, rr = i === segs.length - 1 ? 6 : 0;
+          svg += `<path class="mark" tabindex="0" data-tip="${tipHtml}" fill="var(${g.color})" d="M${x + rl},0H${x + w - rr}${rr ? `Q${x + w},0 ${x + w},${rr}` : ''}V${H - rr}${rr ? `Q${x + w},${H} ${x + w - rr},${H}` : ''}H${x + rl}${rl ? `Q${x},${H} ${x},${H - rl}` : ''}V${rl}${rl ? `Q${x},0 ${x + rl},0` : ''}Z"/>`;
+          if (w > 70) svg += `<text class="val" x="${x + w / 2}" y="${H + 16}" text-anchor="middle">${escapeHtml(g.key === 'none' ? 'Sin formato' : g.label)} · ${pct}%</text>`;
+          x += w + gap;
+        });
+        barEl.innerHTML = svg + '</svg>';
+        bindTips(barEl);
+      }
+
+      // Tabla por formato
+      document.getElementById('formatRows').innerHTML = shown.map(g => {
+        const fillTxt = g.past ? `${Math.round(g.filled / g.past * 100)}% <span style="color:var(--dim)">(${g.filled} de ${g.past})</span>` : '—';
+        return `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(${g.color});margin-right:8px;vertical-align:-1px"></span>${escapeHtml(g.label)}</td><td class="n">${g.tables}</td><td class="n">${total ? Math.round(g.tables / total * 100) + '%' : '—'}</td><td class="n">${fillTxt}</td><td class="n">${g.players.size}</td></tr>`;
+      }).join('');
+
+      // Respuesta en texto (solo con mesas que sí tienen formato)
+      const std = groups[0], v5 = groups[1];
+      const known = std.tables + v5.tables;
+      let ans;
+      if (!known) ans = 'Todavía no hay mesas con formato registrado. El formato se guarda desde que se agregó el campo al crear mesas virtuales.';
+      else {
+        const lead = std.tables >= v5.tables ? std : v5, other = lead === std ? v5 : std;
+        ans = `<b>${escapeHtml(lead.label)}</b> es el formato más jugado: <b>${Math.round(lead.tables / known * 100)}%</b> de las mesas con formato (${lead.tables} contra ${other.tables} de ${escapeHtml(other.label)}).`;
+        if (std.past >= 3 && v5.past >= 3) {
+          const rs = std.filled / std.past, rv = v5.filled / v5.past;
+          if (Math.abs(rs - rv) >= 0.15) ans += ` Las mesas <b>${rs > rv ? 'Standard (Legacy)' : 'V5'}</b> se llenan más (${Math.round(Math.max(rs, rv) * 100)}% contra ${Math.round(Math.min(rs, rv) * 100)}%).`;
+        }
+      }
+      document.getElementById('ansFormat').innerHTML = ans;
     }
 
     const SEQ = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];

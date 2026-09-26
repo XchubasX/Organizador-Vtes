@@ -1092,6 +1092,9 @@
       if (isPresencial) {
         updates[`${base}/city`] = t.city || '';
         updates[`${base}/country`] = t.country || '';
+      } else if (t.format === 'standard' || t.format === 'v5') {
+        // Formato de la mesa virtual (requiere la regla "format" en stats/tablesLog)
+        updates[`${base}/format`] = t.format;
       }
     }
 
