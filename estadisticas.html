@@ -582,11 +582,15 @@
       // Respuesta en texto (solo con mesas que sí tienen formato)
       const std = groups[0], v5 = groups[1];
       const known = std.tables + v5.tables;
+      // Con muy pocas mesas no se sacan conclusiones (una sola mesa daría "100%")
+      const MIN_FOR_CONCLUSION = 5;
       let ans;
       if (!known) ans = 'Todavía no hay mesas con formato registrado. El formato se guarda desde que se agregó el campo al crear mesas virtuales.';
-      else {
-        const lead = std.tables >= v5.tables ? std : v5, other = lead === std ? v5 : std;
-        ans = `<b>${escapeHtml(lead.label)}</b> es el formato más jugado: <b>${Math.round(lead.tables / known * 100)}%</b> de las mesas con formato (${lead.tables} contra ${other.tables} de ${escapeHtml(other.label)}).`;
+      else if (known < MIN_FOR_CONCLUSION) {
+        ans = `Todavía hay pocas mesas con formato (${known}) para sacar conclusiones. Se necesitan al menos ${MIN_FOR_CONCLUSION}.`;
+      } else {
+        const lead = std.tables >= v5.tables ? std : v5;
+        ans = `<b>${escapeHtml(lead.label)}</b> es el formato más jugado: <b>${Math.round(lead.tables / known * 100)}%</b> de las mesas con formato (${lead.tables} de ${known}).`;
         if (std.past >= 3 && v5.past >= 3) {
           const rs = std.filled / std.past, rv = v5.filled / v5.past;
           if (Math.abs(rs - rv) >= 0.15) ans += ` Las mesas <b>${rs > rv ? 'Standard (Legacy)' : 'V5'}</b> se llenan más (${Math.round(Math.max(rs, rv) * 100)}% contra ${Math.round(Math.min(rs, rv) * 100)}%).`;
