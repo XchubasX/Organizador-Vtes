@@ -50,6 +50,61 @@
     💬
   </button>
 
+  <!-- MODAL: ACERCA DE (botón "?" del encabezado) -->
+  <div id="aboutModal" onclick="if (event.target === this) closeAboutModal()" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div role="dialog" aria-modal="true" aria-labelledby="aboutTitle" class="bg-zinc-800 border border-zinc-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between gap-3 border-b border-zinc-700 pb-3">
+        <h3 id="aboutTitle" class="text-lg font-bold text-wine-400">❓ Acerca de</h3>
+        <button type="button" onclick="closeAboutModal()" aria-label="Cerrar" class="text-zinc-400 hover:text-white text-xl leading-none px-2">✕</button>
+      </div>
+      <div class="space-y-4 text-sm text-zinc-300 leading-relaxed">
+        <section>
+          <h4 class="text-sm font-bold text-white mb-1">Acerca de VTES Scheduler</h4>
+          <p>VTES Scheduler es una herramienta gratuita, hecha por y para la comunidad de <em>Vampire: The Eternal Struggle</em>, para organizar partidas. Puedes abrir una mesa virtual y encontrar jugadores para completarla, o convocar un evento presencial en tu ciudad y ver quién va a llegar. No necesitas cuenta ni registro: solo tu nick.</p>
+        </section>
+        <section>
+          <h4 class="text-sm font-bold text-white mb-1">Cómo funciona</h4>
+          <p><strong>💻 Mesas virtuales</strong>: partidas en LackeyCCG o Succubus Club, de 4 a 5 jugadores.<br>
+          <strong>📍 Eventos presenciales</strong>: reuniones en una tienda o casa, sin límite de asistentes.<br>
+          Cambia entre las dos con las pestañas de arriba.</p>
+        </section>
+        <section>
+          <h4 class="text-sm font-bold text-white mb-1">Unirte</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Toca <strong>➕ ¡Unirme!</strong> o <strong>¡Confirmar asistencia!</strong> y escribe tu nick. En eventos puedes poner tu hora estimada de llegada.</li>
+            <li>Para salir, usa <strong>🚪 Salir</strong>.</li>
+          </ul>
+        </section>
+        <section>
+          <h4 class="text-sm font-bold text-white mb-1">Crear una mesa o evento</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Toca <strong>➕ Crear</strong>, llena los datos y elige un <strong>PIN de 4 números</strong>.</li>
+            <li>El PIN te deja editar o cerrar tu mesa desde otro dispositivo. No se puede recuperar, así que guárdalo.</li>
+            <li>Si eliges una hora de madrugada (00:00 a 05:59), el sitio te pregunta qué noche quieres decir.</li>
+          </ul>
+        </section>
+        <section>
+          <h4 class="text-sm font-bold text-white mb-1">Horarios</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Las mesas virtuales se muestran en <strong>tu hora</strong>.</li>
+            <li>Los eventos presenciales se muestran en la <strong>hora del lugar</strong>.</li>
+          </ul>
+        </section>
+        <section>
+          <h4 class="text-sm font-bold text-white mb-1">Compartir</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>📲 WhatsApp</strong> o <strong>🔗 Compartir</strong> envían un enlace directo a la mesa.</li>
+            <li><strong>📅 Calendario</strong> la agrega a tu agenda.</li>
+          </ul>
+        </section>
+        <p class="text-zinc-400">¿Un error o una idea? Usa el botón 💬.</p>
+      </div>
+      <div class="flex justify-end pt-1">
+        <button type="button" onclick="closeAboutModal()" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Entendido</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: REPORTAR BUG / SUGERENCIA (no guarda nada en Firebase, se envía por correo vía EmailJS) -->
   <div id="feedbackModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-zinc-800 border border-zinc-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -233,7 +288,8 @@
   <div class="max-w-5xl mx-auto space-y-8">
 
     <!-- Encabezado -->
-    <header class="text-center space-y-2 border-b border-wine-800 pb-4">
+    <header class="relative text-center space-y-2 border-b border-wine-800 pb-4 px-10">
+      <button type="button" onclick="openAboutModal()" aria-label="Acerca de: cómo funciona" title="Acerca de" class="absolute top-0 right-0 w-8 h-8 rounded-full bg-zinc-800 border border-zinc-600 text-zinc-300 hover:text-white hover:border-wine-500 font-bold text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-wine-400">?</button>
       <h1 class="text-3xl md:text-5xl font-extrabold text-wine-500 tracking-wider">VAMPIRE: THE ETERNAL SCHEDULE</h1>
       <p class="text-zinc-400 text-sm md:text-base">Coordinador de Mesas</p>
       <div id="userTimezone" class="inline-block bg-zinc-800 border border-zinc-700 text-wine-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
@@ -824,7 +880,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (uiDialogResolve) return uiDialogResolve(null);
-      ['joinModal', 'calendarModal', 'editScheduleModal', 'securityModal', 'feedbackModal'].forEach(id => {
+      ['joinModal', 'calendarModal', 'editScheduleModal', 'securityModal', 'feedbackModal', 'aboutModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.classList.contains('hidden')) {
           if (id === 'joinModal') closeJoinModal();
@@ -2118,6 +2174,16 @@
         btn.textContent = 'Enviar';
       });
     });
+
+    // ---------------------------------------------------------------------
+    // VENTANA "ACERCA DE" (botón "?" del encabezado)
+    // ---------------------------------------------------------------------
+    function openAboutModal() {
+      document.getElementById('aboutModal').classList.remove('hidden');
+    }
+    function closeAboutModal() {
+      document.getElementById('aboutModal').classList.add('hidden');
+    }
   </script>
   <footer style="text-align: center; padding: 20px; font-size: 0.85rem; opacity: 0.8;">
   <p>
