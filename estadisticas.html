@@ -175,7 +175,14 @@
             <tbody id="formatRows"></tbody>
           </table>
         </div>
+        <p class="sub" id="formatNoneNote"></p>
         <p class="answer" id="ansFormat"></p>
+        <div style="display:grid;gap:8px;margin-top:6px">
+          <h3 style="font-size:14.5px;font-weight:700">Adopción de V5 por semana</h3>
+          <p class="sub">Porcentaje de mesas V5 entre las mesas con formato de cada semana.</p>
+          <div id="chartV5Weeks"></div>
+          <p class="answer" id="ansV5Weeks"></p>
+        </div>
       </section>
 
       <!-- 3. ¿CUÁNDO? -->
@@ -496,7 +503,7 @@
         : 'Todavía no hay jugadores registrados este mes.';
 
       // 5. Formatos (mesas virtuales, últimas 8 semanas)
-      renderFormats(records.filter(r => r.modality !== 'presencial' && r.start.getTime() >= weeks[0].getTime()), now);
+      renderFormats(records.filter(r => r.modality !== 'presencial' && r.start.getTime() >= weeks[0].getTime()), now, weekLabels, weekIndex);
 
       // 3. Mapa de calor (mesas virtuales llenas, últimas 8 semanas)
       const since = weeks[0].getTime();
@@ -540,7 +547,7 @@
       { key: 'none', label: 'Sin formato (mesas anteriores)', color: '--series-none' }
     ];
 
-    function renderFormats(virtualRecords, now) {
+    function renderFormats(virtualRecords, now, weekLabels, weekIndex) {
       const groups = FORMATS.map(f => ({ ...f, tables: 0, past: 0, filled: 0, players: new Set() }));
       virtualRecords.forEach(r => {
         const g = groups.find(x => x.key === (r.format === 'standard' || r.format === 'v5' ? r.format : 'none'));
@@ -548,16 +555,23 @@
         if (r.start <= now) { g.past++; if (r.filled) g.filled++; }
         r.playerKeys.forEach(k => g.players.add(k));
       });
-      const total = groups.reduce((a, g) => a + g.tables, 0);
-      const shown = groups.filter(g => g.tables > 0 || g.key !== 'none');
+      // Los porcentajes se calculan SOLO con mesas que tienen formato; las
+      // anteriores al campo se mencionan aparte para no distorsionar la barra.
+      const known = groups[0].tables + groups[1].tables;
+      const total = known;
+      // Con muy pocas mesas no se sacan conclusiones ni se dibujan proporciones
+      // (una sola mesa daría una barra de "100%")
+      const MIN_FOR_CONCLUSION = 5;
+      const none = groups[2];
+      const shown = groups.slice(0, 2);
 
       // Barra de proporción (100%), con 2px de separación entre segmentos
       const barEl = document.getElementById('formatBar');
-      if (!total) {
-        barEl.innerHTML = '<p class="empty">Todavía no hay mesas virtuales en estas 8 semanas.</p>';
+      if (known < MIN_FOR_CONCLUSION) {
+        barEl.innerHTML = `<p class="empty">La barra aparecerá cuando haya al menos ${MIN_FOR_CONCLUSION} mesas con formato (hoy: ${known}).</p>`;
       } else {
         const W = 640, H = 34, gap = 2;
-        const segs = groups.filter(g => g.tables > 0);
+        const segs = shown.filter(g => g.tables > 0);
         const usable = W - gap * (segs.length - 1);
         let x = 0, svg = `<svg viewBox="0 0 ${W} ${H + 22}" role="img" aria-label="${escapeHtml(segs.map(g => `${g.label}: ${Math.round(g.tables / total * 100)}%`).join(', '))}">`;
         segs.forEach((g, i) => {
@@ -579,11 +593,14 @@
         return `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(${g.color});margin-right:8px;vertical-align:-1px"></span>${escapeHtml(g.label)}</td><td class="n">${g.tables}</td><td class="n">${total ? Math.round(g.tables / total * 100) + '%' : '—'}</td><td class="n">${fillTxt}</td><td class="n">${g.players.size}</td></tr>`;
       }).join('');
 
+      document.getElementById('formatNoneNote').textContent = none.tables
+        ? (none.tables === 1
+            ? '+1 mesa virtual sin formato (creada antes de que existiera el campo), no incluida en los porcentajes.'
+            : `+${none.tables} mesas virtuales sin formato (creadas antes de que existiera el campo), no incluidas en los porcentajes.`)
+        : '';
+
       // Respuesta en texto (solo con mesas que sí tienen formato)
       const std = groups[0], v5 = groups[1];
-      const known = std.tables + v5.tables;
-      // Con muy pocas mesas no se sacan conclusiones (una sola mesa daría "100%")
-      const MIN_FOR_CONCLUSION = 5;
       let ans;
       if (!known) ans = 'Todavía no hay mesas con formato registrado. El formato se guarda desde que se agregó el campo al crear mesas virtuales.';
       else if (known < MIN_FOR_CONCLUSION) {
@@ -597,6 +614,35 @@
         }
       }
       document.getElementById('ansFormat').innerHTML = ans;
+
+      // Adopción de V5 por semana: % de mesas V5 entre las que tienen formato
+      const wStd = Array(8).fill(0), wV5 = Array(8).fill(0);
+      virtualRecords.forEach(r => {
+        const i = weekIndex(r.start);
+        if (i < 0) return;
+        if (r.format === 'v5') wV5[i]++; else if (r.format === 'standard') wStd[i]++;
+      });
+      const wPct = wV5.map((v, i) => (v + wStd[i] ? Math.round(v / (v + wStd[i]) * 100) : null));
+      const weeklyEl = document.getElementById('chartV5Weeks');
+      if (known < MIN_FOR_CONCLUSION) {
+        weeklyEl.innerHTML = '';
+      } else barChart({
+        el: weeklyEl, labels: weekLabels, pct: true, H: 190,
+        series: [{ values: wPct, color: '--series-v5' }],
+        tipFor: i => (wV5[i] + wStd[i]) ? `Semana del ${weekLabels[i]}: ${wPct[i]}% V5 (${wV5[i]} de ${wV5[i] + wStd[i]} mesas con formato)` : `Semana del ${weekLabels[i]}: sin mesas con formato`,
+        aria: 'Porcentaje de mesas V5 por semana'
+      });
+      const withData = wPct.map((v, i) => ({ v, i, n: wV5[i] + wStd[i] })).filter(x => x.v != null);
+      let ansW;
+      if (known < MIN_FOR_CONCLUSION) ansW = 'La tendencia aparecerá cuando haya más mesas con formato registradas.';
+      else if (withData.length < 2) ansW = `Por ahora solo hay datos de una semana: <b>${withData[0].v}%</b> de mesas V5.`;
+      else {
+        const first = withData[0], last = withData[withData.length - 1];
+        const diff = last.v - first.v;
+        ansW = `De la semana del ${escapeHtml(weekLabels[first.i])} a la del ${escapeHtml(weekLabels[last.i])}, las mesas V5 pasaron de <b>${first.v}%</b> a <b>${last.v}%</b>`
+          + (Math.abs(diff) < 10 ? ' (sin un cambio claro).' : diff > 0 ? ` (<b>+${diff} puntos</b>).` : ` (<b>${diff} puntos</b>).`);
+      }
+      document.getElementById('ansV5Weeks').innerHTML = ansW;
     }
 
     const SEQ = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
