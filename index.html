@@ -747,6 +747,23 @@
     function prefillCreatorNick() {
       const input = document.getElementById('tableCreator');
       if (!input.value) input.value = getSavedNick();
+      // También se deja elegida la última plataforma usada (LackeyCCG / Succubus Club)
+      const platform = getSavedPlatform();
+      const select = document.getElementById('tablePlatform');
+      if (platform && [...select.options].some(o => o.value === platform)) select.value = platform;
+    }
+
+    // ---------------------------------------------------------------------
+    // RECORDAR LA ÚLTIMA PLATAFORMA (solo en el navegador de cada persona)
+    // ---------------------------------------------------------------------
+    const LAST_PLATFORM_KEY = 'vtes_last_platform';
+
+    function getSavedPlatform() {
+      try { return localStorage.getItem(LAST_PLATFORM_KEY) || ''; } catch (e) { return ''; }
+    }
+
+    function savePlatform(platform) {
+      try { if (platform) localStorage.setItem(LAST_PLATFORM_KEY, platform); } catch (e) { /* sin almacenamiento: no pasa nada */ }
     }
 
     // ---------------------------------------------------------------------
@@ -1652,6 +1669,7 @@
         recordData.players = [{ nick: creator, arrival: creatorArrival || null }];
       } else {
         recordData.platform = document.getElementById('tablePlatform').value;
+        savePlatform(recordData.platform);
         recordData.discord = document.getElementById('tableDiscord').value.trim() || '';
         recordData.gamePassword = document.getElementById('tableGamePassword').value.trim() || '';
         recordData.players = [creator];
@@ -1851,8 +1869,8 @@
     function getPlatformBadge(platform) {
       const isLackey = (platform || '').toLowerCase().includes('lackey');
       return isLackey
-        ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">💻 LackeyCCG</span>`
-        : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">🦇 Succubus Club</span>`;
+        ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">LackeyCCG</span>`
+        : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">Succubus Club</span>`;
     }
 
     function getLocationBadge() {
