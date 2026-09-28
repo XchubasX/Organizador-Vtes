@@ -73,6 +73,8 @@
           <ul class="list-disc pl-5 space-y-1">
             <li>Toca <strong>➕ ¡Unirme!</strong> o <strong>¡Confirmar asistencia!</strong> y escribe tu nick. En eventos puedes poner tu hora estimada de llegada.</li>
             <li>Para salir, usa <strong>🚪 Salir</strong>.</li>
+            <li>Si una mesa virtual está llena, puedes apuntarte como <strong>⏳ suplente</strong> (hasta 3). Si alguien sale de la mesa, el primer suplente entra automáticamente en su lugar.</li>
+            <li>Si ya hay 3 suplentes, puedes <strong>➕ abrir otra mesa a la misma hora</strong>: se copian la hora, la plataforma y el formato.</li>
           </ul>
         </section>
         <section>
@@ -330,6 +332,7 @@
 
       <form id="customTableForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 bg-zinc-900 p-4 rounded-lg border border-zinc-700">
         <input type="hidden" id="tableModality" value="virtual">
+        <div id="createCopyHint" class="hidden col-span-full bg-amber-950/40 border border-amber-700/50 text-amber-200 text-xs rounded-lg px-3 py-2"></div>
         <div>
           <label id="tableNameLabel" class="block text-xs font-semibold text-zinc-400 mb-1">Nombre de Mesa</label>
           <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
@@ -744,6 +747,7 @@
 
     function closeCreateForm() {
       document.getElementById('createFormPanel').classList.add('hidden');
+      document.getElementById('createCopyHint').classList.add('hidden');
       document.getElementById('openCreateFormBtn').classList.remove('hidden');
     }
 
@@ -861,7 +865,7 @@
     let uiDialogResolve = null;
     let uiDialogValidate = null;
 
-    function uiDialog({ title, message = '', input = null, confirmLabel = 'Aceptar', danger = false, validate = null }) {
+    function uiDialog({ title, message = '', input = null, confirmLabel = 'Aceptar', cancelLabel = 'Cancelar', danger = false, validate = null }) {
       if (uiDialogResolve) uiDialogResolve(null); // cierra cualquier ventana anterior
       const dlg = document.getElementById('uiDialog');
       const group = document.getElementById('uiDialogInputGroup');
@@ -889,6 +893,7 @@
       }
 
       confirmBtn.textContent = confirmLabel;
+      document.getElementById('uiDialogCancel').textContent = cancelLabel;
       confirmBtn.classList.toggle('bg-red-700', danger);
       confirmBtn.classList.toggle('hover:bg-red-600', danger);
       confirmBtn.classList.toggle('bg-wine-600', !danger);
@@ -1258,23 +1263,30 @@
     // estimada de llegada (opcional).
     // ---------------------------------------------------------------------
     let currentJoinTableId = null;
+    let currentJoinAsSub = false; // true = apuntarse como suplente de una mesa virtual llena
 
-    function joinTable(tableId) {
+    // Suplentes: solo mesas virtuales llenas, máximo 3, en orden de llegada.
+    // Si un jugador sale (o lo remueven), el primer suplente entra solo.
+    const MAX_PLAYERS = 5;
+    const SUBS_MAX = 3;
+
+    function joinTable(tableId, asSub = false) {
       const tableRef = db.ref(`vtes_records/${tableId}`);
 
       tableRef.get().then(snapshot => {
         if (!snapshot.exists()) return showToast('❌ Esta mesa ya no existe.', 'error');
-        openJoinModal(tableId, snapshot.val());
+        openJoinModal(tableId, snapshot.val(), asSub);
       });
     }
 
     // Misma ventana para mesas virtuales y eventos presenciales; en las
     // virtuales se oculta el campo de hora de llegada.
-    function openJoinModal(tableId, table) {
+    function openJoinModal(tableId, table, asSub = false) {
       const isPresencial = table.modality === 'presencial';
       currentJoinTableId = tableId;
-      document.getElementById('joinModalTitle').textContent = isPresencial ? 'Confirmar Asistencia' : 'Unirte a la Mesa';
-      document.getElementById('joinSubmitBtn').textContent = isPresencial ? 'Confirmar' : 'Unirme';
+      currentJoinAsSub = !isPresencial && asSub;
+      document.getElementById('joinModalTitle').textContent = isPresencial ? 'Confirmar Asistencia' : (currentJoinAsSub ? 'Apuntarte como suplente' : 'Unirte a la Mesa');
+      document.getElementById('joinSubmitBtn').textContent = isPresencial ? 'Confirmar' : (currentJoinAsSub ? 'Apuntarme' : 'Unirme');
       document.getElementById('joinArrivalGroup').classList.toggle('hidden', !isPresencial);
       document.getElementById('joinModalEventName').textContent = `"${table.name}"`;
       document.getElementById('joinNickError').classList.add('hidden');
@@ -1292,6 +1304,7 @@
       document.getElementById('joinForm').reset();
       document.getElementById('joinNickError').classList.add('hidden');
       currentJoinTableId = null;
+      currentJoinAsSub = false;
     }
 
     document.getElementById('joinForm').addEventListener('submit', async (e) => {
@@ -1302,7 +1315,8 @@
 
       const btn = document.getElementById('joinSubmitBtn');
       btn.disabled = true;
-      const result = await addPlayerToTable(currentJoinTableId, nick, arrival || null);
+      const askedAsSub = currentJoinAsSub;
+      const result = await addPlayerToTable(currentJoinTableId, nick, arrival || null, askedAsSub);
       btn.disabled = false;
 
       if (result.error) {
@@ -1313,25 +1327,41 @@
         return;
       }
       closeJoinModal();
-      showToast(result.presencial ? '✅ Asistencia confirmada' : '✅ Te uniste a la mesa');
+      if (result.substitute) showToast('✅ Te apuntaste como suplente');
+      else if (result.presencial) showToast('✅ Asistencia confirmada');
+      else showToast(askedAsSub ? '✅ Se liberó una plaza: te uniste a la mesa' : '✅ Te uniste a la mesa');
     });
 
     // Devuelve una promesa con { error } si algo impide unirse, o
     // { presencial } cuando Firebase confirma que se guardó.
-    function addPlayerToTable(tableId, nick, arrival) {
+    function addPlayerToTable(tableId, nick, arrival, asSub = false) {
       const tableRef = db.ref(`vtes_records/${tableId}`);
 
       return tableRef.get().then(snapshot => {
         if (!snapshot.exists()) return { error: 'Esta mesa ya no existe.' };
         const table = snapshot.val();
         const players = table.players || [];
+        const subs = table.modality === 'presencial' ? [] : (table.substitutes || []);
 
         const existingNicks = players.map(p => normalizePlayer(p).nick.toLowerCase());
         if (existingNicks.includes(nick.toLowerCase())) {
           return { error: `"${nick}" ya está registrado en esta mesa. Usa otro nick.` };
         }
-        if (table.modality !== 'presencial' && players.length >= 5) {
-          return { error: 'La mesa ya está llena (máximo 5 jugadores).' };
+        if (subs.some(s => s.toLowerCase() === nick.toLowerCase())) {
+          return { error: `"${nick}" ya está apuntado como suplente. Usa otro nick.` };
+        }
+        if (table.modality !== 'presencial' && players.length >= MAX_PLAYERS) {
+          if (!asSub) return { error: 'La mesa se acaba de llenar. Cierra esta ventana y apúntate como suplente.' };
+          if (subs.length >= SUBS_MAX) return { error: `Ya hay ${SUBS_MAX} suplentes. Puedes abrir otra mesa a la misma hora.` };
+          // Suplente: solo se agrega a la lista; no cuenta en estadísticas hasta que entre a la mesa
+          localStorage.setItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`, nick);
+          saveNick(nick);
+          return tableRef.child('substitutes').set(subs.concat(nick))
+            .then(() => ({ substitute: true }))
+            .catch(() => {
+              localStorage.removeItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`);
+              return { error: 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.' };
+            });
         }
 
         const newEntry = table.modality === 'presencial'
@@ -1979,16 +2009,103 @@
         }
         if (!authorized) return;
 
-        const players = (table.players || []).filter(p => normalizePlayer(p).nick.toLowerCase() !== playerToRemove.toLowerCase());
+        const before = table.players || [];
+        const players = before.filter(p => normalizePlayer(p).nick.toLowerCase() !== playerToRemove.toLowerCase());
 
         // La mesa/evento ya NO se borra automáticamente al quedar en 0
         // asistentes: solo se cierra por acción explícita del creador/PIN
         // (deleteEntry) o por la barredora al vencer su ventana de tiempo.
-        tableRef.update({ players: players }).then(() => {
+        const updates = {};
+
+        // Mesa virtual con suplentes: el primero entra en la plaza que se libera
+        // y ahí empieza a contar en estadísticas como un jugador más.
+        const subs = table.modality === 'presencial' ? [] : (table.substitutes || []);
+        let promoted = null;
+        if (players.length < before.length && players.length < MAX_PLAYERS && subs.length > 0) {
+          promoted = subs[0];
+          players.push(promoted);
+          updates[`vtes_records/${tableId}/substitutes`] = subs.length > 1 ? subs.slice(1) : null;
+          updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
+          const logKey = addTableLogBase(updates, tableId, table);
+          updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(promoted)}`] = promoted;
+          if (players.length >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
+        }
+        updates[`vtes_records/${tableId}/players`] = players;
+
+        db.ref().update(updates).then(() => {
           localStorage.removeItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
-          showToast(isSelf ? `✅ Saliste ${fromPlace}` : `✅ Se removió a "${playerToRemove}"`);
+          if (promoted) offerSubstituteNotice(tableId, table, playerToRemove, promoted, isSelf);
+          else showToast(isSelf ? `✅ Saliste ${fromPlace}` : `✅ Se removió a "${playerToRemove}"`);
         }).catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
       });
+    }
+
+    // Tras subir a un suplente: ofrece avisar en WhatsApp con el mensaje ya escrito
+    async function offerSubstituteNotice(tableId, table, leftNick, promoted, isSelf) {
+      const ok = await uiDialog({
+        title: isSelf ? '🚪 Saliste de la mesa' : `✅ Se removió a "${leftNick}"`,
+        message: `${promoted} (primer suplente) ocupa ${isSelf ? 'tu' : 'su'} plaza. ¿Quieres avisar en el grupo?`,
+        confirmLabel: '📲 Avisar en WhatsApp',
+        cancelLabel: 'Ahora no'
+      });
+      if (!ok) return;
+      const who = isSelf ? 'Me bajo' : `*${leftNick}* se baja`;
+      const msg = `🚪 ${who} de la mesa *${table.name}*. Entra *${promoted}* como suplente. 🩸\n\n👉 ${getTableUrl(tableId)}`;
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // Dejar de ser suplente (uno mismo) o quitar a un suplente (creador / PIN)
+    function leaveSubstitute(tableId, nick) {
+      const tableRef = db.ref(`vtes_records/${tableId}`);
+      tableRef.get().then(async snapshot => {
+        if (!snapshot.exists()) return showToast('❌ Esta mesa ya no existe.', 'error');
+        const table = snapshot.val();
+        const isSelf = isMyNick(tableId, nick);
+        const authorized = isSelf
+          ? !!(await uiDialog({ title: '🚪 Salir de suplentes', message: `¿Quieres dejar de ser suplente en "${table.name}"${nick ? ` (como ${nick})` : ''}?`, confirmLabel: 'Salir', danger: true }))
+          : await authorizeTableAction(tableId, table, {
+              actionText: `quitar a "${nick}" de los suplentes`,
+              confirmTitle: '❌ Quitar suplente',
+              confirmMessage: `Como creador de la mesa, ¿quieres quitar a "${nick}" de los suplentes?`,
+              confirmLabel: 'Quitar',
+              danger: true
+            });
+        if (!authorized) return;
+        const subs = (table.substitutes || []).filter(s => s.toLowerCase() !== nick.toLowerCase());
+        tableRef.child('substitutes').set(subs.length ? subs : null).then(() => {
+          localStorage.removeItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`);
+          showToast(isSelf ? '✅ Ya no eres suplente' : `✅ Se quitó a "${nick}" de los suplentes`);
+        }).catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
+      });
+    }
+
+    // "Abrir otra mesa a esta hora": formulario con hora, plataforma y formato
+    // de la mesa llena. Discord y contraseña los pone el nuevo organizador.
+    function nextTableName(name) {
+      const m = (name || '').match(/^(.*) \(Mesa (\d+)\)$/);
+      return (m ? `${m[1]} (Mesa ${Number(m[2]) + 1})` : `${name} (Mesa 2)`).slice(0, 190);
+    }
+
+    function openSimilarTable(tableId) {
+      const t = currentGlobalData.find(item => item.id === tableId);
+      if (!t) return showToast('❌ Esta mesa ya no existe.', 'error');
+      setTableModality('virtual');
+      openCreateForm();
+      document.getElementById('tableName').value = nextTableName(t.name);
+      const start = new Date(t.utcTime);
+      pickerCustomTable.setDate(start);
+      nightUiKey.create = null;
+      updateNightUI('create', { preselect: start.getHours() < NIGHT_END_HOUR ? 'prev' : null });
+      const platformSelect = document.getElementById('tablePlatform');
+      if (t.platform && [...platformSelect.options].some(o => o.value === t.platform)) platformSelect.value = t.platform;
+      if (t.format === 'standard' || t.format === 'v5') document.getElementById('tableFormat').value = t.format;
+      document.getElementById('tableDiscord').value = '';
+      document.getElementById('tableGamePassword').value = '';
+      document.getElementById('tableNotes').value = '';
+      const hint = document.getElementById('createCopyHint');
+      hint.textContent = `Copiamos hora, plataforma y formato de "${t.name}". Pon tu Discord y tu contraseña.`;
+      hint.classList.remove('hidden');
+      document.getElementById('createFormPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function togglePasswordView(elementId) {
@@ -2211,6 +2328,9 @@
         }
         // Nicks con los que ESTE navegador está inscrito en la mesa
         const myNicks = displayPlayers.filter(p => isMyNick(t.id, p.nick)).map(p => p.nick);
+        // Suplentes (solo mesas virtuales), en orden de llegada
+        const subs = isPresencial ? [] : (t.substitutes || []);
+        const mySubNicks = subs.filter(n => isMyNick(t.id, n));
 
         let statusBadge = isPresencial
           ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">👥 ${count} confirmado${count === 1 ? '' : 's'}</span>`
@@ -2273,6 +2393,45 @@
           `;
         }).join('');
 
+        const subsHtml = subs.length === 0 ? '' : `
+          <div class="space-y-2 bg-zinc-800/50 border border-dashed border-zinc-600 rounded-lg p-2.5">
+            <p class="text-xs font-semibold text-zinc-400">⏳ Suplentes (${subs.length}/${SUBS_MAX}) · entran en este orden si alguien sale:</p>
+            <ol class="space-y-1.5">
+              ${subs.map((n, i) => {
+                const mine = mySubNicks.includes(n);
+                return `
+                <li class="flex items-center justify-between gap-2 text-sm">
+                  <span class="flex items-center gap-2 min-w-0">
+                    <span class="w-5 h-5 shrink-0 rounded-full bg-zinc-800 border border-zinc-600 text-[11px] text-zinc-300 font-bold flex items-center justify-center">${i + 1}</span>
+                    <span class="${mine ? 'text-purple-100' : 'text-zinc-200'} truncate">${escapeHtml(n)}</span>${mine ? '<span class="text-purple-300 text-xs font-semibold shrink-0">· tú</span>' : ''}
+                  </span>
+                  ${mine ? '' : `<button onclick="leaveSubstitute('${id}', '${escapeJsAttr(n)}')" class="text-zinc-500 hover:text-red-400 font-bold text-xs px-1" title="Quitar suplente">×</button>`}
+                </li>`;
+              }).join('')}
+            </ol>
+          </div>
+        `;
+
+        const mainActionHtml = !isFull ? `
+                  <button onclick="joinTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
+                    ➕ ${isPresencial ? '¡Confirmar asistencia!' : '¡Unirme a esta Mesa!'}
+                  </button>
+                ` : subs.length < SUBS_MAX ? `
+                  <button onclick="joinTable('${id}', true)" class="w-full bg-zinc-800 hover:bg-amber-900/60 text-amber-300 hover:text-white border border-amber-700/60 font-bold py-1.5 rounded-lg text-xs transition duration-150">
+                    ⏳ Apuntarme como suplente
+                  </button>
+                ` : `
+                  <button onclick="openSimilarTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
+                    ➕ Abrir otra mesa a esta hora
+                  </button>
+                `;
+
+        const leaveSubButtons = mySubNicks.map(nick => `
+          <button onclick="leaveSubstitute('${id}', '${escapeJsAttr(nick)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
+            🚪 Salir de suplentes${mySubNicks.length > 1 ? ` (${escapeHtml(nick)})` : ''}
+          </button>
+        `).join('');
+
         const leaveButtons = myNicks.map(nick => `
           <button onclick="leaveTable('${id}', '${escapeJsAttr(nick)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
             🚪 Salir${myNicks.length > 1 ? ` (${escapeHtml(nick)})` : isPresencial ? ' del evento' : ' de la mesa'}
@@ -2319,15 +2478,11 @@
               </div>
             </div>
 
+            ${subsHtml}
+
             <div class="space-y-2 pt-1">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                ${!isFull ? `
-                  <button onclick="joinTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
-                    ➕ ${isPresencial ? '¡Confirmar asistencia!' : '¡Unirme a esta Mesa!'}
-                  </button>
-                ` : `
-                  <div class="text-center text-xs text-zinc-500 py-1.5 bg-zinc-800 rounded">Mesa llena</div>
-                `}
+                ${mainActionHtml}
                 <button onclick="shareTableInvitation('${id}')" class="w-full bg-green-700/30 hover:bg-green-600 text-green-300 hover:text-white border border-green-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1.5">
                   📲 Invitar por WhatsApp
                 </button>
@@ -2336,6 +2491,7 @@
                 <button onclick="shareTableLink('${id}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">🔗 Compartir</button>
                 <button onclick="openCalendarModal('${id}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">📅 Agregar a mi calendario</button>
                 ${leaveButtons}
+                ${leaveSubButtons}
               </div>
             </div>
 
