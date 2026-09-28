@@ -162,6 +162,16 @@
         </section>
       </div>
 
+      <!-- ¿SE USAN LOS SUPLENTES? -->
+      <section class="panel" aria-labelledby="hSubs">
+        <div>
+          <h2 id="hSubs">¿Se usan los suplentes?</h2>
+          <p class="sub">Mesas virtuales de las últimas 8 semanas. Se mide desde el 28 de septiembre de 2026.</p>
+        </div>
+        <div class="kpis" id="subsKpis"></div>
+        <p class="answer" id="ansSubs"></p>
+      </section>
+
       <!-- 5. ¿QUÉ FORMATO JUEGA LA COMUNIDAD? -->
       <section class="panel" aria-labelledby="hFmt">
         <div>
@@ -476,6 +486,8 @@
         ? `<b>${Math.round(sumF / sumT * 100)}%</b> de las mesas virtuales se llenaron (${sumF} de ${sumT}). Las otras <b>${sumT - sumF}</b> se quedaron con 3 o menos jugadores.`
         : 'Todavía no hay mesas virtuales terminadas en estas 8 semanas.';
 
+      renderSubs(records.filter(r => r.modality !== 'presencial' && weekIndex(r.start) >= 0));
+
       // 4. Jugadores distintos por mes (últimos 6 meses) y nuevos este mes
       const months = Array.from({ length: 6 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1));
       const monthKey = d => `${d.getFullYear()}-${d.getMonth()}`;
@@ -546,6 +558,21 @@
       { key: 'v5', label: 'V5', color: '--series-v5' },
       { key: 'none', label: 'Sin formato (mesas anteriores)', color: '--series-none' }
     ];
+
+    // Suplentes: cuántas mesas los tuvieron, cuántos se apuntaron y cuántos entraron a jugar
+    function renderSubs(virtualRecords) {
+      const withSubs = virtualRecords.filter(r => r.subs && Object.keys(r.subs).length);
+      const signed = withSubs.reduce((a, r) => a + Object.keys(r.subs).length, 0);
+      const promoted = virtualRecords.reduce((a, r) => a + Object.keys(r.promoted || {}).length, 0);
+      const full = virtualRecords.filter(r => r.filled).length;
+      document.getElementById('subsKpis').innerHTML = `
+        <div class="kpi"><span class="q">Mesas con suplentes</span><span class="v">${withSubs.length}</span><span class="d">de ${full} mesa${full === 1 ? '' : 's'} llena${full === 1 ? '' : 's'}</span></div>
+        <div class="kpi"><span class="q">Suplentes apuntados</span><span class="v">${signed}</span><span class="d">en total</span></div>
+        <div class="kpi"><span class="q">Entraron a jugar</span><span class="v">${promoted}</span><span class="d">${signed ? `${Math.round(promoted / signed * 100)}% de los suplentes` : '—'}</span></div>`;
+      document.getElementById('ansSubs').innerHTML = signed
+        ? `<b>${promoted}</b> de ${signed} suplente${signed === 1 ? '' : 's'} terminaron jugando: cubrieron una plaza que, sin ellos, se habría quedado vacía o desactualizada.`
+        : 'Todavía nadie se ha apuntado como suplente.';
+    }
 
     function renderFormats(virtualRecords, now, weekLabels, weekIndex) {
       const groups = FORMATS.map(f => ({ ...f, tables: 0, past: 0, filled: 0, players: new Set() }));

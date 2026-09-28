@@ -1353,10 +1353,15 @@
         if (table.modality !== 'presencial' && players.length >= MAX_PLAYERS) {
           if (!asSub) return { error: 'La mesa se acaba de llenar. Cierra esta ventana y apúntate como suplente.' };
           if (subs.length >= SUBS_MAX) return { error: `Ya hay ${SUBS_MAX} suplentes. Puedes abrir otra mesa a la misma hora.` };
-          // Suplente: solo se agrega a la lista; no cuenta en estadísticas hasta que entre a la mesa
+          // Suplente: se agrega a la lista. No cuenta como jugador hasta que entre
+          // a la mesa, pero queda anotado en la ficha (subs) para medir el uso.
           localStorage.setItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`, nick);
           saveNick(nick);
-          return tableRef.child('substitutes').set(subs.concat(nick))
+          const subUpdates = {};
+          subUpdates[`vtes_records/${tableId}/substitutes`] = subs.concat(nick);
+          const subLogKey = addTableLogBase(subUpdates, tableId, table);
+          subUpdates[`stats/tablesLog/${subLogKey}/subs/${tableLogNickKey(nick)}`] = nick;
+          return db.ref().update(subUpdates)
             .then(() => ({ substitute: true }))
             .catch(() => {
               localStorage.removeItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`);
@@ -2028,6 +2033,7 @@
           updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
           const logKey = addTableLogBase(updates, tableId, table);
           updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(promoted)}`] = promoted;
+          updates[`stats/tablesLog/${logKey}/promoted/${tableLogNickKey(promoted)}`] = promoted;
           if (players.length >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
         }
         updates[`vtes_records/${tableId}/players`] = players;
