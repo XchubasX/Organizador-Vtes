@@ -1317,6 +1317,8 @@
       updates[`${base}/modality`] = isPresencial ? 'presencial' : 'virtual';
       updates[`${base}/startAt`] = t.utcTime;
       updates[`${base}/originTz`] = t.originTz || '';
+      // Cuenta del organizador (desde el 29 sep 2026, para contar personas que organizan)
+      if (t.ownerUid) updates[`${base}/owner`] = t.ownerUid;
       if (isPresencial) {
         updates[`${base}/city`] = t.city || '';
         updates[`${base}/country`] = t.country || '';
@@ -1366,6 +1368,13 @@
 
     function weekdayInZone(utcISO, tz) {
       return new Date(utcISO).toLocaleDateString('es-ES', { weekday: 'long', timeZone: tz || undefined });
+    }
+
+    // Cuenta de un jugador para la ficha de estadísticas: solo si se anotó con
+    // su propia cuenta (llave = uid). Los que anota el organizador llevan la
+    // cuenta del organizador y se cuentan solo por nick, para no inflarlo.
+    function entryUidForStats(entry) {
+      return entry && !entry.legacy && entry.uid && entry.key === entry.uid ? entry.uid : null;
     }
 
     // Llave del nick en la ficha: sin distinguir mayúsculas ("Ana" = "ana")
@@ -1449,6 +1458,8 @@
           updates[`stats/tablesLog/${oldKey}`] = null;
           getRoster(editedTable).players.forEach(pl => {
             if (pl.nick) updates[`stats/tablesLog/${newKey}/players/${tableLogNickKey(pl.nick)}`] = pl.nick;
+            const u = entryUidForStats(pl);
+            if (u) updates[`stats/tablesLog/${newKey}/uids/${u}`] = true;
           });
         }
       }
@@ -1602,9 +1613,11 @@
           updates[`stats/presencialEventsLog/${tableId}/city`] = table.city || 'Desconocido';
           updates[`stats/presencialEventsLog/${tableId}/country`] = table.country || '';
           updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(nick)}`] = nick;
+          if (key === uid) updates[`stats/tablesLog/${logKey}/uids/${uid}`] = true;
         } else {
           updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
           updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(nick)}`] = nick;
+          if (key === uid) updates[`stats/tablesLog/${logKey}/uids/${uid}`] = true;
           if (entries.length + 1 >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
         }
 
@@ -2103,6 +2116,7 @@
       const newLogKey = addTableLogBase(updates, newId, recordData);
       updates[`stats/tablesLog/${newLogKey}/createdAt`] = firebase.database.ServerValue.TIMESTAMP;
       updates[`stats/tablesLog/${newLogKey}/players/${tableLogNickKey(creator)}`] = creator;
+      updates[`stats/tablesLog/${newLogKey}/uids/${uid}`] = true;
 
       saveNick(creator);
 
@@ -2255,6 +2269,8 @@
           const logKey = addTableLogBase(updates, tableId, table);
           updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(promoted.nick)}`] = promoted.nick;
           updates[`stats/tablesLog/${logKey}/promoted/${tableLogNickKey(promoted.nick)}`] = promoted.nick;
+          const promotedUid = entryUidForStats(promoted);
+          if (promotedUid) updates[`stats/tablesLog/${logKey}/uids/${promotedUid}`] = true;
           if (before.length >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
         }
 

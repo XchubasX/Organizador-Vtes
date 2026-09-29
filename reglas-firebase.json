@@ -108,6 +108,8 @@
           "format": { ".validate": "newData.isString() && (newData.val() == 'standard' || newData.val() == 'v5')" },
           "subs": { "$nickKey": { ".validate": "newData.isString() && newData.val().length < 100" } },
           "promoted": { "$nickKey": { ".validate": "newData.isString() && newData.val().length < 100" } },
+          "owner": { ".validate": "newData.isString() && newData.val().length < 128" },
+          "uids": { "$uid": { ".validate": "newData.val() == true" } },
           "$other": { ".validate": false }
         }
       }

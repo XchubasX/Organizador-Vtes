@@ -155,12 +155,35 @@
         <section class="panel" aria-labelledby="h4">
           <div>
             <h2 id="h4">¿Cuántos jugadores distintos hay?</h2>
-            <p class="sub">Nicks diferentes que se unieron a alguna mesa o evento, por mes.</p>
+            <p class="sub">Nicks diferentes que se unieron a alguna mesa o evento, por mes. Es el conteo anterior a las cuentas: una persona con dos nicks cuenta doble. Para contar personas, ver "¿Cuántas personas juegan y regresan?".</p>
           </div>
           <div id="chartPlayers"></div>
           <p class="answer" id="ansPlayers"></p>
         </section>
       </div>
+
+      <!-- PERSONAS (POR CUENTA) -->
+      <section class="panel" aria-labelledby="hPeople">
+        <div>
+          <h2 id="hPeople">¿Cuántas personas juegan y regresan?</h2>
+          <p class="sub">Contadas por cuenta de Google, no por nick: una persona cuenta una vez aunque use nicks distintos. Se registran desde el 29 de septiembre de 2026. Las personas que el organizador anota por su cuenta no tienen cuenta propia y no entran aquí.</p>
+        </div>
+        <div class="kpis" id="peopleKpis"></div>
+        <div class="grid2">
+          <div style="display:grid;gap:8px;min-width:0">
+            <h3 style="font-size:14.5px;font-weight:700">Personas por mes</h3>
+            <p class="sub">Personas distintas que jugaron o asistieron a algo cada mes.</p>
+            <div id="chartPeople"></div>
+          </div>
+          <div style="display:grid;gap:8px;min-width:0">
+            <h3 style="font-size:14.5px;font-weight:700">¿Regresan?</h3>
+            <p class="sub">De las personas que jugaron un mes, cuántas volvieron a jugar el mes siguiente.</p>
+            <div id="chartReturn"></div>
+          </div>
+        </div>
+        <p class="answer" id="ansPeople"></p>
+        <p class="answer" id="ansOrganizers"></p>
+      </section>
 
       <!-- ¿SE USAN LOS SUPLENTES? -->
       <section class="panel" aria-labelledby="hSubs">
@@ -531,6 +554,7 @@
         : 'Todavía no hay mesas virtuales terminadas en estas 8 semanas.';
 
       renderSubs(records.filter(r => r.modality !== 'presencial' && weekIndex(r.start) >= 0));
+      renderPeople(records, now);
 
       // 4. Jugadores distintos por mes (últimos 6 meses) y nuevos este mes
       const months = Array.from({ length: 6 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1));
@@ -602,6 +626,110 @@
       { key: 'v5', label: 'V5', color: '--series-v5' },
       { key: 'none', label: 'Sin formato (mesas anteriores)', color: '--series-none' }
     ];
+
+    // ---------------------------------------------------------------------
+    // PERSONAS POR CUENTA (desde el 29 sep 2026)
+    // Cada ficha guarda uids/{uid} (quien jugó o asistió con su propia cuenta)
+    // y owner (cuenta de quien organizó). Todo se calcula por mes calendario,
+    // últimos 6 meses. El primer mes con datos no tiene "nuevas" ni
+    // "regresaron" (no hay contra qué comparar).
+    // ---------------------------------------------------------------------
+    function renderPeople(records, now) {
+      const months = Array.from({ length: 6 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1));
+      const monthKey = d => `${d.getFullYear()}-${d.getMonth()}`;
+      const monthName = d => d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const monthLabels = months.map(m => m.toLocaleDateString('es-ES', { month: 'short' }).replace('.', ''));
+      const withUids = records.filter(r => r.uids && Object.keys(r.uids).length);
+      const kpisEl = document.getElementById('peopleKpis');
+
+      if (withUids.length === 0) {
+        kpisEl.innerHTML = '';
+        document.getElementById('chartPeople').innerHTML = '<p class="empty">Todavía no hay mesas registradas con cuentas.</p>';
+        document.getElementById('chartReturn').innerHTML = '<p class="empty">Hacen falta al menos dos meses con datos.</p>';
+        document.getElementById('ansPeople').innerHTML = 'Las cuentas se empezaron a registrar el 29 de septiembre de 2026. Las cifras de personas aparecen en cuanto alguien cree o se una a una mesa; <b>"¿Regresan?" necesita al menos dos meses</b>, y dirá algo confiable en unos 3 meses.';
+        document.getElementById('ansOrganizers').innerHTML = '';
+        return;
+      }
+
+      // Primer mes con datos de cuentas
+      const dataStart = withUids.reduce((a, r) => (r.start < a ? r.start : a), withUids[0].start);
+      const startMonth = new Date(dataStart.getFullYear(), dataStart.getMonth(), 1);
+      const hasData = m => m.getTime() >= startMonth.getTime();
+
+      const sets = months.map(() => new Set());
+      const firstSeen = {};
+      withUids.forEach(r => {
+        const i = months.findIndex(m => monthKey(m) === monthKey(r.start));
+        Object.keys(r.uids).forEach(u => {
+          if (i >= 0) sets[i].add(u);
+          if (!firstSeen[u] || r.start < firstSeen[u]) firstSeen[u] = r.start;
+        });
+      });
+      const counts = sets.map((st, i) => (hasData(months[i]) ? st.size : null));
+      const isFirstMonth = i => monthKey(months[i]) === monthKey(startMonth);
+      const newCounts = months.map((m, i) => (!hasData(m) || isFirstMonth(i) ? null
+        : Object.values(firstSeen).filter(d => monthKey(d) === monthKey(m)).length));
+      // Regresaron: de las personas del mes anterior, % que jugaron este mes
+      const back = months.map((m, i) => {
+        if (i === 0 || !hasData(months[i - 1]) || !sets[i - 1].size) return null;
+        let n = 0; sets[i - 1].forEach(u => { if (sets[i].has(u)) n++; });
+        return { n, of: sets[i - 1].size, pct: Math.round(n / sets[i - 1].size * 100) };
+      });
+
+      barChart({
+        el: document.getElementById('chartPeople'), labels: monthLabels, W: 320, H: 190,
+        series: [{ values: counts, color: '--seq-4' }],
+        tipFor: i => counts[i] == null ? `${monthName(months[i])}: sin datos de cuentas`
+          : `${monthName(months[i])}: ${counts[i]} persona${counts[i] === 1 ? '' : 's'}${newCounts[i] != null ? ` (${newCounts[i]} nueva${newCounts[i] === 1 ? '' : 's'})` : ''}`,
+        aria: `Personas distintas por mes. Este mes: ${counts[5] ?? 0}.`
+      });
+      const backPct = back.map(b => (b ? b.pct : null));
+      if (backPct.every(v => v == null)) {
+        document.getElementById('chartReturn').innerHTML = '<p class="empty">Hacen falta al menos dos meses con datos.</p>';
+      } else {
+        barChart({
+          el: document.getElementById('chartReturn'), labels: monthLabels, W: 320, H: 190, pct: true,
+          series: [{ values: backPct, color: '--seq-3' }],
+          tipFor: i => back[i] ? `${monthName(months[i])}: volvieron ${back[i].n} de las ${back[i].of} personas de ${months[i - 1].toLocaleDateString('es-ES', { month: 'long' })} (${back[i].pct}%)` : `${monthName(months[i])}: sin mes anterior para comparar`,
+          aria: 'Porcentaje de personas que volvieron a jugar el mes siguiente'
+        });
+      }
+
+      // Organizadores (últimos 3 meses, por cuenta)
+      const orgCut = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+      const byOwner = {};
+      records.filter(r => r.owner && r.start >= orgCut).forEach(r => { byOwner[r.owner] = (byOwner[r.owner] || 0) + 1; });
+      const ownerCounts = Object.values(byOwner).sort((a, b) => b - a);
+      const orgTables = ownerCounts.reduce((a, b) => a + b, 0);
+      const top3 = ownerCounts.slice(0, 3).reduce((a, b) => a + b, 0);
+      const top3Pct = orgTables ? Math.round(top3 / orgTables * 100) : 0;
+
+      const cNow = counts[5] ?? 0, cPrev = counts[4];
+      const pDiff = cPrev == null ? null : cNow - cPrev;
+      const bNow = back[5];
+      kpisEl.innerHTML = `
+        <div class="kpi"><span class="q">Personas este mes</span><span class="v">${cNow}</span><span class="d">${pDiff == null ? 'primer mes con datos' : pDiff === 0 ? 'igual que el mes pasado' : `<span class="${pDiff > 0 ? 'up' : 'down'}">${pDiff > 0 ? '▲' : '▼'} ${Math.abs(pDiff)}</span> vs. mes pasado`}</span></div>
+        <div class="kpi"><span class="q">Personas nuevas este mes</span><span class="v">${newCounts[5] ?? '—'}</span><span class="d">${newCounts[5] == null ? 'el primer mes todas son nuevas' : 'jugaron por primera vez'}</span></div>
+        <div class="kpi"><span class="q">Regresaron este mes</span><span class="v">${bNow ? bNow.pct + '%' : '—'}</span><span class="d">${bNow ? `${bNow.n} de las ${bNow.of} del mes pasado` : 'hace falta el mes anterior'}</span></div>
+        <div class="kpi"><span class="q">Personas que organizan</span><span class="v">${ownerCounts.length}</span><span class="d">${orgTables ? `crearon ${orgTables} mesa${orgTables === 1 ? '' : 's'} en 3 meses` : 'sin mesas con organizador aún'}</span></div>`;
+
+      const monthsWithData = months.filter(hasData).length;
+      let ans = `<b>${cNow}</b> persona${cNow === 1 ? '' : 's'} distinta${cNow === 1 ? '' : 's'} jugaron este mes`;
+      if (pDiff != null) ans += ` (contra ${cPrev} el mes pasado)`;
+      ans += '.';
+      if (bNow) ans += ` De las ${bNow.of} del mes pasado, <b>${bNow.n}</b> ${bNow.n === 1 ? 'volvió' : 'volvieron'} (${bNow.pct}%).`;
+      if (monthsWithData < 3) ans += ' <b>Con menos de 3 meses de datos, estas cifras todavía cambian mucho.</b>';
+      document.getElementById('ansPeople').innerHTML = ans;
+
+      let ansO = '';
+      if (ownerCounts.length) {
+        ansO = `<b>${ownerCounts.length}</b> persona${ownerCounts.length === 1 ? '' : 's'} organizaron mesas o eventos en los últimos 3 meses.`;
+        if (ownerCounts.length > 3) ansO += ` Las 3 más activas crearon el <b>${top3Pct}%</b> (${top3} de ${orgTables}).`;
+        if (ownerCounts.length <= 3 && orgTables >= 5) ansO += ' La organización depende de muy pocas personas: si alguna deja de organizar, se nota.';
+        else if (ownerCounts.length > 3 && top3Pct >= 70) ansO += ' La organización está concentrada en pocas personas.';
+      }
+      document.getElementById('ansOrganizers').innerHTML = ansO;
+    }
 
     // Suplentes: cuántas mesas los tuvieron, cuántos se apuntaron y cuántos entraron a jugar
     function renderSubs(virtualRecords) {
