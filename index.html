@@ -346,7 +346,7 @@
         <div id="createCopyHint" class="hidden col-span-full bg-amber-950/40 border border-amber-700/50 text-amber-200 text-xs rounded-lg px-3 py-2"></div>
         <div>
           <label id="tableNameLabel" class="block text-xs font-semibold text-zinc-400 mb-1">Nombre de Mesa</label>
-          <input type="text" id="tableName" required placeholder="ej. Liga Casual" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
+          <input type="text" id="tableName" required maxlength="60" placeholder="ej. Liga Casual" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
         </div>
         <div>
           <label class="block text-xs font-semibold text-zinc-400 mb-1">Fecha y Hora</label>
@@ -1309,6 +1309,17 @@
       return t.recurrence === 'weekly' ? `${tableId}_${localYMD(t.utcTime, t.originTz)}` : tableId;
     }
 
+    // Guarda primero la mesa y después, por separado, las estadísticas.
+    // Así, si las reglas rechazan algo de las estadísticas (por ejemplo, en
+    // una ficha antigua), crear, unirse, salir o editar sigue funcionando.
+    function updateWithStats(updates) {
+      const main = {}, stats = {};
+      Object.entries(updates).forEach(([k, v]) => { (k.startsWith('stats/') ? stats : main)[k] = v; });
+      return db.ref().update(main).then(() => {
+        if (Object.keys(stats).length) db.ref().update(stats).catch(e => console.warn('Estadísticas no guardadas:', e && e.message));
+      });
+    }
+
     // Escribe los datos base de la ficha y devuelve su llave
     function addTableLogBase(updates, tableId, t) {
       const key = tableLogKey(tableId, t);
@@ -1463,7 +1474,7 @@
           });
         }
       }
-      db.ref().update(updates)
+      updateWithStats(updates)
         .then(() => showToast('✅ Horario actualizado'))
         .catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
       closeEditScheduleModal();
@@ -1623,7 +1634,7 @@
 
         if (key === uid) saveNick(nick);
 
-        return db.ref().update(updates)
+        return updateWithStats(updates)
           .then(() => (isSub ? { substitute: true } : { presencial: isPresencial }))
           .catch(() => ({ error: 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.' }));
       }).catch(() => ({ error: 'No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.' }));
@@ -2123,7 +2134,7 @@
       const submitBtn = document.getElementById('createTableBtn');
       submitBtn.disabled = true;
 
-      db.ref().update(updates).then(() => {
+      updateWithStats(updates).then(() => {
         // Limpia el formulario pero SE QUEDA en la misma pestaña (Virtual o
         // Presencial) donde se creó, para que la mesa nueva se vea en la lista.
         document.getElementById('customTableForm').reset();
@@ -2274,7 +2285,7 @@
           if (before.length >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
         }
 
-        db.ref().update(updates).then(() => {
+        updateWithStats(updates).then(() => {
           if (promoted) offerSubstituteNotice(tableId, table, entry.nick, promoted.nick, isSelf);
           else if (wasSub) showToast(isSelf ? '✅ Ya no eres suplente' : `✅ Se quitó a "${entry.nick}" de los suplentes`);
           else showToast(isSelf ? `✅ Saliste ${fromPlace}` : `✅ Se removió a "${entry.nick}"`);
@@ -2328,7 +2339,7 @@
     // de la mesa llena. Discord y contraseña los pone el nuevo organizador.
     function nextTableName(name) {
       const m = (name || '').match(/^(.*) \(Mesa (\d+)\)$/);
-      return (m ? `${m[1]} (Mesa ${Number(m[2]) + 1})` : `${name} (Mesa 2)`).slice(0, 190);
+      return (m ? `${m[1]} (Mesa ${Number(m[2]) + 1})` : `${name} (Mesa 2)`).slice(0, 60);
     }
 
     async function openSimilarTable(tableId) {
