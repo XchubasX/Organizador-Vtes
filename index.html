@@ -46,7 +46,7 @@
 
 <!-- SELLO DARK PACK FLOTANTE (Esquina Inferior Izquierda) -->
   <!-- BOTÓN FLOTANTE: REPORTAR BUG / SUGERENCIA -->
-  <button type="button" onclick="openFeedbackModal()" title="Reportar un bug o sugerencia" class="fixed bottom-4 right-4 z-40 bg-wine-600 hover:bg-wine-500 text-white rounded-full w-12 h-12 shadow-lg shadow-wine-900/40 flex items-center justify-center text-xl transition transform hover:scale-105">
+  <button type="button" onclick="openFeedbackModal()" title="Reportar un bug o sugerencia" aria-label="Reportar un bug o sugerencia" class="fixed bottom-4 right-4 z-40 bg-wine-600 hover:bg-wine-500 text-white rounded-full w-12 h-12 shadow-lg shadow-wine-900/40 flex items-center justify-center text-xl transition transform hover:scale-105">
     💬
   </button>
 
@@ -315,10 +315,10 @@
       <!-- PESTAÑAS VIRTUAL / PRESENCIAL (controlan la lista y el formulario, con contador) -->
       <div class="flex gap-2 bg-zinc-800 p-1.5 rounded-xl border border-zinc-700">
         <button type="button" id="modeVirtualBtn" onclick="setTableModality('virtual')" class="flex-1 bg-wine-600 text-white font-bold py-2.5 px-3 rounded-lg text-sm transition flex items-center justify-center gap-2">
-          💻 Virtual <span id="countVirtual" class="font-mono text-[11px] bg-black/30 px-2 py-0.5 rounded-full">0</span>
+          💻 Virtual <span id="countVirtual" class="font-mono text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
         </button>
         <button type="button" id="modePresencialBtn" onclick="setTableModality('presencial')" class="flex-1 bg-zinc-800 text-zinc-400 font-bold py-2.5 px-3 rounded-lg text-sm transition flex items-center justify-center gap-2">
-          📍 Presencial <span id="countPresencial" class="font-mono text-[11px] bg-black/30 px-2 py-0.5 rounded-full">0</span>
+          📍 Presencial <span id="countPresencial" class="font-mono text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
         </button>
       </div>
 
@@ -423,7 +423,7 @@
           <div>
             <label class="block text-xs font-semibold text-emerald-400 mb-1">Link de Google Maps (opcional)</label>
             <input type="text" id="tableMapsLink" inputmode="url" autocomplete="off" placeholder="https://maps.app.goo.gl/..." class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-sm focus:outline-none focus:border-emerald-400">
-            <p id="tableMapsLinkError" class="text-[11px] text-red-400 mt-1 hidden">Pega un link que empiece con https:// (por ejemplo, de Google Maps).</p>
+            <p id="tableMapsLinkError" class="text-xs text-red-400 mt-1 hidden">Pega un link que empiece con https:// (por ejemplo, de Google Maps).</p>
           </div>
           <div class="flex items-end">
             <label for="tableRecurring" class="flex items-center gap-2 text-sm text-emerald-200 cursor-pointer py-1.5">
@@ -448,27 +448,27 @@
 
       <div id="presencialFiltersBar" style="display: none;" class="flex flex-wrap items-end gap-3 bg-zinc-900/60 border border-emerald-700/30 rounded-lg p-3">
         <div class="flex-1 min-w-[140px]">
-          <label class="block text-[11px] font-semibold text-emerald-400 mb-1">País</label>
+          <label class="block text-xs font-semibold text-emerald-400 mb-1">País</label>
           <select id="filterCountry" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
             <option value="">Todos</option>
           </select>
         </div>
         <div class="flex-1 min-w-[140px]">
-          <label class="block text-[11px] font-semibold text-emerald-400 mb-1">Ciudad</label>
+          <label class="block text-xs font-semibold text-emerald-400 mb-1">Ciudad</label>
           <select id="filterCity" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs focus:outline-none focus:border-emerald-400">
             <option value="">Todas</option>
           </select>
         </div>
         <div class="flex-1 min-w-[140px]">
-          <label class="block text-[11px] font-semibold text-emerald-400 mb-1">Fecha</label>
+          <label class="block text-xs font-semibold text-emerald-400 mb-1">Fecha</label>
           <input type="text" id="filterDate" placeholder="Cualquier fecha" class="w-full bg-zinc-800 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-emerald-200 text-xs cursor-pointer focus:outline-none focus:border-emerald-400">
         </div>
-        <button type="button" id="clearFiltersBtn" onclick="clearPresencialFilters()" class="text-[11px] text-zinc-400 hover:text-red-400 underline bg-transparent border-0 cursor-pointer px-1 py-2">
+        <button type="button" id="clearFiltersBtn" onclick="clearPresencialFilters()" class="text-xs text-zinc-400 hover:text-red-400 underline bg-transparent border-0 cursor-pointer px-1 py-2">
           Limpiar filtros
         </button>
       </div>
 
-      <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"></div>
+      <div id="customTablesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2" aria-live="polite"><p class="col-span-2 text-center text-zinc-400 py-4">Cargando mesas…</p></div>
     </section>
 
   </div>
@@ -504,6 +504,7 @@
 
     const db = firebase.database();
     const recordsRef = db.ref('vtes_records');
+    let dataLoaded = false; // se vuelve true cuando llegan las mesas de Firebase
 
     let currentGlobalData = [];
 
@@ -566,7 +567,7 @@
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
             Entrar con Google
           </button>
-          <p class="text-[11px] text-zinc-500 mt-1">Ver es libre · para crear o unirte necesitas entrar</p>`;
+          <p class="text-xs text-zinc-500 mt-1">Ver es libre · para crear o unirte necesitas entrar</p>`;
         return;
       }
       const name = currentUser.displayName ? escapeHtml(currentUser.displayName) : 'tu cuenta de Google';
@@ -1228,12 +1229,12 @@
     function nightBadgeHtml(t) {
       const tz = t.modality === 'presencial' ? t.originTz : undefined;
       const night = nightOfName(t.utcTime, tz);
-      return night ? `<span class="bg-indigo-950 text-indigo-200 border border-indigo-600/70 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">🌙 noche del ${escapeHtml(night)}</span>` : '';
+      return night ? `<span class="bg-indigo-950 text-indigo-200 border border-indigo-600/70 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">🌙 noche del ${escapeHtml(night)}</span>` : '';
     }
 
     function relativeBadgeHtml(utcISO) {
       const r = relativeTimeLabel(utcISO);
-      return `<span class="rel-time ${r.soon ? 'bg-amber-950 text-amber-300 border-amber-700/70' : 'bg-zinc-800 text-zinc-300 border-zinc-600'} border text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap" data-time="${escapeHtml(utcISO)}">${r.text}</span>`;
+      return `<span class="rel-time ${r.soon ? 'bg-amber-950 text-amber-300 border-amber-700/70' : 'bg-zinc-800 text-zinc-300 border-zinc-600'} border text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap" data-time="${escapeHtml(utcISO)}">${r.text}</span>`;
     }
 
     setInterval(() => {
@@ -1989,12 +1990,25 @@
       setTableModality('presencial');
     })();
 
+    // Aviso de "cargando" y de error de conexión (antes la lista se veía vacía)
+    function showLoadProblem() {
+      if (dataLoaded) return;
+      document.getElementById('customTablesContainer').innerHTML = `<div class="col-span-2 text-center py-6 space-y-2 bg-zinc-900 border border-red-800/60 rounded-xl"><p class="text-red-300 font-semibold">No se pudo conectar.</p><p class="text-zinc-400 text-sm">Revisa tu internet y vuelve a cargar la página.</p><button type="button" onclick="location.reload()" class="mt-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 font-semibold py-1.5 px-4 rounded-lg text-sm transition">Volver a cargar</button></div>`;
+    }
+    const loadTimeout = setTimeout(showLoadProblem, 12000);
+
     recordsRef.on('value', (snapshot) => {
+      dataLoaded = true;
+      clearTimeout(loadTimeout);
       const dataObj = snapshot.val() || {};
       const rawData = Object.keys(dataObj).map(key => ({ id: key, ...dataObj[key] }));
       currentGlobalData = sweepExpiredTables(rawData);
       renderAll(currentGlobalData);
       openTableFromHash(); // si se llegó con un enlace directo a una mesa
+    }, (err) => {
+      console.warn('No se pudieron leer las mesas:', err && err.message);
+      clearTimeout(loadTimeout);
+      showLoadProblem();
     });
 
     // Si se pega otro enlace de mesa con la página ya abierta
@@ -2434,8 +2448,8 @@
     function getPlatformBadge(platform) {
       const isLackey = (platform || '').toLowerCase().includes('lackey');
       return isLackey
-        ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">LackeyCCG</span>`
-        : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">Succubus Club</span>`;
+        ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-xs px-2 py-0.5 rounded font-semibold">LackeyCCG</span>`
+        : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-xs px-2 py-0.5 rounded font-semibold">Succubus Club</span>`;
     }
 
     // Formato de mesa virtual: Standard (Legacy) o V5
@@ -2445,12 +2459,12 @@
     function getFormatBadge(format) {
       if (!format) return ''; // mesas creadas antes de que existiera el campo
       return format === 'v5'
-        ? `<span class="bg-orange-950 text-orange-300 border border-orange-600/70 text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">V5</span>`
-        : `<span class="bg-zinc-800 text-zinc-300 border border-zinc-600 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">Standard (Legacy)</span>`;
+        ? `<span class="bg-orange-950 text-orange-300 border border-orange-600/70 text-xs px-2 py-0.5 rounded font-bold whitespace-nowrap">V5</span>`
+        : `<span class="bg-zinc-800 text-zinc-300 border border-zinc-600 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">Standard (Legacy)</span>`;
     }
 
     function getLocationBadge() {
-      return `<span class="bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] px-2 py-0.5 rounded font-semibold">📍 Presencial</span>`;
+      return `<span class="bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-xs px-2 py-0.5 rounded font-semibold">📍 Presencial</span>`;
     }
 
     function matchesPresencialFilters(t) {
@@ -2548,8 +2562,12 @@
     }
 
     function renderCustomTables(tables, container) {
+      if (!dataLoaded) {
+        container.innerHTML = '<p class="col-span-2 text-center text-zinc-400 py-4">Cargando mesas…</p>';
+        return;
+      }
       if (tables.length === 0) {
-        container.innerHTML = `<p class="col-span-2 text-center text-zinc-500 py-4">${currentTableModalityFilter === 'presencial' ? 'No hay eventos presenciales creados. ¡Crea uno!' : 'No hay mesas abiertas creadas. ¡Abre una!'}</p>`;
+        container.innerHTML = `<p class="col-span-2 text-center text-zinc-400 py-4">${currentTableModalityFilter === 'presencial' ? 'No hay eventos presenciales creados. ¡Crea uno!' : 'No hay mesas abiertas creadas. ¡Abre una!'}</p>`;
         return;
       }
 
@@ -2590,13 +2608,13 @@
         const mySubs = subs.filter(isMine);
         // Botoncito de vetar (solo el administrador, solo entradas con cuenta)
         const banBtn = (e) => (isAdmin && e.uid && e.uid !== myUid())
-          ? `<button onclick="banEntry('${id}', '${escapeJsAttr(e.ref)}')" class="text-amber-500/80 hover:text-amber-300 text-[11px]" title="Vetar esta cuenta">🚫</button>`
+          ? `<button onclick="banEntry('${id}', '${escapeJsAttr(e.ref)}')" class="text-amber-500/80 hover:text-amber-300 text-sm leading-none px-2 py-1.5 -my-1.5 rounded" title="Vetar esta cuenta" aria-label="Vetar la cuenta de ${escapeHtml(e.nick)}">🚫</button>`
           : '';
 
         let statusBadge = isPresencial
           ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">👥 ${count} confirmado${count === 1 ? '' : 's'}</span>`
           : isReady
-            ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap border border-green-600">✅ Mesa Completa (${count}/5)</span>`
+            ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap border border-green-600">✅ ${count >= 5 ? 'Mesa llena' : 'Lista para jugar'} (${count}/5)</span>`
             : `<span class="bg-wine-900/60 text-wine-300 border border-wine-700/60 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">🪑 Faltan ${5 - count} jugador(es)</span>`;
 
         const discordHtml = `
@@ -2605,7 +2623,7 @@
               <span>🎧</span> <strong>Discord:</strong>
               ${t.discord ? `<span class="text-indigo-200 font-normal break-all">${escapeHtml(t.discord)}</span>` : `<span class="text-zinc-500 italic">No especificado</span>`}
             </span>
-            ${manage ? `<button onclick="editCustomTableDiscord('${id}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2 shrink-0">
+            ${manage ? `<button onclick="editCustomTableDiscord('${id}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-xs font-semibold ml-2 shrink-0">
               ✏️ ${t.discord ? 'Editar' : 'Definir'}
             </button>` : ''}
           </div>
@@ -2615,9 +2633,9 @@
           <div class="bg-blue-950/40 border border-blue-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-blue-300">
             <span class="font-medium flex items-center gap-1">
               <span>🔑</span> <strong>Pass Partida:</strong>
-              ${t.gamePassword ? `<span id="gamepwd-${escapeHtml(t.id)}" class="hidden font-mono font-bold text-blue-200 bg-zinc-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${id}')" class="text-blue-400 hover:text-white bg-zinc-700 hover:bg-zinc-600 px-2 py-0.5 rounded transition text-[11px] ml-1">👁️ Ver</button>` : `<span class="text-zinc-500 italic">Sin contraseña</span>`}
+              ${t.gamePassword ? `<span id="gamepwd-${escapeHtml(t.id)}" class="hidden font-mono font-bold text-blue-200 bg-zinc-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${id}')" class="text-blue-400 hover:text-white bg-zinc-700 hover:bg-zinc-600 px-2 py-0.5 rounded transition text-xs ml-1">👁️ Ver</button>` : `<span class="text-zinc-500 italic">Sin contraseña</span>`}
             </span>
-            ${manage ? `<button onclick="editCustomTableGamePassword('${id}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2 shrink-0">
+            ${manage ? `<button onclick="editCustomTableGamePassword('${id}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-xs font-semibold ml-2 shrink-0">
               ✏️ ${t.gamePassword ? 'Editar' : 'Definir'}
             </button>` : ''}
           </div>
@@ -2633,9 +2651,9 @@
             <div class="text-emerald-400/70 pl-4">${escapeHtml(t.city || '')}${t.country ? ', ' + escapeHtml(t.country) : ''}</div>
             <div class="flex items-center justify-between pt-1">
               ${hasValidMap
-                ? `<a href="${escapeHtml(t.mapsLink)}" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold">🗺️ Ver ubicación</a>`
+                ? `<a href="${escapeHtml(t.mapsLink)}" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-xs font-semibold">🗺️ Ver ubicación</a>`
                 : `<span class="text-zinc-500 italic">${t.mapsLink ? 'Link de mapa no válido' : 'Sin link de mapa'}</span>`}
-              ${manage ? `<button onclick="editCustomTableMapsLink('${id}')" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
+              ${manage ? `<button onclick="editCustomTableMapsLink('${id}')" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-xs font-semibold ml-2">
                 ✏️ ${t.mapsLink ? 'Editar' : 'Agregar'} link
               </button>` : ''}
             </div>
@@ -2650,8 +2668,8 @@
           return `
             <span class="inline-flex items-center gap-1.5 ${mine ? 'bg-purple-950/70 border-purple-600/80 text-purple-100' : 'bg-wine-950/50 border-wine-800/60 text-wine-100'} border text-sm px-2.5 py-1 rounded-lg font-medium">
               ${escapeHtml(p.nick)}${mine ? '<span class="text-purple-300 text-xs font-semibold">· tú</span>' : ''}${p.arrival ? `<span class="${mine ? 'text-purple-200' : 'text-wine-200'} font-mono text-xs">· ${escapeHtml(p.arrival)}</span>` : ''}
-              ${isPresencial && canEditThis ? `<button onclick="editPlayerArrival('${id}', '${refArg}')" class="${mine ? 'text-purple-300/80 hover:text-purple-100' : 'text-wine-500/70 hover:text-wine-300'} font-bold text-[11px]" title="Editar hora de llegada">✏️</button>` : ''}
-              ${!mine && canEditThis ? `<button onclick="leaveTable('${id}', '${refArg}')" class="text-wine-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>` : ''}
+              ${isPresencial && canEditThis ? `<button onclick="editPlayerArrival('${id}', '${refArg}')" class="${mine ? 'text-purple-200 hover:text-purple-100' : 'text-wine-300 hover:text-wine-100'} font-bold text-sm leading-none px-2 py-1.5 -my-1.5 rounded" title="Editar hora de llegada" aria-label="Editar hora de llegada de ${escapeHtml(p.nick)}">✏️</button>` : ''}
+              ${!mine && canEditThis ? `<button onclick="leaveTable('${id}', '${refArg}')" class="text-wine-300 hover:text-red-400 font-bold text-base leading-none px-2 py-1.5 -my-1.5 rounded" title="Remover jugador" aria-label="Quitar a ${escapeHtml(p.nick)}">×</button>` : ''}
               ${banBtn(p)}
             </span>
           `;
@@ -2667,12 +2685,12 @@
                 return `
                 <li class="flex items-center justify-between gap-2 text-sm">
                   <span class="flex items-center gap-2 min-w-0">
-                    <span class="w-5 h-5 shrink-0 rounded-full bg-zinc-800 border border-zinc-600 text-[11px] text-zinc-300 font-bold flex items-center justify-center">${i + 1}</span>
+                    <span class="w-5 h-5 shrink-0 rounded-full bg-zinc-800 border border-zinc-600 text-xs text-zinc-300 font-bold flex items-center justify-center">${i + 1}</span>
                     <span class="${mine ? 'text-purple-100' : 'text-zinc-200'} truncate">${escapeHtml(s.nick)}</span>${mine ? '<span class="text-purple-300 text-xs font-semibold shrink-0">· tú</span>' : ''}
                   </span>
                   <span class="flex items-center gap-1 shrink-0">
                     ${banBtn(s)}
-                    ${canRemove ? `<button onclick="leaveTable('${id}', '${escapeJsAttr(s.ref)}')" class="text-zinc-500 hover:text-red-400 font-bold text-xs px-1" title="Quitar suplente">×</button>` : ''}
+                    ${canRemove ? `<button onclick="leaveTable('${id}', '${escapeJsAttr(s.ref)}')" class="text-zinc-400 hover:text-red-400 font-bold text-base leading-none px-2 py-1.5 -my-1.5 rounded" title="Quitar suplente" aria-label="Quitar a ${escapeHtml(s.nick)} de suplentes">×</button>` : ''}
                   </span>
                 </li>`;
               }).join('')}
@@ -2726,14 +2744,14 @@
                 <div class="flex flex-wrap items-center gap-1.5 min-w-0">
                   ${isPresencial ? getLocationBadge() : getPlatformBadge(t.platform || 'Lackey')}
                   ${isPresencial ? '' : getFormatBadge(t.format)}
-                  ${isPresencial && t.recurrence === 'weekly' ? `<span class="bg-emerald-950 text-emerald-200 border border-emerald-600/70 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">🔁 Cada ${escapeHtml(weekdayInZone(t.utcTime, t.originTz))}</span>` : ''}
-                  ${iOwn ? `<span class="bg-purple-950 text-purple-200 border border-purple-600/70 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">👑 Organizas tú</span>` : ''}
+                  ${isPresencial && t.recurrence === 'weekly' ? `<span class="bg-emerald-950 text-emerald-200 border border-emerald-600/70 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">🔁 Cada ${escapeHtml(weekdayInZone(t.utcTime, t.originTz))}</span>` : ''}
+                  ${iOwn ? `<span class="bg-purple-950 text-purple-200 border border-purple-600/70 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">👑 Organizas tú</span>` : ''}
                 </div>
                 <div class="shrink-0">${statusBadge}</div>
               </div>
-              <h3 class="font-bold text-wine-400 text-base leading-snug break-words">${escapeHtml(t.name)}</h3>
+              <h3 class="font-bold text-wine-300 text-base leading-snug break-words">${escapeHtml(t.name)}</h3>
               <p class="text-xs text-zinc-400 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                <span>${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span> ${isPresencial ? '<span class="text-emerald-400">(hora local)</span>' : '<span class="text-zinc-500">(tu hora)</span>'}</span>
+                <span>${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span> ${isPresencial ? '<span class="text-emerald-400">(hora local)</span>' : '<span class="text-zinc-400">(tu hora)</span>'}</span>
                 ${nightBadgeHtml(t)}
                 ${relativeBadgeHtml(t.utcTime)}
               </p>
@@ -2742,7 +2760,7 @@
             ${t.notes ? `
             <div class="bg-zinc-800/70 border border-zinc-700 rounded-lg p-2 flex items-start justify-between gap-2 text-xs">
               <p class="text-zinc-200 break-words min-w-0"><span class="mr-1">📝</span>${escapeHtml(t.notes)}</p>
-              ${manage ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-600 px-2 py-0.5 rounded transition text-[11px] font-semibold shrink-0">✏️ Editar</button>` : ''}
+              ${manage ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-600 px-2 py-0.5 rounded transition text-xs font-semibold shrink-0">✏️ Editar</button>` : ''}
             </div>` : ''}
 
             <div class="space-y-2">
@@ -2774,15 +2792,15 @@
             </div>
 
             <!-- Fila fija de acciones pequeñas -->
-            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-zinc-800 pt-2 text-[11px]">
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-zinc-800 pt-2 text-xs">
               <span class="flex items-center gap-3">
-                ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-500 hover:text-red-400 transition py-1">🎲 Orden de Asientos</button>` : ''}
-                ${manage && isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-500 hover:text-emerald-300 transition py-1">⏭️ Saltar esta semana</button>` : ''}
-                ${manage && !t.notes ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-500 hover:text-white transition py-1">📝 Agregar nota</button>` : ''}
+                ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-400 hover:text-red-400 transition py-1">🎲 Orden de Asientos</button>` : ''}
+                ${manage && isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-400 hover:text-emerald-300 transition py-1">⏭️ Saltar esta semana</button>` : ''}
+                ${manage && !t.notes ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white transition py-1">📝 Agregar nota</button>` : ''}
               </span>
               ${manage ? `<span class="flex items-center gap-3">
-                <button onclick="editTableSchedule('${id}')" class="text-zinc-500 hover:text-wine-400 transition py-1">✏️ Editar horario</button>
-                <button onclick="deleteEntry('${id}')" class="text-zinc-500 hover:text-red-400 transition py-1">${isPresencial ? 'Cerrar Evento' : 'Cerrar Mesa'}</button>
+                <button onclick="editTableSchedule('${id}')" class="text-zinc-400 hover:text-wine-400 transition py-1">✏️ Editar horario</button>
+                <button onclick="deleteEntry('${id}')" class="text-zinc-400 hover:text-red-400 transition py-1">${isPresencial ? 'Cerrar Evento' : 'Cerrar Mesa'}</button>
               </span>` : ''}
             </div>
           </div>

@@ -38,7 +38,7 @@
 <body class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
 
   <!-- BOTÓN FLOTANTE: REPORTAR BUG / SUGERENCIA -->
-  <button type="button" onclick="openFeedbackModal()" title="Reportar un bug o sugerencia" class="fixed bottom-4 right-4 z-40 bg-wine-600 hover:bg-wine-500 text-white rounded-full w-12 h-12 shadow-lg shadow-wine-900/40 flex items-center justify-center text-xl transition transform hover:scale-105">
+  <button type="button" onclick="openFeedbackModal()" title="Reportar un bug o sugerencia" aria-label="Reportar un bug o sugerencia" class="fixed bottom-4 right-4 z-40 bg-wine-600 hover:bg-wine-500 text-white rounded-full w-12 h-12 shadow-lg shadow-wine-900/40 flex items-center justify-center text-xl transition transform hover:scale-105">
     💬
   </button>
 
@@ -143,7 +143,7 @@
       <button type="button" id="sortearBtn" onclick="performDraw()" class="w-full bg-wine-700 hover:bg-wine-600 text-white font-bold py-3 rounded-lg text-base transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-wine-700" disabled>
         🎲 Sortear presa/depredador
       </button>
-      <p id="minHint" class="text-center text-[11px] text-zinc-500">Selecciona al menos 2 jugadores para poder sortear.</p>
+      <p id="minHint" class="text-center text-xs text-zinc-500">Selecciona al menos 2 jugadores para poder sortear.</p>
     </section>
 
     <!-- RESULTADO -->
@@ -267,7 +267,7 @@
           <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm cursor-pointer">
             <input type="checkbox" ${entry.checked ? 'checked' : ''} onchange="toggleCheck(${idx})" class="w-4 h-4 accent-wine-600 cursor-pointer">
             <span class="flex-1 ${entry.checked ? '' : 'text-zinc-500 line-through'}">${escapeHtml(entry.nick)}</span>
-            <button type="button" onclick="removeName(${idx})" class="text-zinc-500 hover:text-red-400 text-xs px-1" title="Quitar de la lista">✕</button>
+            <button type="button" onclick="removeName(${idx})" class="text-zinc-400 hover:text-red-400 text-sm leading-none px-2 py-1.5 -my-1.5 rounded" title="Quitar de la lista" aria-label="Quitar de la lista">✕</button>
           </label>
         `).join('');
       }
@@ -513,7 +513,7 @@
         return `<li class="flex items-center gap-2">
           <span class="text-wine-400 font-bold w-5">${idx + 1}.</span>
           <span class="flex-1">${escapeHtml(name)}</span>
-          ${idx === 0 ? '<span class="text-emerald-400 text-[10px] bg-emerald-950/50 border border-emerald-700/50 px-2 py-0.5 rounded-full">Empieza el juego</span>' : ''}
+          ${idx === 0 ? '<span class="text-emerald-400 text-xs bg-emerald-950/50 border border-emerald-700/50 px-2 py-0.5 rounded-full">Empieza el juego</span>' : ''}
           <span class="text-zinc-400 text-xs">presa: ${escapeHtml(order[preyIdx])}</span>
         </li>`;
       }).join('');
