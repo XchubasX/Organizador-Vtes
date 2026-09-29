@@ -714,7 +714,7 @@
         <div class="kpi"><span class="q">Personas que organizan</span><span class="v">${ownerCounts.length}</span><span class="d">${orgTables ? `crearon ${orgTables} mesa${orgTables === 1 ? '' : 's'} en 3 meses` : 'sin mesas con organizador aún'}</span></div>`;
 
       const monthsWithData = months.filter(hasData).length;
-      let ans = `<b>${cNow}</b> persona${cNow === 1 ? '' : 's'} distinta${cNow === 1 ? '' : 's'} jugaron este mes`;
+      let ans = `<b>${cNow}</b> persona${cNow === 1 ? '' : 's'} distinta${cNow === 1 ? '' : 's'} ${cNow === 1 ? 'jugó' : 'jugaron'} este mes`;
       if (pDiff != null) ans += ` (contra ${cPrev} el mes pasado)`;
       ans += '.';
       if (bNow) ans += ` De las ${bNow.of} del mes pasado, <b>${bNow.n}</b> ${bNow.n === 1 ? 'volvió' : 'volvieron'} (${bNow.pct}%).`;
@@ -723,7 +723,7 @@
 
       let ansO = '';
       if (ownerCounts.length) {
-        ansO = `<b>${ownerCounts.length}</b> persona${ownerCounts.length === 1 ? '' : 's'} organizaron mesas o eventos en los últimos 3 meses.`;
+        ansO = `<b>${ownerCounts.length}</b> persona${ownerCounts.length === 1 ? '' : 's'} ${ownerCounts.length === 1 ? 'organizó' : 'organizaron'} mesas o eventos en los últimos 3 meses.`;
         if (ownerCounts.length > 3) ansO += ` Las 3 más activas crearon el <b>${top3Pct}%</b> (${top3} de ${orgTables}).`;
         if (ownerCounts.length <= 3 && orgTables >= 5) ansO += ' La organización depende de muy pocas personas: si alguna deja de organizar, se nota.';
         else if (ownerCounts.length > 3 && top3Pct >= 70) ansO += ' La organización está concentrada en pocas personas.';
