@@ -37,6 +37,8 @@
   <!-- Firebase App & Database SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Firebase Authentication (inicio de sesión con Google para crear o unirse) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <!-- Firebase App Check (protege la base de datos: solo funciona desde el dominio autorizado) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
   <!-- html2canvas para Screenshots (opcional) -->
@@ -60,7 +62,7 @@
       <div class="space-y-4 text-sm text-zinc-300 leading-relaxed">
         <section>
           <h4 class="text-sm font-bold text-white mb-1">Acerca de VTES Scheduler</h4>
-          <p>VTES Scheduler es una herramienta gratuita, hecha por y para la comunidad de <em>Vampire: The Eternal Struggle</em>, para organizar partidas. Puedes abrir una mesa virtual y encontrar jugadores para completarla, o convocar un evento presencial en tu ciudad y ver quién va a llegar. No necesitas cuenta ni registro: solo tu nick.</p>
+          <p>VTES Scheduler es una herramienta gratuita, hecha por y para la comunidad de <em>Vampire: The Eternal Struggle</em>, para organizar partidas. Puedes abrir una mesa virtual y encontrar jugadores para completarla, o convocar un evento presencial en tu ciudad y ver quién va a llegar. Para ver las mesas no necesitas cuenta. Para crear una mesa o unirte, entras con tu cuenta de Google: nadie ve tu correo, solo sirve para evitar abusos. En cada mesa usas el nick que quieras.</p>
         </section>
         <section>
           <h4 class="text-sm font-bold text-white mb-1">Cómo funciona</h4>
@@ -80,8 +82,8 @@
         <section>
           <h4 class="text-sm font-bold text-white mb-1">Crear una mesa o evento</h4>
           <ul class="list-disc pl-5 space-y-1">
-            <li>Toca <strong>➕ Crear</strong>, llena los datos y elige un <strong>PIN de 4 números</strong>.</li>
-            <li>El PIN te deja editar o cerrar tu mesa desde otro dispositivo. No se puede recuperar, así que guárdalo.</li>
+            <li>Toca <strong>➕ Crear</strong> y llena los datos.</li>
+            <li>Solo tú puedes editar o cerrar tu mesa, quitar jugadores o anotar a otras personas. Funciona desde cualquier dispositivo en el que entres con tu cuenta de Google.</li>
             <li>Si eliges una hora de madrugada (00:00 a 05:59), el sitio te pregunta qué noche quieres decir.</li>
             <li>Los eventos presenciales pueden repetirse <strong>🔁 cada semana</strong>: el enlace no cambia y la lista de asistentes empieza vacía cada semana.</li>
           </ul>
@@ -145,25 +147,21 @@
   </aside>
 
 
-  <!-- MODAL EXPLICATIVO DE SEGURIDAD (VENTANA FLOTANTE) -->
-  <div id="securityModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-zinc-800 border border-wine-600/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+  <!-- MODAL: ENTRAR CON GOOGLE (se abre al crear o unirse sin sesión) -->
+  <div id="loginModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div role="dialog" aria-modal="true" aria-labelledby="loginModalTitle" class="bg-zinc-800 border border-wine-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
       <div class="flex items-center gap-3 border-b border-zinc-700 pb-3">
-        <span class="text-2xl">🔒</span>
-        <h3 class="text-lg font-bold text-wine-400">PIN Antiborrado de Seguridad</h3>
+        <span class="text-2xl">🔐</span>
+        <h3 id="loginModalTitle" class="text-lg font-bold text-wine-400">Entra con tu cuenta de Google</h3>
       </div>
-      <div class="space-y-3 text-xs md:text-sm text-zinc-300 leading-relaxed">
-        <p>
-          Estás creando un registro protegido. El <strong class="text-wine-400">PIN Antiborrado de 4 dígitos</strong> que definas tiene un único propósito: autorizar el cierre, eliminación manual o gestión de jugadores en caso de que intentes hacerlo desde un dispositivo diferente al actual.
-        </p>
-        <p class="text-zinc-400">
-          Por motivos de seguridad, este PIN <strong>no se puede recuperar ni visualizar</strong> en pantalla una vez guardado. Si lo olvidas y estás en otro equipo, la entrada solo podrá ser eliminada automáticamente por la barredora del sistema tras cumplirse su tiempo.
-        </p>
+      <div class="space-y-2 text-sm text-zinc-300 leading-relaxed">
+        <p>Para crear una mesa o unirte necesitas entrar con Google. Solo lo haces una vez en este dispositivo.</p>
+        <p class="text-xs text-zinc-400">Nadie ve tu correo. Tu cuenta solo sirve para evitar abusos en el sitio y para que solo tú puedas editar o cerrar tus mesas. En cada mesa sigues usando el nick que quieras.</p>
       </div>
-      <div class="pt-2 flex justify-end">
-        <button type="button" onclick="closeSecurityModal()" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs md:text-sm transition shadow-md">
-          Entendido
-        </button>
+      <p id="loginModalError" class="hidden text-xs text-red-400"></p>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" onclick="closeLoginModal(false)" class="text-xs text-zinc-400 hover:text-white px-4 py-2 rounded-lg transition">Cancelar</button>
+        <button type="button" id="loginModalBtn" onclick="doGoogleLogin()" class="bg-white hover:bg-zinc-200 text-zinc-900 font-bold px-4 py-2 rounded-xl text-sm transition shadow-md disabled:opacity-50">Entrar con Google</button>
       </div>
     </div>
   </div>
@@ -211,7 +209,7 @@
       <p id="createdModalName" class="text-base font-semibold text-white"></p>
       <p id="createdModalWhen" class="text-xs text-zinc-400"></p>
       <p class="text-xs text-zinc-400 leading-relaxed pt-1">
-        Ya aparece en la lista. Recuerda tu <strong class="text-wine-400">PIN Antiborrado</strong>: lo necesitarás para editar o cerrar desde otro dispositivo.
+        Ya aparece en la lista. Solo tú puedes editarla o cerrarla, desde cualquier dispositivo en el que entres con tu cuenta de Google.
       </p>
       <div class="pt-2">
         <button type="button" onclick="closeCreatedModal()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-xl text-sm transition shadow-md">
@@ -222,7 +220,7 @@
   </div>
 
   <!-- VENTANA GENÉRICA (reemplaza las ventanas grises del navegador:
-       pedir PIN, confirmar, editar Discord / contraseña / mapa / hora) -->
+       confirmar, editar Discord / contraseña / mapa / hora) -->
   <div id="uiDialog" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-zinc-800 border border-wine-600/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
       <h3 id="uiDialogTitle" class="text-lg font-bold text-wine-400 border-b border-zinc-700 pb-3"></h3>
@@ -273,7 +271,7 @@
       <form id="joinForm" class="space-y-3">
         <div>
           <label class="block text-xs font-semibold text-zinc-400 mb-1">Tu Nick</label>
-          <input type="text" id="joinNick" required placeholder="ej. Hardestadt" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500">
+          <input type="text" id="joinNick" required maxlength="24" placeholder="ej. Hardestadt" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500">
           <p id="joinNickError" class="text-xs text-red-400 mt-1 hidden"></p>
         </div>
         <div id="joinArrivalGroup">
@@ -298,10 +296,23 @@
       <div id="userTimezone" class="inline-block bg-zinc-800 border border-zinc-700 text-wine-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
         Detectando tu zona horaria...
       </div>
+      <div id="authBar" class="pt-2"></div>
     </header>
 
     <!-- MESAS Y EVENTOS: pestañas arriba, luego el botón para crear, luego la lista -->
     <section class="space-y-4">
+
+      <!-- AVISO DE BIENVENIDA AL INICIO DE SESIÓN (solo sin sesión, hasta que se cierre) -->
+      <div id="loginNotice" class="hidden bg-wine-950/60 border border-wine-600/60 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-3">
+        <div class="flex-1 space-y-1">
+          <p class="text-sm font-bold text-white">Para crear o unirte a una mesa o evento, deberás iniciar sesión con tu cuenta de Google.</p>
+          <p class="text-xs text-zinc-300">Ver las mesas y eventos sigue siendo libre. Nadie ve tu correo: la cuenta solo sirve para evitar abusos. Lo haces una sola vez en este dispositivo.</p>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <button type="button" onclick="requireLogin()" class="bg-white hover:bg-zinc-200 text-zinc-900 font-bold px-4 py-2 rounded-lg text-sm transition">Entrar con Google</button>
+          <button type="button" onclick="dismissLoginNotice()" class="text-zinc-300 hover:text-white border border-zinc-600 px-3 py-2 rounded-lg text-xs transition">Entendido</button>
+        </div>
+      </div>
 
       <!-- PESTAÑAS VIRTUAL / PRESENCIAL (controlan la lista y el formulario, con contador) -->
       <div class="flex gap-2 bg-zinc-800 p-1.5 rounded-xl border border-zinc-700">
@@ -361,7 +372,7 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-zinc-400 mb-1">Tu Nick</label>
-          <input type="text" id="tableCreator" required placeholder="ej. Hardestadt" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
+          <input type="text" id="tableCreator" required maxlength="24" placeholder="ej. Hardestadt" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
         </div>
 
         <div id="virtualFieldsGroup" style="display: contents;">
@@ -429,13 +440,6 @@
           <input type="text" id="tableNotes" maxlength="150" autocomplete="off" placeholder="ej. Principiantes bienvenidos · partida de máximo 2 horas" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-wine-500">
         </div>
 
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="block text-xs font-semibold text-wine-400">🔒 PIN Antiborrado</label>
-            <button type="button" onclick="showSecurityModal()" class="text-[10px] text-wine-400 hover:text-wine-300 underline bg-transparent border-0 cursor-pointer p-0">¿Para qué es?</button>
-          </div>
-          <input type="text" id="tableDeletePin" required maxlength="4" pattern="[0-9]{4}" inputmode="numeric" autocomplete="off" title="4 números" placeholder="ej. 1234" class="w-full bg-zinc-800 border border-wine-700/60 rounded-lg px-3 py-1.5 text-wine-300 text-sm font-mono focus:outline-none focus:border-wine-400">
-        </div>
         <div class="flex items-end">
           <button type="submit" id="createTableBtn" class="w-full bg-wine-600 hover:bg-wine-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
             <span id="createTableBtnLabel">Abrir Mesa</span>
@@ -504,6 +508,225 @@
     const recordsRef = db.ref('vtes_records');
 
     let currentGlobalData = [];
+
+    // ---------------------------------------------------------------------
+    // INICIO DE SESIÓN CON GOOGLE
+    // Ver mesas es libre. Para crear, unirse o gestionar hay que entrar con
+    // Google. Cada mesa guarda el identificador de la cuenta que la creó
+    // (ownerUid) y cada jugador el de la cuenta que lo anotó (uid); las
+    // reglas de Firebase usan eso para decidir quién puede cambiar qué.
+    // Nunca se guarda el correo ni el nombre en la base de datos.
+    //   - admins/{uid}: true  → administrador (se agrega desde la consola)
+    //   - banned/{uid}        → cuenta vetada: no puede escribir nada
+    // ---------------------------------------------------------------------
+    const auth = firebase.auth();
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+    let currentUser = null;
+    let isAdmin = false;
+    let isBanned = false;
+
+    function myUid() { return currentUser ? currentUser.uid : null; }
+    function isOwner(t) { return !!currentUser && !!t && t.ownerUid === currentUser.uid; }
+    function canManage(t) { return !!currentUser && !isBanned && (isAdmin || isOwner(t)); }
+    function isMine(entry) { return !!currentUser && !!entry && !!entry.uid && entry.uid === currentUser.uid; }
+
+    async function loadUserFlags(user) {
+      if (!user) { isAdmin = false; isBanned = false; return; }
+      const [a, b] = await Promise.all([
+        db.ref(`admins/${user.uid}`).get().catch(() => null),
+        db.ref(`banned/${user.uid}`).get().catch(() => null)
+      ]);
+      isAdmin = !!(a && a.val() === true);
+      isBanned = !!(b && b.exists());
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      currentUser = user;
+      await loadUserFlags(user);
+      renderAuthBar();
+      renderAll(currentGlobalData);
+    });
+
+    // Aviso de bienvenida: se muestra sin sesión hasta que la persona lo
+    // cierra con "Entendido" (se recuerda solo en su navegador).
+    const LOGIN_NOTICE_KEY = 'vtes_login_notice_dismissed';
+    function loginNoticeDismissed() {
+      try { return localStorage.getItem(LOGIN_NOTICE_KEY) === '1'; } catch (e) { return false; }
+    }
+    function dismissLoginNotice() {
+      try { localStorage.setItem(LOGIN_NOTICE_KEY, '1'); } catch (e) { /* sin almacenamiento: solo se oculta ahora */ }
+      document.getElementById('loginNotice').classList.add('hidden');
+    }
+
+    function renderAuthBar() {
+      const bar = document.getElementById('authBar');
+      document.getElementById('loginNotice').classList.toggle('hidden', !!currentUser || loginNoticeDismissed());
+      if (!currentUser) {
+        bar.innerHTML = `<button type="button" onclick="requireLogin()" class="inline-flex items-center gap-2 bg-white hover:bg-zinc-200 text-zinc-900 font-bold px-4 py-2 rounded-lg text-sm transition shadow-md">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+            Entrar con Google
+          </button>
+          <p class="text-[11px] text-zinc-500 mt-1">Ver es libre · para crear o unirte necesitas entrar</p>`;
+        return;
+      }
+      const name = currentUser.displayName ? escapeHtml(currentUser.displayName) : 'tu cuenta de Google';
+      bar.innerHTML = `<p class="text-xs text-zinc-400">✅ Sesión iniciada: <span class="text-zinc-200">${name}</span>`
+        + (isAdmin ? ' · <span class="text-amber-300 font-semibold">👑 Administrador</span>' : '')
+        + (isBanned ? ' · <span class="text-red-400 font-semibold">🚫 Cuenta bloqueada</span>' : '')
+        + ` · <button type="button" onclick="signOutUser()" class="text-zinc-400 hover:text-white underline">Cerrar sesión</button></p>`;
+    }
+
+    function signOutUser() {
+      auth.signOut().then(() => showToast('Sesión cerrada')).catch(() => {});
+    }
+
+    // Navegadores "dentro de otra app" (WhatsApp, Instagram, Facebook...):
+    // Google no permite iniciar sesión ahí, así que se pide abrir el sitio
+    // en Chrome o Safari.
+    function isInAppBrowser() {
+      const ua = navigator.userAgent || '';
+      if (/FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|Snapchat|Twitter|Discord|MicroMessenger|; wv\)/i.test(ua)) return true;
+      if (/iPhone|iPad|iPod/i.test(ua) && !/Safari\//i.test(ua)) return true;
+      return false;
+    }
+
+    async function showOpenInBrowserDialog() {
+      const isAndroid = /Android/i.test(navigator.userAgent || '');
+      if (isAndroid) {
+        const ok = await uiDialog({
+          title: '🌐 Ábrelo en Chrome',
+          message: 'Estás viendo el sitio dentro de otra app (por ejemplo WhatsApp), y ahí Google no permite iniciar sesión. Toca el botón para abrirlo en Chrome. También puedes usar el menú ⋮ → "Abrir en el navegador".',
+          confirmLabel: 'Abrir en Chrome'
+        });
+        if (ok) {
+          const l = window.location;
+          window.location.href = `intent://${l.host}${l.pathname}${l.search}${l.hash}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(l.href)};end`;
+        }
+        return;
+      }
+      const ok = await uiDialog({
+        title: '🌐 Ábrelo en Safari',
+        message: 'Estás viendo el sitio dentro de otra app (por ejemplo WhatsApp), y ahí Google no permite iniciar sesión. Copia el enlace y pégalo en Safari, o usa el botón de compartir / menú → "Abrir en Safari".',
+        confirmLabel: '📋 Copiar enlace'
+      });
+      if (ok) {
+        try { await navigator.clipboard.writeText(window.location.href); showToast('🔗 Enlace copiado: pégalo en Safari'); }
+        catch (e) { uiDialog({ title: '🔗 Enlace', message: 'Copia este enlace y pégalo en Safari:', input: { type: 'text', value: window.location.href }, confirmLabel: 'Listo' }); }
+      }
+    }
+
+    // Devuelve una promesa: true si hay sesión (ya había o se acaba de
+    // iniciar) y la cuenta no está bloqueada; false en cualquier otro caso.
+    let loginResolve = null;
+
+    function requireLogin() {
+      if (currentUser) {
+        if (isBanned) {
+          showToast('🚫 Tu cuenta no puede crear ni unirse a mesas.', 'error');
+          return Promise.resolve(false);
+        }
+        return Promise.resolve(true);
+      }
+      if (isInAppBrowser()) {
+        showOpenInBrowserDialog();
+        return Promise.resolve(false);
+      }
+      if (loginResolve) loginResolve(false);
+      document.getElementById('loginModalError').classList.add('hidden');
+      document.getElementById('loginModalBtn').disabled = false;
+      document.getElementById('loginModal').classList.remove('hidden');
+      return new Promise(resolve => { loginResolve = resolve; });
+    }
+
+    function closeLoginModal(result) {
+      document.getElementById('loginModal').classList.add('hidden');
+      if (loginResolve) { const r = loginResolve; loginResolve = null; r(!!result); }
+    }
+
+    // Se llama directo desde el clic del botón (los navegadores solo permiten
+    // abrir la ventana de Google como respuesta inmediata a un clic).
+    function doGoogleLogin() {
+      const btn = document.getElementById('loginModalBtn');
+      const errorEl = document.getElementById('loginModalError');
+      btn.disabled = true;
+      errorEl.classList.add('hidden');
+      auth.signInWithPopup(googleProvider).then(async (result) => {
+        currentUser = result.user;
+        await loadUserFlags(result.user);
+        renderAuthBar();
+        renderAll(currentGlobalData);
+        if (isBanned) {
+          closeLoginModal(false);
+          showToast('🚫 Tu cuenta no puede crear ni unirse a mesas.', 'error');
+          return;
+        }
+        closeLoginModal(true);
+        showToast('✅ Sesión iniciada');
+      }).catch((e) => {
+        btn.disabled = false;
+        const code = (e && e.code) || '';
+        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+        if (code === 'auth/popup-blocked') {
+          errorEl.textContent = 'Tu navegador bloqueó la ventana de Google. Permite las ventanas emergentes para este sitio e inténtalo de nuevo.';
+        } else if (code === 'auth/operation-not-supported-in-this-environment' || code === 'auth/web-storage-unsupported' || code === 'auth/internal-error') {
+          closeLoginModal(false);
+          showOpenInBrowserDialog();
+          return;
+        } else if (code === 'auth/network-request-failed') {
+          errorEl.textContent = 'No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.';
+        } else {
+          errorEl.textContent = `No se pudo iniciar sesión (${code || 'error desconocido'}). Si abriste el enlace desde WhatsApp, ábrelo en Chrome o Safari.`;
+        }
+        errorEl.classList.remove('hidden');
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // JUGADORES DE UNA MESA ("entradas")
+    // Formato nuevo: signups/{llave} = { uid, nick, arrival?, at }
+    //   - la llave es el uid de quien se anotó; si el organizador anota a
+    //     otra persona, la llave es un id aleatorio (y uid = el organizador)
+    //   - "at" es la hora de llegada al servidor: define el orden
+    // Formato anterior (mesas creadas antes del inicio de sesión): arreglos
+    // players / substitutes sin dueño. Se muestran primero, en su orden, y
+    // solo el administrador puede quitarlos.
+    // Cada entrada lleva "ref": s:<llave>, p:<índice> o u:<índice>.
+    // ---------------------------------------------------------------------
+    function toArray(v) {
+      if (!v) return [];
+      return Array.isArray(v) ? v.filter(x => x != null) : Object.keys(v).sort((a, b) => Number(a) - Number(b)).map(k => v[k]).filter(x => x != null);
+    }
+
+    function getEntries(t) {
+      const out = [];
+      toArray(t.players).forEach((p, i) => {
+        const n = normalizePlayer(p);
+        out.push({ ref: `p:${i}`, legacy: true, uid: null, nick: n.nick, arrival: n.arrival, at: i });
+      });
+      if (t.modality !== 'presencial') {
+        toArray(t.substitutes).forEach((s, i) => {
+          out.push({ ref: `u:${i}`, legacy: true, uid: null, nick: String(s || ''), arrival: null, at: 1000 + i });
+        });
+      }
+      const su = t.signups || {};
+      Object.keys(su)
+        .sort((a, b) => ((su[a] && su[a].at) || 0) - ((su[b] && su[b].at) || 0) || (a < b ? -1 : 1))
+        .forEach(k => {
+          const e = su[k] || {};
+          out.push({ ref: `s:${k}`, key: k, legacy: false, uid: e.uid || null, nick: e.nick || '', arrival: e.arrival || null, at: e.at || 0 });
+        });
+      return out;
+    }
+
+    // Mesa virtual: los primeros 5 juegan, los siguientes son suplentes.
+    // Evento presencial: todos son asistentes.
+    function getRoster(t) {
+      const entries = getEntries(t);
+      if (t.modality === 'presencial') return { entries, players: entries, subs: [] };
+      return { entries, players: entries.slice(0, MAX_PLAYERS), subs: entries.slice(MAX_PLAYERS) };
+    }
 
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
@@ -738,7 +961,8 @@
     // FORMULARIO PLEGABLE: la lista se ve primero; el formulario de
     // creación solo se abre al pulsar "➕ Crear mesa / evento".
     // ---------------------------------------------------------------------
-    function openCreateForm() {
+    async function openCreateForm() {
+      if (!(await requireLogin())) return;
       document.getElementById('createFormPanel').classList.remove('hidden');
       document.getElementById('openCreateFormBtn').classList.add('hidden');
       prefillCreatorNick();
@@ -798,6 +1022,8 @@
 
     // Notas de la mesa: texto libre corto, visible para todos y editable por cualquiera
     const NOTES_MAX = 150;
+    // Nick: máximo 24 caracteres (las reglas de Firebase lo revisan también)
+    const NICK_MAX = 24;
 
     function savePlatform(platform) {
       try { if (platform) localStorage.setItem(LAST_PLATFORM_KEY, platform); } catch (e) { /* sin almacenamiento: no pasa nada */ }
@@ -936,10 +1162,11 @@
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (uiDialogResolve) return uiDialogResolve(null);
-      ['joinModal', 'calendarModal', 'editScheduleModal', 'securityModal', 'feedbackModal', 'aboutModal'].forEach(id => {
+      ['joinModal', 'calendarModal', 'editScheduleModal', 'loginModal', 'feedbackModal', 'aboutModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.classList.contains('hidden')) {
           if (id === 'joinModal') closeJoinModal();
+          else if (id === 'loginModal') closeLoginModal(false);
           else if (id === 'editScheduleModal') closeEditScheduleModal();
           else if (id === 'feedbackModal') closeFeedbackModal();
           else el.classList.add('hidden');
@@ -949,37 +1176,19 @@
     });
 
     // ---------------------------------------------------------------------
-    // AUTORIZACIÓN (dueño del dispositivo o PIN Antiborrado)
-    // Si este navegador creó la mesa, pide solo confirmación (si se indica).
-    // Si no, pide el PIN en la ventana propia; un PIN equivocado se avisa
-    // ahí mismo y se puede volver a intentar sin empezar de nuevo.
-    // Devuelve true si quedó autorizado.
+    // AUTORIZACIÓN: solo el organizador (su cuenta) o el administrador
+    // pueden gestionar una mesa. Las reglas de Firebase lo vuelven a
+    // revisar en el servidor; aquí solo se evita mostrar botones inútiles.
+    // Devuelve true si puede y confirmó (si se pidió confirmación).
     // ---------------------------------------------------------------------
-    async function authorizeTableAction(tableId, table, { actionText, confirmTitle = null, confirmMessage = '', confirmLabel = 'Aceptar', danger = false }) {
-      if (isOwner(tableId)) {
-        if (!confirmTitle) return true;
-        return !!(await uiDialog({ title: confirmTitle, message: confirmMessage, confirmLabel, danger }));
+    async function authorizeTableAction(table, { confirmTitle = null, confirmMessage = '', confirmLabel = 'Aceptar', danger = false } = {}) {
+      if (!(await requireLogin())) return false;
+      if (!canManage(table)) {
+        showToast('🔒 Solo el organizador de esta mesa puede hacer eso.', 'error');
+        return false;
       }
-      const pin = await uiDialog({
-        title: '🔒 PIN Antiborrado',
-        message: `Este navegador no creó "${table.name}". Ingresa el PIN Antiborrado de 4 dígitos para ${actionText}.`,
-        input: { type: 'pin', label: 'PIN', placeholder: '••••' },
-        confirmLabel: confirmLabel,
-        danger,
-        validate: (value) => (table.deletePin && value === table.deletePin) ? null : 'PIN incorrecto. Revisa e inténtalo de nuevo.'
-      });
-      return pin !== null;
-    }
-
-    // ---------------------------------------------------------------------
-    // ¿QUÉ ES MÍO? (según lo guardado en este navegador)
-    // ---------------------------------------------------------------------
-    function isOwner(tableId) {
-      try { return !!localStorage.getItem(`vtes_owner_${tableId}`); } catch (e) { return false; }
-    }
-
-    function isMyNick(tableId, nick) {
-      try { return !!localStorage.getItem(`vtes_joined_${tableId}_${(nick || '').toLowerCase()}`); } catch (e) { return false; }
+      if (!confirmTitle) return true;
+      return !!(await uiDialog({ title: confirmTitle, message: confirmMessage, confirmLabel, danger }));
     }
 
     // ---------------------------------------------------------------------
@@ -1035,14 +1244,6 @@
         el.textContent = r.text;
       });
     }, 60000);
-
-    function showSecurityModal() {
-      document.getElementById('securityModal').classList.remove('hidden');
-    }
-
-    function closeSecurityModal() {
-      document.getElementById('securityModal').classList.add('hidden');
-    }
 
     // ---------------------------------------------------------------------
     // NORMALIZACIÓN DE JUGADORES (retrocompatible)
@@ -1189,7 +1390,7 @@
       };
     }
 
-    // EDITAR HORARIO (con la misma autorización que Cerrar Mesa: dueño local o PIN)
+    // EDITAR HORARIO (solo el organizador o el administrador)
     let currentEditTableId = null;
 
     function editTableSchedule(tableId) {
@@ -1199,7 +1400,7 @@
         if (!snapshot.exists()) return showToast('❌ Esta mesa ya no existe.', 'error');
         const table = snapshot.val();
 
-        const ok = await authorizeTableAction(tableId, table, { actionText: 'editar el horario', confirmLabel: 'Continuar' });
+        const ok = await authorizeTableAction(table);
         if (ok) openEditScheduleModal(tableId, table.name, table.utcTime);
       });
     }
@@ -1237,6 +1438,7 @@
       // Se actualiza la mesa y su ficha de estadísticas en un solo paso
       const updates = {};
       updates[`vtes_records/${currentEditTableId}/utcTime`] = newDate.toISOString();
+      updates[`vtes_records/${currentEditTableId}/utcMs`] = newDate.getTime();
       const editedTable = currentGlobalData.find(t => t.id === currentEditTableId);
       if (editedTable) {
         const newKey = addTableLogBase(updates, currentEditTableId, { ...editedTable, utcTime: newDate.toISOString() });
@@ -1245,7 +1447,7 @@
           // Evento semanal movido a otro día: la ficha de esta semana se
           // mueve también (con sus asistentes) en lugar de quedar duplicada
           updates[`stats/tablesLog/${oldKey}`] = null;
-          (editedTable.players || []).map(normalizePlayer).forEach(pl => {
+          getRoster(editedTable).players.forEach(pl => {
             if (pl.nick) updates[`stats/tablesLog/${newKey}/players/${tableLogNickKey(pl.nick)}`] = pl.nick;
           });
         }
@@ -1270,27 +1472,37 @@
     const MAX_PLAYERS = 5;
     const SUBS_MAX = 3;
 
-    function joinTable(tableId, asSub = false) {
+    async function joinTable(tableId, asSub = false) {
+      if (!(await requireLogin())) return;
       const tableRef = db.ref(`vtes_records/${tableId}`);
 
       tableRef.get().then(snapshot => {
         if (!snapshot.exists()) return showToast('❌ Esta mesa ya no existe.', 'error');
-        openJoinModal(tableId, snapshot.val(), asSub);
+        const table = snapshot.val();
+        // Cada cuenta se anota una sola vez; solo el organizador (o el
+        // administrador) puede anotar a más personas.
+        const alreadyIn = getEntries(table).some(isMine);
+        if (alreadyIn && !canManage(table)) {
+          return showToast('Ya estás anotado en esta mesa. Solo el organizador puede anotar a más personas.', 'error');
+        }
+        openJoinModal(tableId, table, asSub, alreadyIn);
       });
     }
 
     // Misma ventana para mesas virtuales y eventos presenciales; en las
     // virtuales se oculta el campo de hora de llegada.
-    function openJoinModal(tableId, table, asSub = false) {
+    function openJoinModal(tableId, table, asSub = false, addingOther = false) {
       const isPresencial = table.modality === 'presencial';
       currentJoinTableId = tableId;
       currentJoinAsSub = !isPresencial && asSub;
-      document.getElementById('joinModalTitle').textContent = isPresencial ? 'Confirmar Asistencia' : (currentJoinAsSub ? 'Apuntarte como suplente' : 'Unirte a la Mesa');
-      document.getElementById('joinSubmitBtn').textContent = isPresencial ? 'Confirmar' : (currentJoinAsSub ? 'Apuntarme' : 'Unirme');
+      document.getElementById('joinModalTitle').textContent = addingOther
+        ? 'Anotar a otra persona'
+        : (isPresencial ? 'Confirmar Asistencia' : (currentJoinAsSub ? 'Apuntarte como suplente' : 'Unirte a la Mesa'));
+      document.getElementById('joinSubmitBtn').textContent = addingOther ? 'Anotar' : (isPresencial ? 'Confirmar' : (currentJoinAsSub ? 'Apuntarme' : 'Unirme'));
       document.getElementById('joinArrivalGroup').classList.toggle('hidden', !isPresencial);
       document.getElementById('joinModalEventName').textContent = `"${table.name}"`;
       document.getElementById('joinNickError').classList.add('hidden');
-      document.getElementById('joinNick').value = getSavedNick();
+      document.getElementById('joinNick').value = addingOther ? '' : getSavedNick();
       pickerJoinArrival.clear();
       if (isPresencial && table.utcTime) {
         pickerJoinArrival.setDate(new Date(table.utcTime));
@@ -1333,108 +1545,95 @@
     });
 
     // Devuelve una promesa con { error } si algo impide unirse, o
-    // { presencial } cuando Firebase confirma que se guardó.
+    // { presencial } / { substitute } cuando Firebase confirma que se guardó.
+    // La entrada se guarda en signups/{uid}; si la cuenta ya está anotada y
+    // es el organizador (o el administrador), anota a otra persona con una
+    // llave aleatoria.
     function addPlayerToTable(tableId, nick, arrival, asSub = false) {
       const tableRef = db.ref(`vtes_records/${tableId}`);
+      const uid = myUid();
+      if (!uid) return Promise.resolve({ error: 'Necesitas entrar con Google para unirte.' });
+      if (nick.length > NICK_MAX) return Promise.resolve({ error: `El nick puede tener máximo ${NICK_MAX} caracteres.` });
 
       return tableRef.get().then(snapshot => {
         if (!snapshot.exists()) return { error: 'Esta mesa ya no existe.' };
         const table = snapshot.val();
-        const players = table.players || [];
-        const subs = table.modality === 'presencial' ? [] : (table.substitutes || []);
+        const isPresencial = table.modality === 'presencial';
+        const { entries, subs } = getRoster(table);
 
-        const existingNicks = players.map(p => normalizePlayer(p).nick.toLowerCase());
-        if (existingNicks.includes(nick.toLowerCase())) {
-          return { error: `"${nick}" ya está registrado en esta mesa. Usa otro nick.` };
+        if (entries.some(e => e.nick.toLowerCase() === nick.toLowerCase())) {
+          return { error: `"${nick}" ya está anotado en esta mesa. Usa otro nick.` };
         }
-        if (subs.some(s => s.toLowerCase() === nick.toLowerCase())) {
-          return { error: `"${nick}" ya está apuntado como suplente. Usa otro nick.` };
+
+        let key = uid;
+        if (table.signups && table.signups[uid]) {
+          if (!canManage(table)) return { error: 'Ya estás anotado en esta mesa. Solo el organizador puede anotar a más personas.' };
+          key = tableRef.child('signups').push().key;
         }
-        if (table.modality !== 'presencial' && players.length >= MAX_PLAYERS) {
+
+        const isSub = !isPresencial && entries.length >= MAX_PLAYERS;
+        if (isSub) {
           if (!asSub) return { error: 'La mesa se acaba de llenar. Cierra esta ventana y apúntate como suplente.' };
           if (subs.length >= SUBS_MAX) return { error: `Ya hay ${SUBS_MAX} suplentes. Puedes abrir otra mesa a la misma hora.` };
-          // Suplente: se agrega a la lista. No cuenta como jugador hasta que entre
-          // a la mesa, pero queda anotado en la ficha (subs) para medir el uso.
-          localStorage.setItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`, nick);
-          saveNick(nick);
-          const subUpdates = {};
-          subUpdates[`vtes_records/${tableId}/substitutes`] = subs.concat(nick);
-          const subLogKey = addTableLogBase(subUpdates, tableId, table);
-          subUpdates[`stats/tablesLog/${subLogKey}/subs/${tableLogNickKey(nick)}`] = nick;
-          return db.ref().update(subUpdates)
-            .then(() => ({ substitute: true }))
-            .catch(() => {
-              localStorage.removeItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`);
-              return { error: 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.' };
-            });
         }
 
-        const newEntry = table.modality === 'presencial'
-          ? { nick: nick, arrival: arrival || null }
-          : nick;
+        const entry = { uid: uid, nick: nick, at: firebase.database.ServerValue.TIMESTAMP };
+        if (isPresencial && arrival) entry.arrival = arrival;
 
-        players.push(newEntry);
+        const updates = {};
+        updates[`vtes_records/${tableId}/signups/${key}`] = entry;
 
         // Estadísticas: se agrupan en la misma llamada que guarda al jugador,
         // para no duplicar el número de escrituras a Firebase. Estos
         // contadores son históricos (no se borran aunque la mesa expire).
-        const updates = {};
-        updates[`vtes_records/${tableId}/players`] = players;
-
-        if (table.modality === 'presencial') {
+        const logKey = addTableLogBase(updates, tableId, table);
+        if (isSub) {
+          // Suplente: no cuenta como jugador hasta que entre a la mesa, pero
+          // queda anotado en la ficha (subs) para medir el uso.
+          updates[`stats/tablesLog/${logKey}/subs/${tableLogNickKey(nick)}`] = nick;
+        } else if (isPresencial) {
           const cityKey = sanitizeStatsKey(table.city);
           updates['stats/presencialJoins'] = firebase.database.ServerValue.increment(1);
           updates[`stats/presencialByCity/${cityKey}/joins`] = firebase.database.ServerValue.increment(1);
           updates[`stats/presencialByCity/${cityKey}/name`] = table.city || 'Desconocido';
           updates[`stats/presencialByCity/${cityKey}/country`] = table.country || '';
-
-          // Registro de nicks por evento presencial (para el detalle en
-          // estadísticas.html). Si el evento es anterior a esta función y
-          // todavía no tiene ciudad/país registrados aquí, se completan de
-          // una vez. La fecha de creación solo se guarda al crear el evento.
-          const nickKey = sanitizeStatsKey(nick);
-          updates[`stats/presencialEventsLog/${tableId}/players/${nickKey}`] = nick;
+          // Registro de nicks por evento presencial (para estadisticas.html)
+          updates[`stats/presencialEventsLog/${tableId}/players/${sanitizeStatsKey(nick)}`] = nick;
           updates[`stats/presencialEventsLog/${tableId}/city`] = table.city || 'Desconocido';
           updates[`stats/presencialEventsLog/${tableId}/country`] = table.country || '';
+          updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(nick)}`] = nick;
         } else {
           updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
+          updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(nick)}`] = nick;
+          if (entries.length + 1 >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
         }
 
-        // Ficha para estadísticas: el nick y, si una mesa virtual llega a 4+, se marca como llena
-        const logKey = addTableLogBase(updates, tableId, table);
-        updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(nick)}`] = nick;
-        if (table.modality !== 'presencial' && players.length >= 4) {
-          updates[`stats/tablesLog/${logKey}/filled`] = true;
-        }
-
-        // Guardamos en el navegador local que ESTE usuario se unió con este Nick
-        // (se marca antes de guardar para que la tarjeta ya salga con "tú")
-        localStorage.setItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`, nick);
-        saveNick(nick);
+        if (key === uid) saveNick(nick);
 
         return db.ref().update(updates)
-          .then(() => ({ presencial: table.modality === 'presencial' }))
-          .catch(() => {
-            localStorage.removeItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`);
-            return { error: 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.' };
-          });
+          .then(() => (isSub ? { substitute: true } : { presencial: isPresencial }))
+          .catch(() => ({ error: 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.' }));
       }).catch(() => ({ error: 'No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.' }));
     }
 
     // ---------------------------------------------------------------------
-    // EDITAR MI HORA DE LLEGADA (solo eventos presenciales)
-    // Acceso libre, sin PIN Antiborrado: es un dato informativo de bajo
-    // riesgo (no borra ni remueve a nadie), igual que los botones de
-    // Editar Discord / Pass Partida / Link de Maps que ya existían. Así
-    // cualquier asistente puede corregir su horario desde el celular sin
-    // fricción si le surge un imprevisto.
+    // EDITAR HORA DE LLEGADA (solo eventos presenciales)
+    // La puede cambiar el propio jugador, el organizador o el administrador.
     // ---------------------------------------------------------------------
-    async function editPlayerArrival(tableId, nick, currentArrival) {
+    async function editPlayerArrival(tableId, ref) {
+      const t = currentGlobalData.find(item => item.id === tableId);
+      if (!t) return showToast('❌ Esta mesa ya no existe.', 'error');
+      const entry = getEntries(t).find(e => e.ref === ref);
+      if (!entry) return showToast('❌ Ese jugador ya no está en la lista.', 'error');
+      if (!(await requireLogin())) return;
+      if (!isMine(entry) && !canManage(t)) return showToast('🔒 Solo el jugador o el organizador pueden cambiar esa hora.', 'error');
+      if (entry.legacy && !isAdmin) return showToast('🔒 Este registro es anterior al inicio de sesión: solo el administrador puede cambiarlo.', 'error');
+
       const TIME_RE = /^(\d{1,2}):(\d{2})$/;
       const input = await uiDialog({
         title: '🕒 Hora de llegada',
-        message: `Hora de llegada de "${nick}". Déjala vacía para quitarla.`,
-        input: { type: 'time', label: 'Hora (24 horas)', value: currentArrival || '' },
+        message: `Hora de llegada de "${entry.nick}". Déjala vacía para quitarla.`,
+        input: { type: 'time', label: 'Hora (24 horas)', value: entry.arrival || '' },
         confirmLabel: 'Guardar',
         validate: (value) => (value === '' || TIME_RE.test(value)) ? null : 'Usa el formato HH:MM, por ejemplo 18:30.'
       });
@@ -1446,19 +1645,16 @@
         newArrival = `${match[1].padStart(2, '0')}:${match[2]}`;
       }
 
-      const tableRef = db.ref(`vtes_records/${tableId}`);
-      tableRef.get().then(snapshot => {
-        if (!snapshot.exists()) return showToast('❌ Esta mesa ya no existe.', 'error');
-        const table = snapshot.val();
-        const players = (table.players || []).map(p => {
-          const norm = normalizePlayer(p);
-          if (norm.nick.toLowerCase() === nick.toLowerCase()) {
-            return { nick: norm.nick, arrival: newArrival };
-          }
-          return p;
-        });
-        return tableRef.update({ players: players }).then(() => showToast('✅ Hora de llegada actualizada'));
-      }).catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
+      let write;
+      if (entry.legacy) {
+        // Registro anterior (arreglo players): lo reescribe el administrador
+        const players = toArray(t.players).map((p, i) => (`p:${i}` === ref ? { nick: normalizePlayer(p).nick, arrival: newArrival } : p));
+        write = db.ref(`vtes_records/${tableId}/players`).set(players);
+      } else {
+        write = db.ref(`vtes_records/${tableId}/signups/${entry.key}`).update({ arrival: newArrival });
+      }
+      write.then(() => showToast('✅ Hora de llegada actualizada'))
+        .catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
     }
 
     // HELPER: Función para Compartir Invitación por WhatsApp (Mantiene los husos horarios específicos)
@@ -1468,7 +1664,7 @@
 
       const date = new Date(t.utcTime);
       const modality = t.modality || 'virtual';
-      const players = (t.players || []).map(normalizePlayer);
+      const players = getRoster(t).players;
       const playersCount = players.length;
 
       let msg = `🦇 *¡INVITACIÓN A MESA DE VTES!* 🦇\n\n`;
@@ -1701,10 +1897,18 @@
     // así que se les da una ventana de 24 horas desde su horario registrado
     // en vez de 3. Esto garantiza que el evento se mantenga visible durante
     // toda la jornada sin importar a qué hora del día se haya programado.
+    // Las escrituras de limpieza solo las intenta quien tiene sesión (las
+    // reglas de Firebase permiten a cualquier cuenta borrar una mesa vencida
+    // o mover un evento semanal vencido, y nada más). Sin sesión, la mesa
+    // vencida simplemente no se muestra. Cada mesa se intenta una sola vez
+    // por visita para no repetir escrituras.
+    const sweepTried = new Set();
+
     function sweepExpiredTables(dataArray) {
       const now = new Date().getTime();
       const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
       const validData = [];
+      const canSweep = !!currentUser && !isBanned;
 
       dataArray.forEach(item => {
         if (!item.utcTime) return;
@@ -1713,10 +1917,11 @@
         if (now > (itemTime + windowMs)) {
           if (item.modality === 'presencial' && item.recurrence === 'weekly') {
             // Evento semanal: salta a la semana siguiente en lugar de borrarse
-            rollWeeklyEvent(item.id);
-            validData.push({ ...item, utcTime: nextWeeklyOccurrence(item, now), players: [] });
-          } else {
-            recordsRef.child(item.id).remove();
+            if (canSweep) rollWeeklyEvent(item);
+            validData.push({ ...item, utcTime: nextWeeklyOccurrence(item, now), players: [], signups: null });
+          } else if (canSweep && !sweepTried.has(item.id)) {
+            sweepTried.add(item.id);
+            recordsRef.child(item.id).remove().catch(() => {});
           }
         } else {
           validData.push(item);
@@ -1726,19 +1931,19 @@
     }
 
     // Mueve un evento semanal vencido a su próxima fecha y vacía la lista.
-    // Usa una transacción: si otro navegador ya lo movió, no hace nada.
-    const rollingOver = new Set();
-    function rollWeeklyEvent(id) {
-      if (rollingOver.has(id)) return;
-      rollingOver.add(id);
-      recordsRef.child(id).transaction(cur => {
-        if (!cur || cur.recurrence !== 'weekly') return; // ya no existe o dejó de repetirse
-        const nowMs = Date.now();
-        if (Date.parse(cur.utcTime) + PRESENCIAL_WINDOW_MS > nowMs) return; // ya lo movió otro navegador
-        cur.utcTime = nextWeeklyOccurrence(cur, nowMs);
-        delete cur.players;
-        return cur;
-      }).catch(() => {}).finally(() => rollingOver.delete(id));
+    // Se calcula desde la fecha guardada: si dos navegadores lo hacen a la
+    // vez llegan al mismo resultado, y las reglas rechazan al segundo
+    // (el evento ya no está vencido).
+    function rollWeeklyEvent(item) {
+      if (sweepTried.has(item.id)) return;
+      sweepTried.add(item.id);
+      const next = nextWeeklyOccurrence(item, Date.now());
+      const updates = {};
+      updates[`vtes_records/${item.id}/utcTime`] = next;
+      updates[`vtes_records/${item.id}/utcMs`] = Date.parse(next);
+      updates[`vtes_records/${item.id}/signups`] = null;
+      updates[`vtes_records/${item.id}/players`] = null;
+      db.ref().update(updates).catch(() => {});
     }
 
     // ---------------------------------------------------------------------
@@ -1782,15 +1987,16 @@
     });
 
     // Abrir una Mesa de Juego
-    document.getElementById('customTableForm').addEventListener('submit', (e) => {
+    document.getElementById('customTableForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('tableName').value.trim();
       const localInput = document.getElementById('tableDateTime').value;
       const creator = document.getElementById('tableCreator').value.trim();
-      const deletePin = document.getElementById('tableDeletePin').value.trim();
       const modality = document.getElementById('tableModality').value;
 
       if (!localInput) return showToast('❌ Selecciona una fecha y hora.', 'error');
+      if (!creator) return showToast('❌ Escribe tu nick.', 'error');
+      if (creator.length > NICK_MAX) return showToast(`❌ El nick puede tener máximo ${NICK_MAX} caracteres.`, 'error');
 
       // Fecha/hora final, ya con la noche elegida si la hora es de madrugada
       const resolved = resolveChosenDate('create');
@@ -1803,14 +2009,21 @@
         return showToast('❌ No puedes crear una mesa en el pasado. Elige una fecha y hora futura.', 'error');
       }
 
+      // La sesión se revisa aquí también (pudo cerrarse con el formulario abierto)
+      if (!(await requireLogin())) return;
+      const uid = myUid();
+
       const recordData = {
         type: 'custom_table',
         name: name,
         utcTime: selectedDate.toISOString(),
+        utcMs: selectedDate.getTime(),
         modality: modality,
-        deletePin: deletePin,
+        ownerUid: uid,
         originTz: userTimezone
       };
+      // El organizador queda anotado como el primer jugador / asistente
+      const creatorEntry = { uid: uid, nick: creator, at: firebase.database.ServerValue.TIMESTAMP };
 
       if (modality === 'presencial') {
         const venue = document.getElementById('tableVenue').value.trim();
@@ -1837,9 +2050,8 @@
         recordData.mapsLink = mapsLink || '';
         // Evento semanal: el mismo evento salta a la semana siguiente al vencer
         if (document.getElementById('tableRecurring').checked) recordData.recurrence = 'weekly';
-        // El organizador queda registrado como el primer asistente, con su
-        // propia hora de llegada (opcional) igual que cualquier otro invitado.
-        recordData.players = [{ nick: creator, arrival: creatorArrival || null }];
+        // Hora de llegada del organizador (opcional), igual que cualquier invitado
+        if (creatorArrival) creatorEntry.arrival = creatorArrival;
       } else {
         recordData.platform = document.getElementById('tablePlatform').value;
         savePlatform(recordData.platform);
@@ -1847,8 +2059,8 @@
         saveFormat(recordData.format);
         recordData.discord = document.getElementById('tableDiscord').value.trim() || '';
         recordData.gamePassword = document.getElementById('tableGamePassword').value.trim() || '';
-        recordData.players = [creator];
       }
+      recordData.signups = { [uid]: creatorEntry };
 
       // Notas (opcional, todas las mesas): texto corto, máximo 150 caracteres
       const notes = document.getElementById('tableNotes').value.trim().slice(0, NOTES_MAX);
@@ -1856,13 +2068,6 @@
 
       const newRef = recordsRef.push();
       const newId = newRef.key;
-
-      // La marca de "dueño de este dispositivo" no depende del contenido del
-      // Nick (evita romperse si en el futuro el campo llega vacío o cambia).
-      localStorage.setItem(`vtes_owner_${newId}`, '1');
-      // El organizador también queda registrado como jugador de este navegador
-      // (así su nick aparece marcado como "tú" y tiene el botón de Salir).
-      localStorage.setItem(`vtes_joined_${newId}_${creator.toLowerCase()}`, creator);
 
       // Estadísticas: se agrupan en la misma llamada que crea el registro,
       // para no duplicar el número de escrituras a Firebase. Estos
@@ -1921,8 +2126,6 @@
         showCreatedModal(newId, recordData);
       }).catch((error) => {
         console.error(error);
-        localStorage.removeItem(`vtes_owner_${newId}`);
-        localStorage.removeItem(`vtes_joined_${newId}_${creator.toLowerCase()}`);
         showToast('❌ No se pudo crear. Revisa tu conexión a internet e inténtalo de nuevo.', 'error');
       }).finally(() => {
         submitBtn.disabled = false;
@@ -1937,6 +2140,7 @@
     async function editTableField(tableId, field, { title, label, placeholder = '', type = 'text', validate = null, doneText, maxLength = null }) {
       const t = currentGlobalData.find(item => item.id === tableId);
       if (!t) return showToast('❌ Esta mesa ya no existe.', 'error');
+      if (!(await authorizeTableAction(t))) return;
       const value = await uiDialog({
         title,
         input: { type, label, placeholder, value: t[field] || '', maxLength },
@@ -1980,68 +2184,84 @@
     }
 
     // ---------------------------------------------------------------------
-    // SALIR DE UNA MESA / REMOVER A UN JUGADOR
-    // - Si es tu propio nick (unido desde este navegador): solo confirma.
-    // - Si eres el creador (este navegador): confirma.
-    // - Si no: pide el PIN Antiborrado en la ventana propia.
+    // SALIR DE UNA MESA / QUITAR A UN JUGADOR O SUPLENTE
+    // - Tu propia entrada (anotada con tu cuenta): solo confirma.
+    // - La de otra persona: solo el organizador o el administrador.
+    // - Registros anteriores al inicio de sesión: solo el administrador.
+    // En mesas virtuales, si sale alguien de los 5 y hay suplentes, el
+    // primero entra solo (el orden de llegada decide quién juega).
     // ---------------------------------------------------------------------
-    function leaveTable(tableId, playerToRemove) {
+    function leaveTable(tableId, ref) {
       const tableRef = db.ref(`vtes_records/${tableId}`);
 
       tableRef.get().then(async snapshot => {
         if (!snapshot.exists()) return showToast('❌ Esta mesa ya no existe.', 'error');
         const table = snapshot.val();
-        const isSelf = isMyNick(tableId, playerToRemove);
-        const place = table.modality === 'presencial' ? 'el evento' : 'la mesa';
-        const fromPlace = table.modality === 'presencial' ? 'del evento' : 'de la mesa';
+        const { entries, players: before, subs } = getRoster(table);
+        const entry = entries.find(e => e.ref === ref);
+        if (!entry) return showToast('❌ Ese jugador ya no está en la lista.', 'error');
+        if (!(await requireLogin())) return;
 
-        let authorized;
-        if (isSelf) {
-          authorized = !!(await uiDialog({
-            title: '🚪 Salir',
-            message: `¿Quieres salir ${fromPlace} "${table.name}"${playerToRemove ? ` (como ${playerToRemove})` : ''}?`,
-            confirmLabel: 'Salir',
-            danger: true
-          }));
-        } else {
-          authorized = await authorizeTableAction(tableId, table, {
-            actionText: `remover a "${playerToRemove}"`,
-            confirmTitle: '❌ Remover jugador',
-            confirmMessage: `Como creador de ${place}, ¿quieres remover a "${playerToRemove}"?`,
-            confirmLabel: 'Remover',
-            danger: true
-          });
-        }
-        if (!authorized) return;
+        const isSelf = isMine(entry);
+        const isPresencial = table.modality === 'presencial';
+        const wasSub = subs.some(s => s.ref === ref);
+        const fromPlace = isPresencial ? 'del evento' : 'de la mesa';
 
-        const before = table.players || [];
-        const players = before.filter(p => normalizePlayer(p).nick.toLowerCase() !== playerToRemove.toLowerCase());
+        if (!isSelf && !canManage(table)) return showToast('🔒 Solo el organizador puede quitar a otros jugadores.', 'error');
+        if (entry.legacy && !isAdmin) return showToast('🔒 Este registro es anterior al inicio de sesión: solo el administrador puede quitarlo.', 'error');
 
-        // La mesa/evento ya NO se borra automáticamente al quedar en 0
-        // asistentes: solo se cierra por acción explícita del creador/PIN
-        // (deleteEntry) o por la barredora al vencer su ventana de tiempo.
+        const confirmed = isSelf
+          ? await uiDialog({
+              title: wasSub ? '🚪 Salir de suplentes' : '🚪 Salir',
+              message: wasSub
+                ? `¿Quieres dejar de ser suplente en "${table.name}" (como ${entry.nick})?`
+                : `¿Quieres salir ${fromPlace} "${table.name}" (como ${entry.nick})?`,
+              confirmLabel: 'Salir',
+              danger: true
+            })
+          : await uiDialog({
+              title: wasSub ? '❌ Quitar suplente' : '❌ Remover jugador',
+              message: wasSub
+                ? `¿Quieres quitar a "${entry.nick}" de los suplentes?`
+                : `¿Quieres remover a "${entry.nick}" ${fromPlace}?`,
+              confirmLabel: wasSub ? 'Quitar' : 'Remover',
+              danger: true
+            });
+        if (!confirmed) return;
+
+        // La mesa/evento NO se borra al quedar vacía: solo se cierra por
+        // acción del organizador/administrador o al vencer su horario.
         const updates = {};
+        if (entry.legacy) {
+          const [kind, idxStr] = ref.split(':');
+          const idx = Number(idxStr);
+          if (kind === 'p') {
+            const arr = toArray(table.players).filter((_, i) => i !== idx);
+            updates[`vtes_records/${tableId}/players`] = arr.length ? arr : null;
+          } else {
+            const arr = toArray(table.substitutes).filter((_, i) => i !== idx);
+            updates[`vtes_records/${tableId}/substitutes`] = arr.length ? arr : null;
+          }
+        } else {
+          updates[`vtes_records/${tableId}/signups/${entry.key}`] = null;
+        }
 
-        // Mesa virtual con suplentes: el primero entra en la plaza que se libera
+        // Mesa virtual con suplentes: el primero ocupa la plaza que se libera
         // y ahí empieza a contar en estadísticas como un jugador más.
-        const subs = table.modality === 'presencial' ? [] : (table.substitutes || []);
         let promoted = null;
-        if (players.length < before.length && players.length < MAX_PLAYERS && subs.length > 0) {
+        if (!isPresencial && !wasSub && subs.length > 0) {
           promoted = subs[0];
-          players.push(promoted);
-          updates[`vtes_records/${tableId}/substitutes`] = subs.length > 1 ? subs.slice(1) : null;
           updates['stats/virtualJoins'] = firebase.database.ServerValue.increment(1);
           const logKey = addTableLogBase(updates, tableId, table);
-          updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(promoted)}`] = promoted;
-          updates[`stats/tablesLog/${logKey}/promoted/${tableLogNickKey(promoted)}`] = promoted;
-          if (players.length >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
+          updates[`stats/tablesLog/${logKey}/players/${tableLogNickKey(promoted.nick)}`] = promoted.nick;
+          updates[`stats/tablesLog/${logKey}/promoted/${tableLogNickKey(promoted.nick)}`] = promoted.nick;
+          if (before.length >= 4) updates[`stats/tablesLog/${logKey}/filled`] = true;
         }
-        updates[`vtes_records/${tableId}/players`] = players;
 
         db.ref().update(updates).then(() => {
-          localStorage.removeItem(`vtes_joined_${tableId}_${playerToRemove.toLowerCase()}`);
-          if (promoted) offerSubstituteNotice(tableId, table, playerToRemove, promoted, isSelf);
-          else showToast(isSelf ? `✅ Saliste ${fromPlace}` : `✅ Se removió a "${playerToRemove}"`);
+          if (promoted) offerSubstituteNotice(tableId, table, entry.nick, promoted.nick, isSelf);
+          else if (wasSub) showToast(isSelf ? '✅ Ya no eres suplente' : `✅ Se quitó a "${entry.nick}" de los suplentes`);
+          else showToast(isSelf ? `✅ Saliste ${fromPlace}` : `✅ Se removió a "${entry.nick}"`);
         }).catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
       });
     }
@@ -2060,29 +2280,32 @@
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
-    // Dejar de ser suplente (uno mismo) o quitar a un suplente (creador / PIN)
-    function leaveSubstitute(tableId, nick) {
-      const tableRef = db.ref(`vtes_records/${tableId}`);
-      tableRef.get().then(async snapshot => {
-        if (!snapshot.exists()) return showToast('❌ Esta mesa ya no existe.', 'error');
-        const table = snapshot.val();
-        const isSelf = isMyNick(tableId, nick);
-        const authorized = isSelf
-          ? !!(await uiDialog({ title: '🚪 Salir de suplentes', message: `¿Quieres dejar de ser suplente en "${table.name}"${nick ? ` (como ${nick})` : ''}?`, confirmLabel: 'Salir', danger: true }))
-          : await authorizeTableAction(tableId, table, {
-              actionText: `quitar a "${nick}" de los suplentes`,
-              confirmTitle: '❌ Quitar suplente',
-              confirmMessage: `Como creador de la mesa, ¿quieres quitar a "${nick}" de los suplentes?`,
-              confirmLabel: 'Quitar',
-              danger: true
-            });
-        if (!authorized) return;
-        const subs = (table.substitutes || []).filter(s => s.toLowerCase() !== nick.toLowerCase());
-        tableRef.child('substitutes').set(subs.length ? subs : null).then(() => {
-          localStorage.removeItem(`vtes_joined_${tableId}_${nick.toLowerCase()}`);
-          showToast(isSelf ? '✅ Ya no eres suplente' : `✅ Se quitó a "${nick}" de los suplentes`);
-        }).catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
+    // ---------------------------------------------------------------------
+    // VETAR UNA CUENTA (solo el administrador)
+    // Guarda banned/{uid} y quita esa entrada de la mesa en un solo paso.
+    // La cuenta vetada ya no puede crear, unirse ni editar nada. Para
+    // quitar el veto: consola de Firebase → banned → borrar ese uid.
+    // ---------------------------------------------------------------------
+    async function banEntry(tableId, ref) {
+      if (!isAdmin) return;
+      const t = currentGlobalData.find(item => item.id === tableId);
+      if (!t) return showToast('❌ Esta mesa ya no existe.', 'error');
+      const entry = getEntries(t).find(e => e.ref === ref);
+      if (!entry || !entry.uid) return showToast('Este registro no tiene cuenta asociada: solo se puede quitar con ×.', 'error');
+      if (entry.uid === myUid()) return showToast('No puedes vetar tu propia cuenta.', 'error');
+      const ok = await uiDialog({
+        title: '🚫 Vetar cuenta',
+        message: `¿Vetar la cuenta que anotó a "${entry.nick}"? Se quita de esta mesa y ya no podrá crear ni unirse a mesas. Si esa cuenta creó otras mesas, ciérralas tú.`,
+        confirmLabel: 'Vetar',
+        danger: true
       });
+      if (!ok) return;
+      const updates = {};
+      updates[`banned/${entry.uid}`] = { nick: entry.nick, tableId: tableId, at: firebase.database.ServerValue.TIMESTAMP };
+      updates[`vtes_records/${tableId}/signups/${entry.key}`] = null;
+      db.ref().update(updates)
+        .then(() => showToast(`🚫 Cuenta vetada ("${entry.nick}")`))
+        .catch(() => showToast('❌ No se pudo vetar. Revisa tu conexión.', 'error'));
     }
 
     // "Abrir otra mesa a esta hora": formulario con hora, plataforma y formato
@@ -2092,11 +2315,12 @@
       return (m ? `${m[1]} (Mesa ${Number(m[2]) + 1})` : `${name} (Mesa 2)`).slice(0, 190);
     }
 
-    function openSimilarTable(tableId) {
+    async function openSimilarTable(tableId) {
       const t = currentGlobalData.find(item => item.id === tableId);
       if (!t) return showToast('❌ Esta mesa ya no existe.', 'error');
+      if (!(await requireLogin())) return;
       setTableModality('virtual');
-      openCreateForm();
+      await openCreateForm();
       document.getElementById('tableName').value = nextTableName(t.name);
       const start = new Date(t.utcTime);
       pickerCustomTable.setDate(start);
@@ -2134,8 +2358,7 @@
         const nextIso = addWeeksInZone(table.utcTime, table.originTz, 1);
         const f = formatPresencialDateTime(nextIso, table.originTz, { weekday: 'long', day: 'numeric', month: 'long' }, { hour: '2-digit', minute: '2-digit' });
 
-        const ok = await authorizeTableAction(id, table, {
-          actionText: 'saltar esta semana',
+        const ok = await authorizeTableAction(table, {
           confirmTitle: '⏭️ Saltar esta semana',
           confirmMessage: `"${table.name}" pasará al ${f.date} a las ${f.time}. La lista de asistentes de esta semana se vaciará.`,
           confirmLabel: 'Saltar'
@@ -2146,7 +2369,9 @@
         tableRef.transaction(cur => {
           if (!cur || cur.utcTime !== table.utcTime) return; // alguien lo cambió mientras tanto
           cur.utcTime = nextIso;
+          cur.utcMs = Date.parse(nextIso);
           delete cur.players;
+          delete cur.signups;
           return cur;
         }).then(result => {
           if (!result || !result.committed) return showToast('❌ El evento cambió mientras tanto. Revisa la fecha y vuelve a intentar.', 'error');
@@ -2156,7 +2381,7 @@
       });
     }
 
-    // ELIMINAR O CERRAR MESA / EVENTO (dueño del navegador + confirmación, o PIN Antiborrado)
+    // ELIMINAR O CERRAR MESA / EVENTO (organizador o administrador + confirmación)
     function deleteEntry(id) {
       const tableRef = db.ref(`vtes_records/${id}`);
 
@@ -2165,8 +2390,7 @@
         const table = snapshot.val();
         const itemLabel = table.modality === 'presencial' ? `el evento "${table.name}"` : `la mesa "${table.name}"`;
 
-        const ok = await authorizeTableAction(id, table, {
-          actionText: `cerrar ${itemLabel}`,
+        const ok = await authorizeTableAction(table, {
           confirmTitle: '🗑️ Cerrar',
           confirmMessage: table.recurrence === 'weekly'
             ? `¿Seguro que quieres cerrar ${itemLabel}? Se eliminará para todos y dejará de repetirse cada semana. No se puede deshacer. (Si solo quieres saltar una semana, usa "⏭️ Saltar esta semana".)`
@@ -2177,7 +2401,6 @@
         if (!ok) return;
 
         tableRef.remove().then(() => {
-          try { localStorage.removeItem(`vtes_owner_${id}`); } catch (e) {}
           showToast(table.modality === 'presencial' ? '✅ Evento cerrado' : '✅ Mesa cerrada');
         }).catch(() => showToast('❌ No se pudo cerrar. Revisa tu conexión.', 'error'));
       });
@@ -2308,11 +2531,14 @@
       tables.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
 
       container.innerHTML = tables.map(t => {
-        const count = (t.players || []).length;
+        const roster = getRoster(t);
+        const count = roster.players.length;
         const isPresencial = t.modality === 'presencial';
         const isFull = !isPresencial && count >= 5;
         const isReady = !isPresencial && count >= 4;
-        const iOwn = isOwner(t.id);
+        const iOwn = isOwner(t);
+        const manage = canManage(t);
+        const alreadyIn = roster.entries.some(isMine);
         const id = escapeJsAttr(t.id);
 
         let formattedDate, formattedTime;
@@ -2327,16 +2553,20 @@
           formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
         }
 
-        // Jugadores normalizados (retrocompatibles) y, si es presencial, ordenados por hora de llegada
-        let displayPlayers = (t.players || []).map(normalizePlayer);
+        // Jugadores en orden de llegada y, si es presencial, ordenados por hora de llegada
+        let displayPlayers = roster.players;
         if (isPresencial) {
           displayPlayers = displayPlayers.slice().sort((a, b) => arrivalToMinutes(a.arrival) - arrivalToMinutes(b.arrival));
         }
-        // Nicks con los que ESTE navegador está inscrito en la mesa
-        const myNicks = displayPlayers.filter(p => isMyNick(t.id, p.nick)).map(p => p.nick);
+        // Entradas anotadas con MI cuenta (el organizador puede tener varias)
+        const myPlayers = displayPlayers.filter(isMine);
         // Suplentes (solo mesas virtuales), en orden de llegada
-        const subs = isPresencial ? [] : (t.substitutes || []);
-        const mySubNicks = subs.filter(n => isMyNick(t.id, n));
+        const subs = roster.subs;
+        const mySubs = subs.filter(isMine);
+        // Botoncito de vetar (solo el administrador, solo entradas con cuenta)
+        const banBtn = (e) => (isAdmin && e.uid && e.uid !== myUid())
+          ? `<button onclick="banEntry('${id}', '${escapeJsAttr(e.ref)}')" class="text-amber-500/80 hover:text-amber-300 text-[11px]" title="Vetar esta cuenta">🚫</button>`
+          : '';
 
         let statusBadge = isPresencial
           ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">👥 ${count} confirmado${count === 1 ? '' : 's'}</span>`
@@ -2350,9 +2580,9 @@
               <span>🎧</span> <strong>Discord:</strong>
               ${t.discord ? `<span class="text-indigo-200 font-normal break-all">${escapeHtml(t.discord)}</span>` : `<span class="text-zinc-500 italic">No especificado</span>`}
             </span>
-            <button onclick="editCustomTableDiscord('${id}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2 shrink-0">
+            ${manage ? `<button onclick="editCustomTableDiscord('${id}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2 shrink-0">
               ✏️ ${t.discord ? 'Editar' : 'Definir'}
-            </button>
+            </button>` : ''}
           </div>
         `;
 
@@ -2362,9 +2592,9 @@
               <span>🔑</span> <strong>Pass Partida:</strong>
               ${t.gamePassword ? `<span id="gamepwd-${escapeHtml(t.id)}" class="hidden font-mono font-bold text-blue-200 bg-zinc-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${id}')" class="text-blue-400 hover:text-white bg-zinc-700 hover:bg-zinc-600 px-2 py-0.5 rounded transition text-[11px] ml-1">👁️ Ver</button>` : `<span class="text-zinc-500 italic">Sin contraseña</span>`}
             </span>
-            <button onclick="editCustomTableGamePassword('${id}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2 shrink-0">
+            ${manage ? `<button onclick="editCustomTableGamePassword('${id}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2 shrink-0">
               ✏️ ${t.gamePassword ? 'Editar' : 'Definir'}
-            </button>
+            </button>` : ''}
           </div>
         `;
 
@@ -2380,21 +2610,24 @@
               ${hasValidMap
                 ? `<a href="${escapeHtml(t.mapsLink)}" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold">🗺️ Ver ubicación</a>`
                 : `<span class="text-zinc-500 italic">${t.mapsLink ? 'Link de mapa no válido' : 'Sin link de mapa'}</span>`}
-              <button onclick="editCustomTableMapsLink('${id}')" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
+              ${manage ? `<button onclick="editCustomTableMapsLink('${id}')" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-[11px] font-semibold ml-2">
                 ✏️ ${t.mapsLink ? 'Editar' : 'Agregar'} link
-              </button>
+              </button>` : ''}
             </div>
           </div>
         `;
 
         const playersHtml = displayPlayers.map(p => {
-          const mine = myNicks.includes(p.nick);
-          const nickArg = escapeJsAttr(p.nick);
+          const mine = isMine(p);
+          const refArg = escapeJsAttr(p.ref);
+          // Los registros anteriores al inicio de sesión solo los toca el administrador
+          const canEditThis = (mine || manage) && (!p.legacy || isAdmin);
           return `
             <span class="inline-flex items-center gap-1.5 ${mine ? 'bg-purple-950/70 border-purple-600/80 text-purple-100' : 'bg-wine-950/50 border-wine-800/60 text-wine-100'} border text-sm px-2.5 py-1 rounded-lg font-medium">
               ${escapeHtml(p.nick)}${mine ? '<span class="text-purple-300 text-xs font-semibold">· tú</span>' : ''}${p.arrival ? `<span class="${mine ? 'text-purple-200' : 'text-wine-200'} font-mono text-xs">· ${escapeHtml(p.arrival)}</span>` : ''}
-              ${isPresencial ? `<button onclick="editPlayerArrival('${id}', '${nickArg}', '${escapeJsAttr(p.arrival || '')}')" class="${mine ? 'text-purple-300/80 hover:text-purple-100' : 'text-wine-500/70 hover:text-wine-300'} font-bold text-[11px]" title="Editar hora de llegada">✏️</button>` : ''}
-              ${mine ? '' : `<button onclick="leaveTable('${id}', '${nickArg}')" class="text-wine-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>`}
+              ${isPresencial && canEditThis ? `<button onclick="editPlayerArrival('${id}', '${refArg}')" class="${mine ? 'text-purple-300/80 hover:text-purple-100' : 'text-wine-500/70 hover:text-wine-300'} font-bold text-[11px]" title="Editar hora de llegada">✏️</button>` : ''}
+              ${!mine && canEditThis ? `<button onclick="leaveTable('${id}', '${refArg}')" class="text-wine-500 hover:text-red-400 font-bold ml-1 text-xs" title="Remover jugador">×</button>` : ''}
+              ${banBtn(p)}
             </span>
           `;
         }).join('');
@@ -2403,24 +2636,38 @@
           <div class="space-y-2 bg-zinc-800/50 border border-dashed border-zinc-600 rounded-lg p-2.5">
             <p class="text-xs font-semibold text-zinc-400">⏳ Suplentes (${subs.length}/${SUBS_MAX}) · entran en este orden si alguien sale:</p>
             <ol class="space-y-1.5">
-              ${subs.map((n, i) => {
-                const mine = mySubNicks.includes(n);
+              ${subs.map((s, i) => {
+                const mine = isMine(s);
+                const canRemove = !mine && manage && (!s.legacy || isAdmin);
                 return `
                 <li class="flex items-center justify-between gap-2 text-sm">
                   <span class="flex items-center gap-2 min-w-0">
                     <span class="w-5 h-5 shrink-0 rounded-full bg-zinc-800 border border-zinc-600 text-[11px] text-zinc-300 font-bold flex items-center justify-center">${i + 1}</span>
-                    <span class="${mine ? 'text-purple-100' : 'text-zinc-200'} truncate">${escapeHtml(n)}</span>${mine ? '<span class="text-purple-300 text-xs font-semibold shrink-0">· tú</span>' : ''}
+                    <span class="${mine ? 'text-purple-100' : 'text-zinc-200'} truncate">${escapeHtml(s.nick)}</span>${mine ? '<span class="text-purple-300 text-xs font-semibold shrink-0">· tú</span>' : ''}
                   </span>
-                  ${mine ? '' : `<button onclick="leaveSubstitute('${id}', '${escapeJsAttr(n)}')" class="text-zinc-500 hover:text-red-400 font-bold text-xs px-1" title="Quitar suplente">×</button>`}
+                  <span class="flex items-center gap-1 shrink-0">
+                    ${banBtn(s)}
+                    ${canRemove ? `<button onclick="leaveTable('${id}', '${escapeJsAttr(s.ref)}')" class="text-zinc-500 hover:text-red-400 font-bold text-xs px-1" title="Quitar suplente">×</button>` : ''}
+                  </span>
                 </li>`;
               }).join('')}
             </ol>
           </div>
         `;
 
-        const mainActionHtml = !isFull ? `
+        // Si ya estoy anotado (y no organizo), no hay botón para anotarme otra vez.
+        // El organizador que ya está anotado ve "Anotar a otra persona".
+        const joinLabel = alreadyIn
+          ? '➕ Anotar a otra persona'
+          : `➕ ${isPresencial ? '¡Confirmar asistencia!' : '¡Unirme a esta Mesa!'}`;
+        const openSimilarHtml = `
+                  <button onclick="openSimilarTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
+                    ➕ Abrir otra mesa a esta hora
+                  </button>
+                `;
+        const mainActionHtml = (alreadyIn && !manage) ? ((isFull && subs.length >= SUBS_MAX) ? openSimilarHtml : '') : !isFull ? `
                   <button onclick="joinTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
-                    ➕ ${isPresencial ? '¡Confirmar asistencia!' : '¡Unirme a esta Mesa!'}
+                    ${joinLabel}
                   </button>
                 ` : subs.length < SUBS_MAX ? `
                   <button onclick="joinTable('${id}', true)" class="w-full bg-zinc-800 hover:bg-amber-900/60 text-amber-300 hover:text-white border border-amber-700/60 font-bold py-1.5 rounded-lg text-xs transition duration-150">
@@ -2432,15 +2679,15 @@
                   </button>
                 `;
 
-        const leaveSubButtons = mySubNicks.map(nick => `
-          <button onclick="leaveSubstitute('${id}', '${escapeJsAttr(nick)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
-            🚪 Salir de suplentes${mySubNicks.length > 1 ? ` (${escapeHtml(nick)})` : ''}
+        const leaveSubButtons = mySubs.map(s => `
+          <button onclick="leaveTable('${id}', '${escapeJsAttr(s.ref)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
+            🚪 Salir de suplentes${mySubs.length > 1 ? ` (${escapeHtml(s.nick)})` : ''}
           </button>
         `).join('');
 
-        const leaveButtons = myNicks.map(nick => `
-          <button onclick="leaveTable('${id}', '${escapeJsAttr(nick)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
-            🚪 Salir${myNicks.length > 1 ? ` (${escapeHtml(nick)})` : isPresencial ? ' del evento' : ' de la mesa'}
+        const leaveButtons = myPlayers.map(p => `
+          <button onclick="leaveTable('${id}', '${escapeJsAttr(p.ref)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
+            🚪 Salir${myPlayers.length > 1 ? ` (${escapeHtml(p.nick)})` : isPresencial ? ' del evento' : ' de la mesa'}
           </button>
         `).join('');
 
@@ -2470,7 +2717,7 @@
             ${t.notes ? `
             <div class="bg-zinc-800/70 border border-zinc-700 rounded-lg p-2 flex items-start justify-between gap-2 text-xs">
               <p class="text-zinc-200 break-words min-w-0"><span class="mr-1">📝</span>${escapeHtml(t.notes)}</p>
-              <button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-600 px-2 py-0.5 rounded transition text-[11px] font-semibold shrink-0">✏️ Editar</button>
+              ${manage ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-600 px-2 py-0.5 rounded transition text-[11px] font-semibold shrink-0">✏️ Editar</button>` : ''}
             </div>` : ''}
 
             <div class="space-y-2">
@@ -2505,13 +2752,13 @@
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-zinc-800 pt-2 text-[11px]">
               <span class="flex items-center gap-3">
                 ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-500 hover:text-red-400 transition py-1">🎲 Orden de Asientos</button>` : ''}
-                ${isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-500 hover:text-emerald-300 transition py-1">⏭️ Saltar esta semana</button>` : ''}
-                ${t.notes ? '' : `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-500 hover:text-white transition py-1">📝 Agregar nota</button>`}
+                ${manage && isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-500 hover:text-emerald-300 transition py-1">⏭️ Saltar esta semana</button>` : ''}
+                ${manage && !t.notes ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-500 hover:text-white transition py-1">📝 Agregar nota</button>` : ''}
               </span>
-              <span class="flex items-center gap-3">
+              ${manage ? `<span class="flex items-center gap-3">
                 <button onclick="editTableSchedule('${id}')" class="text-zinc-500 hover:text-wine-400 transition py-1">✏️ Editar horario</button>
                 <button onclick="deleteEntry('${id}')" class="text-zinc-500 hover:text-red-400 transition py-1">${isPresencial ? 'Cerrar Evento' : 'Cerrar Mesa'}</button>
-              </span>
+              </span>` : ''}
             </div>
           </div>
         `;

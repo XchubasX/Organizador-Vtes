@@ -11,6 +11,8 @@
   <!-- Firebase App & Database SDKs (lectura de estadísticas + poda de fichas viejas) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Sesión de Google (la misma del organizador): la poda de datos viejos solo se hace con sesión -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <!-- Firebase App Check (la base de datos exige token válido incluso para lectura) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
@@ -259,6 +261,7 @@
     );
 
     const db = firebase.database();
+    firebase.auth(); // recupera la sesión guardada (si la hay) desde el inicio
 
     // ---------------------------------------------------------------------
     // Contraseña simple para disuadir accesos casuales a esta página.
@@ -298,6 +301,9 @@
     const MAX_EVENTS_LOG = 500;
 
     function pruneOldData(tablesLog, eventsLog) {
+      // Las reglas solo permiten escribir en estadísticas con sesión iniciada
+      // (la misma cuenta de Google que se usa en el organizador).
+      if (!firebase.auth().currentUser) return;
       const updates = {};
       const cutoff = Date.now() - TABLES_LOG_MAX_AGE_MS;
       Object.entries(tablesLog).forEach(([id, t]) => {

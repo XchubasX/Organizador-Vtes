@@ -375,7 +375,14 @@
           const table = snapshot.val();
           const label = table.venue ? `"${table.name}" — ${table.venue}` : `"${table.name}"`;
           document.getElementById('eventLabel').textContent = label;
-          candidateNames = (table.players || []).map(p => ({ nick: normalizePlayer(p).nick, checked: true }));
+          // Asistentes: primero los registros anteriores (arreglo players) y
+          // luego los anotados con cuenta (signups), en orden de llegada
+          const legacy = Array.isArray(table.players) ? table.players : Object.values(table.players || {});
+          const su = table.signups || {};
+          const signed = Object.keys(su).sort((a, b) => ((su[a] && su[a].at) || 0) - ((su[b] && su[b].at) || 0)).map(k => (su[k] && su[k].nick) || '');
+          candidateNames = legacy.map(p => normalizePlayer(p).nick).concat(signed)
+            .filter(Boolean)
+            .map(nick => ({ nick, checked: true }));
         } else {
           document.getElementById('eventLabel').textContent = 'El evento ya no existe — agrega los nombres manualmente.';
         }
