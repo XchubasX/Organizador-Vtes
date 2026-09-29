@@ -112,14 +112,12 @@
       <p>VTES Scheduler · cada sección responde una pregunta. Pasa el cursor o toca las barras y casillas para ver los números.</p>
     </header>
 
-    <!-- GATE DE CONTRASEÑA (disuasorio, no es seguridad real — ver comentario en el script) -->
+    <!-- ACCESO: solo cuentas de administrador (las reglas de Firebase lo verifican) -->
     <section id="gateSection" class="gate">
-      <p>Esta página es privada. Ingresa la contraseña para ver las estadísticas.</p>
-      <form id="gateForm" style="display:grid;gap:10px">
-        <input type="password" id="gatePassword" placeholder="Contraseña" autocomplete="off" aria-label="Contraseña">
-        <button type="submit" class="btn">Entrar</button>
-      </form>
-      <p id="gateError" class="err hidden">Contraseña incorrecta.</p>
+      <p id="gateMsg">Esta página es privada. Entra con tu cuenta de Google para ver las estadísticas.</p>
+      <button type="button" id="gateLoginBtn" class="btn">Entrar con Google</button>
+      <p id="gateError" class="err hidden"></p>
+      <button type="button" id="gateSignOutBtn" class="hidden" style="background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;font-size:13px;cursor:pointer">Cerrar sesión</button>
     </section>
 
     <!-- CONTENIDO -->
@@ -261,35 +259,76 @@
     );
 
     const db = firebase.database();
-    firebase.auth(); // recupera la sesión guardada (si la hay) desde el inicio
+    const auth = firebase.auth(); // recupera la sesión guardada (si la hay) desde el inicio
 
     // ---------------------------------------------------------------------
-    // Contraseña simple para disuadir accesos casuales a esta página.
-    // IMPORTANTE: esto NO es seguridad real. Las reglas de la base de datos
-    // son las mismas para todo el sitio (protegidas por App Check, no por
-    // usuario/contraseña), así que alguien con conocimientos técnicos podría
-    // leer estos datos directamente desde la consola del navegador sin
-    // pasar por esta pantalla. Esta página tampoco está enlazada desde
-    // ningún otro lugar del sitio — solo se llega a ella si se conoce la URL.
+    // ACCESO (desde el 29 sep 2026): administradores (admins/{uid}: true) y
+    // lectores de estadísticas (statsReaders/{uid}: true), ambos se agregan
+    // desde la consola. Ya no hay contraseña. La protección real está en
+    // las reglas de Firebase: "stats" solo lo pueden leer esas cuentas;
+    // esta pantalla solo explica qué pasa. La sesión de Google es la misma
+    // que la del organizador: si ya entraste ahí, aquí entras directo.
     // ---------------------------------------------------------------------
-    const STATS_PASSWORD = 'vtes2026';
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+    let statsLoaded = false;
+    let isStatsAdmin = false; // solo el administrador poda datos viejos
 
     function escapeHtml(str) {
       return String(str ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
-    document.getElementById('gateForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = document.getElementById('gatePassword').value;
-      if (input === STATS_PASSWORD) {
-        document.getElementById('gateSection').classList.add('hidden');
-        document.getElementById('statsContent').classList.remove('hidden');
-        loadStats();
-      } else {
-        document.getElementById('gateError').classList.remove('hidden');
-        document.getElementById('gatePassword').value = '';
+    function showGate(message, { showLogin = true, showSignOut = false, error = '' } = {}) {
+      document.getElementById('gateSection').classList.remove('hidden');
+      document.getElementById('statsContent').classList.add('hidden');
+      document.getElementById('gateMsg').textContent = message;
+      document.getElementById('gateLoginBtn').classList.toggle('hidden', !showLogin);
+      document.getElementById('gateSignOutBtn').classList.toggle('hidden', !showSignOut);
+      const err = document.getElementById('gateError');
+      err.textContent = error;
+      err.classList.toggle('hidden', !error);
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        statsLoaded = false;
+        return showGate('Esta página es privada. Entra con tu cuenta de Google para ver las estadísticas.');
       }
+      let isAdmin = false, isReader = false;
+      try {
+        const [a, r] = await Promise.all([
+          db.ref(`admins/${user.uid}`).get(),
+          db.ref(`statsReaders/${user.uid}`).get()
+        ]);
+        isAdmin = a.val() === true;
+        isReader = r.val() === true;
+      } catch (e) { /* sin acceso */ }
+      isStatsAdmin = isAdmin;
+      if (!isAdmin && !isReader) {
+        return showGate('Tu cuenta no tiene acceso a esta página.', { showLogin: false, showSignOut: true });
+      }
+      document.getElementById('gateSection').classList.add('hidden');
+      document.getElementById('statsContent').classList.remove('hidden');
+      if (!statsLoaded) { statsLoaded = true; loadStats(); }
     });
+
+    // La ventana de Google se abre directo desde el clic (requisito de los navegadores)
+    document.getElementById('gateLoginBtn').addEventListener('click', () => {
+      const btn = document.getElementById('gateLoginBtn');
+      btn.disabled = true;
+      auth.signInWithPopup(googleProvider).catch((e) => {
+        const code = (e && e.code) || '';
+        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+        const msg = code === 'auth/popup-blocked'
+          ? 'Tu navegador bloqueó la ventana de Google. Permite las ventanas emergentes e inténtalo de nuevo.'
+          : `No se pudo iniciar sesión (${code || 'error desconocido'}). Si abriste el enlace desde WhatsApp, ábrelo en Chrome o Safari.`;
+        const err = document.getElementById('gateError');
+        err.textContent = msg;
+        err.classList.remove('hidden');
+      }).finally(() => { btn.disabled = false; });
+    });
+
+    document.getElementById('gateSignOutBtn').addEventListener('click', () => auth.signOut());
 
     // ---------------------------------------------------------------------
     // PODA DE DATOS VIEJOS (se ejecuta cada vez que se abre esta página)
@@ -301,9 +340,8 @@
     const MAX_EVENTS_LOG = 500;
 
     function pruneOldData(tablesLog, eventsLog) {
-      // Las reglas solo permiten escribir en estadísticas con sesión iniciada
-      // (la misma cuenta de Google que se usa en el organizador).
-      if (!firebase.auth().currentUser) return;
+      // La poda solo la hace el administrador (los lectores solo consultan)
+      if (!firebase.auth().currentUser || !isStatsAdmin) return;
       const updates = {};
       const cutoff = Date.now() - TABLES_LOG_MAX_AGE_MS;
       Object.entries(tablesLog).forEach(([id, t]) => {
