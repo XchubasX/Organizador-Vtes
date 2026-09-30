@@ -44,7 +44,6 @@
 </head>
 <body class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
 
-<!-- SELLO DARK PACK FLOTANTE (Esquina Inferior Izquierda) -->
   <!-- BOTÓN FLOTANTE: REPORTAR BUG / SUGERENCIA -->
   <button type="button" onclick="openFeedbackModal()" title="Reportar un bug o sugerencia" aria-label="Reportar un bug o sugerencia" class="fixed bottom-4 right-4 z-40 bg-wine-600 hover:bg-wine-500 text-white rounded-full w-12 h-12 shadow-lg shadow-wine-900/40 flex items-center justify-center text-xl transition transform hover:scale-105">
     💬
@@ -101,6 +100,15 @@
           </ul>
         </section>
         <p class="text-zinc-400">¿Un error o una idea? Usa el botón 💬.</p>
+        <section id="aboutLegal" class="border-t border-zinc-700 pt-4 space-y-3">
+          <h4 class="text-sm font-bold text-white">Aviso legal</h4>
+          <a href="https://www.paradoxinteractive.com/games/world-of-darkness/community/dark-pack-agreement" target="_blank" rel="noopener" class="flex items-center gap-3 group" title="Material amparado bajo el acuerdo Dark Pack de Paradox Interactive">
+            <img src="./darkpack_logo_small.webp" alt="Logo Dark Pack" class="w-16 h-16 rounded-full border-2 border-red-600/80 object-cover bg-black shrink-0">
+            <span class="text-xs text-zinc-400 group-hover:text-zinc-200 underline underline-offset-2">Material amparado bajo el acuerdo Dark Pack de Paradox Interactive</span>
+          </a>
+          <p class="text-xs text-zinc-400">Este sitio es una herramienta no oficial creada por fans para la comunidad. No es material oficial de World of Darkness y no está afiliado, respaldado ni patrocinado por Paradox Interactive AB ni por Black Chantry Productions.</p>
+          <p class="text-xs text-zinc-400">Portions of the materials are the copyrights and trademarks of Paradox Interactive AB, and are used with permission. All rights reserved. For more information please visit <a href="https://www.worldofdarkness.com" target="_blank" rel="noopener" class="underline hover:text-zinc-200">worldofdarkness.com</a>.</p>
+        </section>
       </div>
       <div class="flex justify-end pt-1">
         <button type="button" onclick="closeAboutModal()" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Entendido</button>
@@ -138,11 +146,6 @@
     </div>
   </div>
 
-  <aside aria-label="Dark Pack Certified" class="fixed bottom-4 left-4 z-40 block group">
-    <a href="https://www.paradoxinteractive.com/games/world-of-darkness/community/dark-pack-agreement" target="_blank" rel="noopener" class="block transition transform hover:scale-105" title="Material amparado bajo el acuerdo Dark Pack de Paradox Interactive">
-      <img src="./darkpack_logo_small.webp?w=375&q=75&fm=webp" data-fallback-alt="Logo Dark Pack Oficial" class="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-red-600/80 shadow-2xl object-cover bg-black" alt="Dark Pack Logo" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'48\' fill=\'black\' stroke=\'%23dc2626\' stroke-width=\'4\'/><text x=\'50\' y=\'45\' fill=\'white\' font-size=\'14\' font-weight=\'bold\' text-anchor=\'middle\' font-family=\'sans-serif\'>DARK</text><text x=\'50\' y=\'65\' fill=\'white\' font-size=\'14\' font-weight=\'bold\' text-anchor=\'middle\' font-family=\'sans-serif\'>PACK</text></svg>';">
-    </a>
-  </aside>
 
 
   <!-- MODAL: ENTRAR CON GOOGLE (se abre al crear o unirse sin sesión) -->
@@ -2868,21 +2871,20 @@
     // ---------------------------------------------------------------------
     // VENTANA "ACERCA DE" (botón "?" del encabezado)
     // ---------------------------------------------------------------------
-    function openAboutModal() {
+    function openAboutModal(section) {
       document.getElementById('aboutModal').classList.remove('hidden');
+      // Desde la línea "Aviso legal" del pie de página, ir directo a esa sección
+      if (section === 'legal') {
+        const el = document.getElementById('aboutLegal');
+        if (el) setTimeout(() => el.scrollIntoView({ block: 'start' }), 0);
+      }
     }
     function closeAboutModal() {
       document.getElementById('aboutModal').classList.add('hidden');
     }
   </script>
-  <footer style="text-align: center; padding: 20px; font-size: 0.85rem; opacity: 0.8;">
-  <p>
-    <strong>Aviso Legal y Exención de Responsabilidad:</strong><br>
-    Este sitio es una herramienta no oficial creada por fans para la comunidad y no está afiliada, respaldada ni patrocinada por Paradox Interactive AB ni por Black Chantry Productions.
-  </p>
-  <p>
-    Portions of the materials are the copyrights and trademarks of Paradox Interactive AB, and are used with permission. All rights reserved. For more information please visit <a href="https://www.worldofdarkness.com" target="_blank" rel="noopener">worldofdarkness.com</a>.
-  </p>
-</footer>
+  <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
+    <button type="button" onclick="openAboutModal('legal')" class="underline underline-offset-2 hover:text-zinc-300 transition">Sitio no oficial · Dark Pack · Aviso legal</button>
+  </footer>
 </body>
 </html>

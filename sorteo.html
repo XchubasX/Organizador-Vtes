@@ -62,6 +62,15 @@
           <li>Toca <strong>🎲 Sortear</strong>. Cada jugador ve su número de asiento y su <strong>presa</strong>, que es el siguiente en la ronda. El último jugador tiene como presa al primero.</li>
         </ol>
         <p class="text-zinc-400">Puedes volver a sortear las veces que quieras. No se guarda nada.</p>
+        <section id="aboutLegal" class="border-t border-zinc-700 pt-4 space-y-3">
+          <h4 class="text-sm font-bold text-white">Aviso legal</h4>
+          <a href="https://www.paradoxinteractive.com/games/world-of-darkness/community/dark-pack-agreement" target="_blank" rel="noopener" class="flex items-center gap-3 group" title="Material amparado bajo el acuerdo Dark Pack de Paradox Interactive">
+            <img src="./darkpack_logo_small.webp" alt="Logo Dark Pack" class="w-16 h-16 rounded-full border-2 border-red-600/80 object-cover bg-black shrink-0">
+            <span class="text-xs text-zinc-400 group-hover:text-zinc-200 underline underline-offset-2">Material amparado bajo el acuerdo Dark Pack de Paradox Interactive</span>
+          </a>
+          <p class="text-xs text-zinc-400">Este sitio es una herramienta no oficial creada por fans para la comunidad. No es material oficial de World of Darkness y no está afiliado, respaldado ni patrocinado por Paradox Interactive AB ni por Black Chantry Productions.</p>
+          <p class="text-xs text-zinc-400">Portions of the materials are the copyrights and trademarks of Paradox Interactive AB, and are used with permission. All rights reserved. For more information please visit <a href="https://www.worldofdarkness.com" target="_blank" rel="noopener" class="underline hover:text-zinc-200">worldofdarkness.com</a>.</p>
+        </section>
       </div>
       <div class="flex justify-end pt-1">
         <button type="button" onclick="closeAboutModal()" class="bg-wine-600 hover:bg-wine-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-md">Entendido</button>
@@ -576,8 +585,13 @@
     // ---------------------------------------------------------------------
     // VENTANA "ACERCA DE" (botón "?" del encabezado)
     // ---------------------------------------------------------------------
-    function openAboutModal() {
+    function openAboutModal(section) {
       document.getElementById('aboutModal').classList.remove('hidden');
+      // Desde la línea "Aviso legal" del pie de página, ir directo a esa sección
+      if (section === 'legal') {
+        const el = document.getElementById('aboutLegal');
+        if (el) setTimeout(() => el.scrollIntoView({ block: 'start' }), 0);
+      }
     }
     function closeAboutModal() {
       document.getElementById('aboutModal').classList.add('hidden');
@@ -586,6 +600,8 @@
       if (e.key === 'Escape') closeAboutModal();
     });
   </script>
-
+  <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
+    <button type="button" onclick="openAboutModal('legal')" class="underline underline-offset-2 hover:text-zinc-300 transition">Sitio no oficial · Dark Pack · Aviso legal</button>
+  </footer>
 </body>
 </html>
