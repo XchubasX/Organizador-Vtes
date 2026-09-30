@@ -105,6 +105,11 @@
   </style>
 </head>
 <body>
+  <!-- Datos del sitio (Firebase y reCAPTCHA; distinto en pruebas) y código compartido.
+       Van al inicio del <body>, no en el <head>: App Check (reCAPTCHA) necesita que ya
+       exista el <body> para activarse. -->
+  <script src="config.js?v=20260929b"></script>
+  <script src="comun.js?v=20260929b"></script>
   <div class="wrap">
 
     <header>
@@ -262,24 +267,6 @@
   <div id="tip" hidden></div>
 
   <script>
-    // Configuración de tu proyecto en Firebase (misma que index.html)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
-      authDomain: "vtes-scheduler.firebaseapp.com",
-      databaseURL: "https://vtes-scheduler-default-rtdb.firebaseio.com",
-      projectId: "vtes-scheduler",
-      storageBucket: "vtes-scheduler.firebasestorage.app",
-      messagingSenderId: "897608138023",
-      appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-
-    const appCheck = firebase.appCheck();
-    appCheck.activate(
-      new firebase.appCheck.ReCaptchaEnterpriseProvider('6Lc2QLYtAAAAAHI6pH3gABXBdG4m2X1rPKmegI0P'),
-      true
-    );
 
     const db = firebase.database();
     const auth = firebase.auth(); // recupera la sesión guardada (si la hay) desde el inicio
@@ -297,9 +284,6 @@
     let statsLoaded = false;
     let isStatsAdmin = false; // solo el administrador poda datos viejos
 
-    function escapeHtml(str) {
-      return String(str ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    }
 
     function showGate(message, { showLogin = true, showSignOut = false, error = '' } = {}) {
       document.getElementById('gateSection').classList.remove('hidden');

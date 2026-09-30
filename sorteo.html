@@ -9,22 +9,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            wine: {
-              50: '#fdf2f4', 100: '#fbe4e8', 200: '#f0c2cb', 300: '#d98fa0',
-              400: '#c05a72', 500: '#a8425a', 600: '#8c2f45', 700: '#6d2436',
-              800: '#551c2a', 900: '#3f141f', 950: '#2a0d15'
-            }
-          }
-        }
-      }
-    }
-  </script>
 
   <!-- Firebase App & Database SDKs (solo lectura del evento) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -35,12 +19,13 @@
        sin guardar ningún dato en Firebase (ver botón flotante 💬 más abajo) -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" integrity="sha256-BS9pFqIbpb4UA2ZDnoG4StETY8hN+6KgbyCMe0pvbV8=" crossorigin="anonymous"></script>
 </head>
-<body class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
+<body data-contacto class="bg-zinc-900 text-zinc-100 min-h-screen p-4 md:p-8 font-sans">
+  <!-- Datos del sitio (Firebase y reCAPTCHA; distinto en pruebas) y código compartido.
+       Van al inicio del <body>, no en el <head>: App Check (reCAPTCHA) necesita que ya
+       exista el <body> para activarse. -->
+  <script src="config.js?v=20260929b"></script>
+  <script src="comun.js?v=20260929b"></script>
 
-  <!-- BOTÓN FLOTANTE: REPORTAR BUG / SUGERENCIA -->
-  <button type="button" onclick="openFeedbackModal()" title="Reportar un bug o sugerencia" aria-label="Reportar un bug o sugerencia" class="fixed bottom-4 right-4 z-40 bg-wine-600 hover:bg-wine-500 text-white rounded-full w-12 h-12 shadow-lg shadow-wine-900/40 flex items-center justify-center text-xl transition transform hover:scale-105">
-    💬
-  </button>
 
   <!-- MODAL: ACERCA DE (botón "?" del encabezado) -->
   <div id="aboutModal" onclick="if (event.target === this) closeAboutModal()" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
@@ -78,35 +63,6 @@
     </div>
   </div>
 
-  <!-- MODAL: REPORTAR BUG / SUGERENCIA (no guarda nada en Firebase, se envía por correo vía EmailJS) -->
-  <div id="feedbackModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-zinc-800 border border-zinc-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-      <div class="flex items-center gap-3 border-b border-zinc-700 pb-3">
-        <span class="text-2xl">💬</span>
-        <h3 class="text-lg font-bold text-wine-400">Reportar un bug o sugerencia</h3>
-      </div>
-      <p class="text-xs text-zinc-400">Tu mensaje se envía directo por correo. No se guarda nada en la base de datos del sitio.</p>
-      <form id="feedbackForm" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-zinc-400 mb-1">Mensaje</label>
-          <textarea id="feedbackMessage" required rows="4" maxlength="2000" placeholder="Describe el bug o la funcionalidad que te gustaría..." class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-wine-500 resize-none"></textarea>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-zinc-400 mb-1">Tu correo (opcional, solo si quieres que te respondamos)</label>
-          <input type="email" id="feedbackEmail" placeholder="tucorreo@ejemplo.com" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-wine-500">
-        </div>
-        <p id="feedbackStatus" class="text-xs hidden"></p>
-        <div class="flex gap-2 pt-1">
-          <button type="submit" id="feedbackSubmitBtn" class="flex-1 bg-wine-600 hover:bg-wine-500 text-white font-bold py-2 rounded-lg text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
-            Enviar
-          </button>
-          <button type="button" onclick="closeFeedbackModal()" class="text-sm font-medium text-zinc-400 hover:text-zinc-200 border border-zinc-700 rounded-lg px-4 transition">
-            Cancelar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <div class="max-w-2xl mx-auto space-y-6">
 
@@ -169,97 +125,10 @@
   </div>
 
   <script>
-    // Configuración de tu proyecto en Firebase (misma que index.html — solo se usa para leer
-    // el evento y precargar la lista de confirmados; esta página no escribe nada en la base de datos)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
-      authDomain: "vtes-scheduler.firebaseapp.com",
-      databaseURL: "https://vtes-scheduler-default-rtdb.firebaseio.com",
-      projectId: "vtes-scheduler",
-      storageBucket: "vtes-scheduler.firebasestorage.app",
-      messagingSenderId: "897608138023",
-      appId: "1:897608138023:web:3e12cd021b45f6c9a13d02"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-
-    const appCheck = firebase.appCheck();
-    appCheck.activate(
-      new firebase.appCheck.ReCaptchaEnterpriseProvider('6Lc2QLYtAAAAAHI6pH3gABXBdG4m2X1rPKmegI0P'),
-      true
-    );
 
     const db = firebase.database();
 
-    // Misma lógica retrocompatible que index.html para leer nicks de "players"
-    function normalizePlayer(p) {
-      if (p && typeof p === 'object') {
-        return { nick: p.nick || '', arrival: p.arrival || null };
-      }
-      const str = (p || '').toString();
-      const match = str.match(/^(.*\S)\s+(\d{1,2}):(\d{2})\s*$/);
-      if (match) {
-        return { nick: match[1], arrival: `${match[2].padStart(2, '0')}:${match[3]}` };
-      }
-      return { nick: str, arrival: null };
-    }
-
-    function escapeHtml(str) {
-      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    // ---------------------------------------------------------------------
-    // BOTÓN DE CONTACTO: REPORTAR BUG / SUGERENCIA
-    // Se envía por correo directo vía EmailJS — no se escribe nada en
-    // Firebase, no se guarda ningún dato del usuario en el sitio. El correo
-    // (si el usuario lo deja) solo viaja como "reply-to" del correo que le
-    // llega al administrador, igual que cualquier email normal.
-    // ---------------------------------------------------------------------
-    emailjs.init({ publicKey: 'MIO26Qm3IZUFiwvB3' });
-
-    function openFeedbackModal() {
-      document.getElementById('feedbackModal').classList.remove('hidden');
-    }
-
-    function closeFeedbackModal() {
-      document.getElementById('feedbackModal').classList.add('hidden');
-      document.getElementById('feedbackForm').reset();
-      const status = document.getElementById('feedbackStatus');
-      status.classList.add('hidden');
-      status.textContent = '';
-    }
-
-    document.getElementById('feedbackForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const message = document.getElementById('feedbackMessage').value.trim();
-      const email = document.getElementById('feedbackEmail').value.trim();
-      if (!message) return;
-
-      const btn = document.getElementById('feedbackSubmitBtn');
-      const status = document.getElementById('feedbackStatus');
-      btn.disabled = true;
-      btn.textContent = 'Enviando...';
-
-      emailjs.send('service_ehnpqcs', 'template_d1h2h9k', {
-        message: message,
-        page: 'sorteo',
-        reply_to: email || '(no proporcionado)'
-      }).then(() => {
-        status.textContent = '✅ ¡Gracias! Tu mensaje fue enviado.';
-        status.className = 'text-xs text-emerald-400';
-        status.classList.remove('hidden');
-        document.getElementById('feedbackForm').reset();
-        btn.disabled = false;
-        btn.textContent = 'Enviar';
-        setTimeout(closeFeedbackModal, 2000);
-      }).catch(() => {
-        status.textContent = '❌ No se pudo enviar. Intenta de nuevo en un momento.';
-        status.className = 'text-xs text-red-400';
-        status.classList.remove('hidden');
-        btn.disabled = false;
-        btn.textContent = 'Enviar';
-      });
-    });
+    // escapeHtml, normalizePlayer, el botón 💬 y "Acerca de" están en comun.js
 
     const params = new URLSearchParams(window.location.search);
     const tableId = params.get('tableId');
@@ -582,20 +451,7 @@
       `;
     }
 
-    // ---------------------------------------------------------------------
-    // VENTANA "ACERCA DE" (botón "?" del encabezado)
-    // ---------------------------------------------------------------------
-    function openAboutModal(section) {
-      document.getElementById('aboutModal').classList.remove('hidden');
-      // Desde la línea "Aviso legal" del pie de página, ir directo a esa sección
-      if (section === 'legal') {
-        const el = document.getElementById('aboutLegal');
-        if (el) setTimeout(() => el.scrollIntoView({ block: 'start' }), 0);
-      }
-    }
-    function closeAboutModal() {
-      document.getElementById('aboutModal').classList.add('hidden');
-    }
+    // Tecla Escape: cierra "Acerca de" (las funciones están en comun.js)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeAboutModal();
     });
