@@ -13,6 +13,7 @@ auth.onAuthStateChanged(async (user) => {
   renderAuthBar();
   renderAll(currentGlobalData);
 });
+mostrarAvisoIcono(); // aviso temporal del ícono nuevo (hasta el 8 oct 2026)
 document.getElementById('userTimezone').innerText = `Tu zona horaria: ${nombreZona(userTimezone) || userTimezone}${nombreZona(userTimezone) && nombreZona(userTimezone) !== userTimezone ? ` (${userTimezone})` : ''}`;
 
 let pickerCustomTable = flatpickr("#tableDateTime", { ...configFlatpickr, onChange: () => updateNightUI('create') });
