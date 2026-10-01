@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Ícono del sitio y datos para instalarlo en el celular ("VTESMatch") -->
+  <!-- Ícono del sitio y datos para instalarlo en el celular ("Elysium") -->
   <link rel="icon" href="iconos/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="iconos/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#18181B">
-  <meta name="apple-mobile-web-app-title" content="VTESMatch">
-  <title>VTES Matchmaking & Mesas Abiertas</title>
+  <meta name="apple-mobile-web-app-title" content="Elysium">
+  <title>Elysium: The Eternal Schedule · Mesas de VTES</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <!-- EmailJS: envía el formulario de "Reportar bug / Sugerencia" directo a un correo,
@@ -50,8 +50,8 @@
       </div>
       <div class="space-y-4 text-sm text-zinc-300 leading-relaxed">
         <section>
-          <h4 class="text-sm font-bold text-white mb-1">Acerca de VTES Scheduler</h4>
-          <p>VTES Scheduler es una herramienta gratuita, hecha por y para la comunidad de <em>Vampire: The Eternal Struggle</em>, para organizar partidas. Puedes abrir una mesa virtual y encontrar jugadores para completarla, o convocar un evento presencial en tu ciudad y ver quién va a llegar. Para ver las mesas no necesitas cuenta. Para crear una mesa o unirte, entras con tu cuenta de Google: nadie ve tu correo, solo sirve para evitar abusos. En cada mesa usas el nick que quieras.</p>
+          <h4 class="text-sm font-bold text-white mb-1">Acerca de Elysium</h4>
+          <p><strong>Elysium: The Eternal Schedule</strong> es una herramienta gratuita, hecha por y para la comunidad de <em>Vampire: The Eternal Struggle</em>, para organizar partidas. Puedes abrir una mesa virtual y encontrar jugadores para completarla, o convocar un evento presencial en tu ciudad y ver quién va a llegar. Para ver las mesas no necesitas cuenta. Para crear una mesa o unirte, entras con tu cuenta de Google: nadie ve tu correo, solo sirve para evitar abusos. En cada mesa usas el nick que quieras.</p>
         </section>
         <section>
           <h4 class="text-sm font-bold text-white mb-1">Cómo funciona</h4>
@@ -256,7 +256,11 @@
     <!-- Encabezado compacto: título a la izquierda, sesión a la derecha.
          "Acerca de" y la zona horaria están en la ventana del pie de página. -->
     <header class="flex items-center gap-3 border-b border-wine-800 pb-3">
-      <h1 class="flex-1 min-w-0 text-lg md:text-4xl font-extrabold text-wine-500 tracking-wider leading-tight">VAMPIRE: THE ETERNAL SCHEDULE</h1>
+      <img src="iconos/apple-touch-icon.png" alt="" width="36" height="36" class="w-9 h-9 md:w-14 md:h-14 rounded-lg shrink-0">
+      <h1 class="flex-1 min-w-0 leading-tight">
+        <span class="block text-[22px] md:text-4xl font-extrabold text-wine-500 tracking-widest">ELYSIUM</span>
+        <span class="block text-xs md:text-base text-zinc-400 tracking-wide">The Eternal Schedule</span>
+      </h1>
       <div id="authBar" class="shrink-0"></div>
     </header>
 
@@ -446,13 +450,13 @@
   <!-- Código de esta página, separado por tema (fase 2, 29 sep 2026).
        El orden importa: los primeros solo definen funciones; arranque.js va al
        final porque es el que ejecuta todo al abrir la página. -->
-  <script src="js/sesion.js?v=20261001a"></script>
-  <script src="js/fechas.js?v=20261001a"></script>
-  <script src="js/ventanas.js?v=20261001a"></script>
-  <script src="js/mesas.js?v=20261001a"></script>
-  <script src="js/compartir.js?v=20261001a"></script>
-  <script src="js/tarjetas.js?v=20261001a"></script>
-  <script src="js/arranque.js?v=20261001a"></script>
+  <script src="js/sesion.js?v=20261001e"></script>
+  <script src="js/fechas.js?v=20261001e"></script>
+  <script src="js/ventanas.js?v=20261001e"></script>
+  <script src="js/mesas.js?v=20261001e"></script>
+  <script src="js/compartir.js?v=20261001e"></script>
+  <script src="js/tarjetas.js?v=20261001e"></script>
+  <script src="js/arranque.js?v=20261001e"></script>
   <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
     <button type="button" onclick="openAboutModal()" class="underline underline-offset-2 hover:text-zinc-300 transition py-2">Acerca de · Aviso legal</button>
   </footer>

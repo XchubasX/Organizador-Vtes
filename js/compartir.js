@@ -158,7 +158,7 @@ function buildCalendarEvent(t) {
   }
   if (t.format) details.push(`Formato: ${formatLabel(t.format)}`);
   if (t.notes) details.push(`Notas: ${t.notes}`);
-  details.push(`Mesa en VTES Scheduler: ${getTableUrl(t.id)}`);
+  details.push(`Mesa en Elysium: ${getTableUrl(t.id)}`);
   return {
     id: t.id,
     title: `VTES: ${t.name}`,
@@ -200,7 +200,7 @@ function downloadCalendarFile() {
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//VTES Scheduler//ES',
+    'PRODID:-//Elysium The Eternal Schedule//ES',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
     `UID:${ev.id}@vtes-scheduler`,
