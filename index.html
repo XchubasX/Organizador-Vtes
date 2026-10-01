@@ -73,14 +73,15 @@
         <section>
           <h4 class="text-sm font-bold text-white mb-1">Horarios</h4>
           <ul class="list-disc pl-5 space-y-1">
-            <li>Las mesas virtuales se muestran en <strong>tu hora</strong>.</li>
+            <li>Las mesas virtuales se muestran en la <strong>hora de tu ciudad</strong>.</li>
             <li>Los eventos presenciales se muestran en la <strong>hora del lugar</strong>.</li>
+            <li id="userTimezone" class="text-wine-300">Detectando tu zona horaria...</li>
           </ul>
         </section>
         <section>
           <h4 class="text-sm font-bold text-white mb-1">Compartir</h4>
           <ul class="list-disc pl-5 space-y-1">
-            <li><strong>📲 WhatsApp</strong> o <strong>🔗 Compartir</strong> envían un enlace directo a la mesa.</li>
+            <li><strong>Invitar</strong> manda un mensaje por WhatsApp o copia el enlace directo a la mesa.</li>
             <li><strong>📅 Calendario</strong> la agrega a tu agenda.</li>
           </ul>
         </section>
@@ -245,15 +246,11 @@
 
   <div class="max-w-5xl mx-auto space-y-8">
 
-    <!-- Encabezado -->
-    <header class="relative text-center space-y-2 border-b border-wine-800 pb-4 px-10">
-      <button type="button" onclick="openAboutModal()" aria-label="Acerca de: cómo funciona" title="Acerca de" class="absolute top-0 right-0 w-8 h-8 rounded-full bg-zinc-800 border border-zinc-600 text-zinc-300 hover:text-white hover:border-wine-500 font-bold text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-wine-400">?</button>
-      <h1 class="text-3xl md:text-5xl font-extrabold text-wine-500 tracking-wider">VAMPIRE: THE ETERNAL SCHEDULE</h1>
-      <p class="text-zinc-400 text-sm md:text-base">Coordinador de Mesas</p>
-      <div id="userTimezone" class="inline-block bg-zinc-800 border border-zinc-700 text-wine-400 text-xs px-3 py-1 rounded-full font-mono mt-2">
-        Detectando tu zona horaria...
-      </div>
-      <div id="authBar" class="pt-2"></div>
+    <!-- Encabezado compacto: título a la izquierda, sesión a la derecha.
+         "Acerca de" y la zona horaria están en la ventana del pie de página. -->
+    <header class="flex items-center gap-3 border-b border-wine-800 pb-3">
+      <h1 class="flex-1 min-w-0 text-lg md:text-4xl font-extrabold text-wine-500 tracking-wider leading-tight">VAMPIRE: THE ETERNAL SCHEDULE</h1>
+      <div id="authBar" class="shrink-0"></div>
     </header>
 
     <!-- MESAS Y EVENTOS: pestañas arriba, luego el botón para crear, luego la lista -->
@@ -435,15 +432,15 @@
   <!-- Código de esta página, separado por tema (fase 2, 29 sep 2026).
        El orden importa: los primeros solo definen funciones; arranque.js va al
        final porque es el que ejecuta todo al abrir la página. -->
-  <script src="js/sesion.js?v=20260929c"></script>
-  <script src="js/fechas.js?v=20260929c"></script>
-  <script src="js/ventanas.js?v=20260929c"></script>
-  <script src="js/mesas.js?v=20260929c"></script>
-  <script src="js/compartir.js?v=20260929c"></script>
-  <script src="js/tarjetas.js?v=20260929c"></script>
-  <script src="js/arranque.js?v=20260929c"></script>
+  <script src="js/sesion.js?v=20260930e"></script>
+  <script src="js/fechas.js?v=20260930e"></script>
+  <script src="js/ventanas.js?v=20260930e"></script>
+  <script src="js/mesas.js?v=20260930e"></script>
+  <script src="js/compartir.js?v=20260930e"></script>
+  <script src="js/tarjetas.js?v=20260930e"></script>
+  <script src="js/arranque.js?v=20260930e"></script>
   <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
-    <button type="button" onclick="openAboutModal('legal')" class="underline underline-offset-2 hover:text-zinc-300 transition">Sitio no oficial · Dark Pack · Aviso legal</button>
+    <button type="button" onclick="openAboutModal()" class="underline underline-offset-2 hover:text-zinc-300 transition py-2">Acerca de · Aviso legal</button>
   </footer>
 </body>
 </html>

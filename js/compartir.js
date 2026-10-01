@@ -102,22 +102,13 @@ function getTableUrl(tableId) {
   return `${getSiteBaseUrl()}#mesa-${tableId}`;
 }
 
-// Botón "🔗 Compartir": en el celular abre el menú de compartir del
-// teléfono (Telegram, Discord, etc.); en computadora copia el enlace.
+// "Copiar enlace" (menú Invitar): siempre copia el enlace directo a la mesa,
+// en celular y en computadora. Si el navegador no deja copiar, lo muestra
+// en una ventanita para copiarlo a mano.
 async function shareTableLink(tableId) {
   const t = currentGlobalData.find(item => item.id === tableId);
   if (!t) return showToast('❌ Esta mesa ya no existe.', 'error');
   const url = getTableUrl(tableId);
-  const text = `🦇 ${t.modality === 'presencial' ? 'Evento' : 'Mesa'} de VTES: ${t.name}`;
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: t.name, text, url });
-      return;
-    } catch (e) {
-      if (e && e.name === 'AbortError') return; // el usuario cerró el menú
-    }
-  }
   try {
     await navigator.clipboard.writeText(url);
     showToast('🔗 Enlace copiado');

@@ -154,7 +154,7 @@ function enviarFeedback(e) {
 }
 
 // ---------------------------------------------------------------------
-// VENTANA "ACERCA DE" (botón "?" del encabezado). El contenido está en
+// VENTANA "ACERCA DE" (enlace "Acerca de · Aviso legal" del pie). El contenido está en
 // cada página, porque es distinto en cada una.
 // ---------------------------------------------------------------------
 function openAboutModal(section) {

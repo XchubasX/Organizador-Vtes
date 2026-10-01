@@ -6,6 +6,28 @@
 
 const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+// Nombre legible de una zona horaria, para "hora de Ciudad de México".
+// Si no está en la lista se usa la última parte del nombre técnico
+// (ej. "Europe/Oslo" → "Oslo").
+const NOMBRES_ZONA = {
+  'America/Mexico_City': 'Ciudad de México', 'America/Monterrey': 'Monterrey', 'America/Merida': 'Mérida',
+  'America/Cancun': 'Cancún', 'America/Chihuahua': 'Chihuahua', 'America/Hermosillo': 'Hermosillo',
+  'America/Mazatlan': 'Mazatlán', 'America/Tijuana': 'Tijuana', 'America/Bahia_Banderas': 'Bahía de Banderas',
+  'Europe/Madrid': 'Madrid', 'Atlantic/Canary': 'Canarias', 'Europe/Lisbon': 'Lisboa', 'Europe/London': 'Londres',
+  'Europe/Paris': 'París', 'Europe/Berlin': 'Berlín', 'Europe/Rome': 'Roma',
+  'America/Santiago': 'Santiago de Chile', 'America/Bogota': 'Bogotá', 'America/Lima': 'Lima',
+  'America/Argentina/Buenos_Aires': 'Buenos Aires', 'America/Caracas': 'Caracas', 'America/Montevideo': 'Montevideo',
+  'America/Asuncion': 'Asunción', 'America/La_Paz': 'La Paz', 'America/Guayaquil': 'Guayaquil', 'America/Sao_Paulo': 'São Paulo',
+  'America/Guatemala': 'Guatemala', 'America/El_Salvador': 'El Salvador', 'America/Tegucigalpa': 'Tegucigalpa',
+  'America/Managua': 'Managua', 'America/Costa_Rica': 'Costa Rica', 'America/Panama': 'Panamá',
+  'America/Havana': 'La Habana', 'America/Santo_Domingo': 'Santo Domingo', 'America/Puerto_Rico': 'Puerto Rico',
+  'America/New_York': 'Nueva York', 'America/Chicago': 'Chicago', 'America/Denver': 'Denver', 'America/Los_Angeles': 'Los Ángeles'
+};
+function nombreZona(tz) {
+  if (!tz) return '';
+  return NOMBRES_ZONA[tz] || tz.split('/').pop().replace(/_/g, ' ');
+}
+
 const configFlatpickr = {
   enableTime: true,
   dateFormat: "Y-m-d H:i",
@@ -149,32 +171,20 @@ function nightOfName(utcISO, timeZone) {
 }
 
 // ---------------------------------------------------------------------
-// TIEMPO RELATIVO: "⏰ en 2 h", "🔥 ¡Empezando!", "🩸 En curso"
+// TIEMPO RELATIVO: "en 2 h", "¡Empezando!", "En curso"
 // Se recalcula cada minuto sin volver a dibujar las tarjetas.
 // ---------------------------------------------------------------------
 function relativeTimeLabel(utcISO) {
   const diffMin = Math.round((new Date(utcISO).getTime() - Date.now()) / 60000);
   if (diffMin > 0) {
-    if (diffMin < 60) return { text: `⏰ en ${diffMin} min`, soon: true };
+    if (diffMin < 60) return { text: `en ${diffMin} min`, soon: true };
     const hours = Math.round(diffMin / 60);
-    if (hours < 24) return { text: `⏰ en ${hours} h`, soon: hours <= 3 };
+    if (hours < 24) return { text: `en ${hours} h`, soon: hours <= 3 };
     const days = Math.round(diffMin / 1440);
-    return { text: `⏰ en ${days} día${days === 1 ? '' : 's'}`, soon: false };
+    return { text: `en ${days} día${days === 1 ? '' : 's'}`, soon: false };
   }
-  if (diffMin > -30) return { text: '🔥 ¡Empezando!', soon: true };
-  return { text: '🩸 En curso', soon: true };
-}
-
-// Etiqueta de la tarjeta: presenciales en la hora del lugar, virtuales en la de quien mira
-function nightBadgeHtml(t) {
-  const tz = t.modality === 'presencial' ? t.originTz : undefined;
-  const night = nightOfName(t.utcTime, tz);
-  return night ? `<span class="bg-indigo-950 text-indigo-200 border border-indigo-600/70 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">🌙 noche del ${escapeHtml(night)}</span>` : '';
-}
-
-function relativeBadgeHtml(utcISO) {
-  const r = relativeTimeLabel(utcISO);
-  return `<span class="rel-time ${r.soon ? 'bg-amber-950 text-amber-300 border-amber-700/70' : 'bg-zinc-800 text-zinc-300 border-zinc-600'} border text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap" data-time="${escapeHtml(utcISO)}">${r.text}</span>`;
+  if (diffMin > -30) return { text: '¡Empezando!', soon: true };
+  return { text: 'En curso', soon: true };
 }
 
 // ---------------------------------------------------------------------

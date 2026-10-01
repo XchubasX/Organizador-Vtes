@@ -13,7 +13,7 @@ auth.onAuthStateChanged(async (user) => {
   renderAuthBar();
   renderAll(currentGlobalData);
 });
-document.getElementById('userTimezone').innerText = `Tu zona horaria: ${userTimezone}`;
+document.getElementById('userTimezone').innerText = `Tu zona horaria: ${nombreZona(userTimezone) || userTimezone}${nombreZona(userTimezone) && nombreZona(userTimezone) !== userTimezone ? ` (${userTimezone})` : ''}`;
 
 let pickerCustomTable = flatpickr("#tableDateTime", { ...configFlatpickr, onChange: () => updateNightUI('create') });
 let pickerEditSchedule = flatpickr("#editScheduleDateTime", { ...configFlatpickr, onChange: () => updateNightUI('edit') });

@@ -60,31 +60,57 @@ function showLoadProblem() {
   document.getElementById('customTablesContainer').innerHTML = `<div class="col-span-2 text-center py-6 space-y-2 bg-zinc-900 border border-red-800/60 rounded-xl"><p class="text-red-300 font-semibold">No se pudo conectar.</p><p class="text-zinc-400 text-sm">Revisa tu internet y vuelve a cargar la página.</p><button type="button" onclick="location.reload()" class="mt-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 font-semibold py-1.5 px-4 rounded-lg text-sm transition">Volver a cargar</button></div>`;
 }
 
+// Mostrar u ocultar la contraseña de la partida (la de "Ver").
+// Mientras está oculta se ven puntitos; el botón cambia entre "Ver" y "Ocultar".
 function togglePasswordView(elementId) {
   const el = document.getElementById(elementId);
-  if (el) el.classList.toggle('hidden');
+  if (!el) return;
+  el.classList.toggle('hidden');
+  const oculta = el.classList.contains('hidden');
+  const puntos = document.getElementById(elementId + '-puntos');
+  if (puntos) puntos.classList.toggle('hidden', !oculta);
+  const boton = document.getElementById(elementId + '-boton');
+  if (boton) boton.textContent = oculta ? 'Ver' : 'Ocultar';
 }
 
-function getPlatformBadge(platform) {
-  const isLackey = (platform || '').toLowerCase().includes('lackey');
-  return isLackey
-    ? `<span class="bg-blue-950 text-blue-300 border border-blue-700/60 text-xs px-2 py-0.5 rounded font-semibold">LackeyCCG</span>`
-    : `<span class="bg-purple-950 text-purple-300 border border-purple-700/60 text-xs px-2 py-0.5 rounded font-semibold">Succubus Club</span>`;
+// Menú del botón "Invitar": WhatsApp o copiar enlace.
+// Se cierra al elegir una opción, al tocar fuera o con Escape.
+function closeInviteMenus() {
+  document.querySelectorAll('.invite-menu').forEach(m => m.classList.add('hidden'));
+  document.querySelectorAll('[id^="invitar-boton-"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+function toggleInviteMenu(tableId) {
+  const menu = document.getElementById('invitar-' + tableId);
+  if (!menu) return;
+  const abrir = menu.classList.contains('hidden');
+  closeInviteMenus();
+  if (abrir) {
+    menu.classList.remove('hidden');
+    const boton = document.getElementById('invitar-boton-' + tableId);
+    if (boton) boton.setAttribute('aria-expanded', 'true');
+  }
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.invite-menu') && !e.target.closest('[id^="invitar-boton-"]')) closeInviteMenus();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeInviteMenus(); });
+
+function platformLabel(platform) {
+  return (platform || '').toLowerCase().includes('lackey') ? 'LackeyCCG' : 'Succubus Club';
 }
 
 // Formato de mesa virtual: Standard (Legacy) o V5
 function formatLabel(format) {
   return format === 'v5' ? 'V5' : 'Standard (Legacy)';
 }
-function getFormatBadge(format) {
-  if (!format) return ''; // mesas creadas antes de que existiera el campo
-  return format === 'v5'
-    ? `<span class="bg-orange-950 text-orange-300 border border-orange-600/70 text-xs px-2 py-0.5 rounded font-bold whitespace-nowrap">V5</span>`
-    : `<span class="bg-zinc-800 text-zinc-300 border border-zinc-600 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">Standard (Legacy)</span>`;
-}
 
-function getLocationBadge() {
-  return `<span class="bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-xs px-2 py-0.5 rounded font-semibold">📍 Presencial</span>`;
+// Fecha de la tarjeta: "martes 30 sep" (se muestra en mayúsculas).
+// Presenciales en la zona del lugar; virtuales en la de quien mira.
+function fechaTarjeta(utcISO, tz) {
+  const partes = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'short', timeZone: tz || undefined })
+    .formatToParts(new Date(utcISO));
+  const parte = tipo => (partes.find(x => x.type === tipo) || {}).value || '';
+  return `${parte('weekday')} ${parte('day')} ${parte('month').replace('.', '')}`;
 }
 
 function matchesPresencialFilters(t) {
@@ -192,17 +218,13 @@ function renderCustomTables(tables, container) {
     const alreadyIn = roster.entries.some(isMine);
     const id = escapeJsAttr(t.id);
 
-    let formattedDate, formattedTime;
-    if (isPresencial) {
-      // Hora local del lugar del evento (huso de origen), sin convertir
-      const fCard = formatPresencialDateTime(t.utcTime, t.originTz, { weekday: 'short', month: 'short', day: 'numeric' }, { hour: '2-digit', minute: '2-digit' });
-      formattedDate = fCard.date;
-      formattedTime = fCard.time;
-    } else {
-      const dateObj = new Date(t.utcTime);
-      formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-      formattedTime = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    }
+    const zonaTarjeta = isPresencial ? t.originTz : undefined;
+    const formattedDate = fechaTarjeta(t.utcTime, zonaTarjeta);
+    const formattedTime = isPresencial
+      ? formatPresencialDateTime(t.utcTime, t.originTz, {}, { hour: '2-digit', minute: '2-digit' }).time
+      : new Date(t.utcTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const nocheDe = nightOfName(t.utcTime, zonaTarjeta);
+    const relativo = relativeTimeLabel(t.utcTime);
 
     // Jugadores en orden de llegada y, si es presencial, ordenados por hora de llegada
     let displayPlayers = roster.players;
@@ -219,52 +241,51 @@ function renderCustomTables(tables, container) {
       ? `<button onclick="banEntry('${id}', '${escapeJsAttr(e.ref)}')" class="text-amber-500/80 hover:text-amber-300 text-sm leading-none px-2 py-1.5 -my-1.5 rounded" title="Vetar esta cuenta" aria-label="Vetar la cuenta de ${escapeHtml(e.nick)}">🚫</button>`
       : '';
 
-    let statusBadge = isPresencial
-      ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">👥 ${count} confirmado${count === 1 ? '' : 's'}</span>`
+    // Cupo, junto a la hora
+    const statusBadge = isPresencial
+      ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/70 text-[13px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap">${count} confirmado${count === 1 ? '' : 's'}</span>`
       : isReady
-        ? `<span class="bg-green-900/80 text-green-300 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap border border-green-600">✅ ${count >= 5 ? 'Mesa llena' : 'Lista para jugar'} (${count}/5)</span>`
-        : `<span class="bg-wine-900/60 text-wine-300 border border-wine-700/60 text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap">🪑 Faltan ${5 - count} jugador(es)</span>`;
+        ? `<span class="bg-green-900/70 text-green-300 border border-green-600 text-[13px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap">${count >= 5 ? 'Mesa llena' : 'Lista para jugar'} (${count}/5)</span>`
+        : `<span class="bg-wine-900/60 text-wine-200 border border-wine-600/70 text-[13px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap">Faltan ${5 - count} · ${count}/5</span>`;
 
-    const discordHtml = `
-      <div class="bg-indigo-950/40 border border-indigo-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-indigo-300">
-        <span class="font-medium flex items-center gap-1 min-w-0">
-          <span>🎧</span> <strong>Discord:</strong>
-          ${t.discord ? `<span class="text-indigo-200 font-normal break-all">${escapeHtml(t.discord)}</span>` : `<span class="text-zinc-500 italic">No especificado</span>`}
-        </span>
-        ${manage ? `<button onclick="editCustomTableDiscord('${id}')" class="text-indigo-400 hover:text-indigo-200 bg-indigo-900/60 border border-indigo-700/50 px-2 py-0.5 rounded transition text-xs font-semibold ml-2 shrink-0">
-          ✏️ ${t.discord ? 'Editar' : 'Definir'}
-        </button>` : ''}
+    // Línea de datos: "LackeyCCG · V5 · Organizas tú" / "Presencial · cada jueves"
+    const datos = isPresencial
+      ? ['Presencial', t.recurrence === 'weekly' ? `cada ${escapeHtml(weekdayInZone(t.utcTime, t.originTz))}` : '']
+      : [platformLabel(t.platform || 'Lackey'), t.format ? formatLabel(t.format) : ''];
+    const datosHtml = datos.filter(Boolean).join(' · ')
+      + (iOwn ? ' · <span class="text-purple-300 font-semibold">Organizas tú</span>' : '');
+
+    // Discord y contraseña: siempre visibles (también para espectadores)
+    const pwdId = `gamepwd-${escapeHtml(t.id)}`;
+    const partidaHtml = `
+      <div class="bg-zinc-800 rounded-lg px-3 py-2.5 space-y-2 text-sm">
+        <div class="flex items-center justify-between gap-2">
+          <span class="min-w-0"><span class="text-zinc-400">Discord</span>&nbsp; ${t.discord ? `<span class="text-zinc-100 font-semibold break-all">${escapeHtml(t.discord)}</span>` : `<span class="text-zinc-500 italic">No especificado</span>`}</span>
+          ${manage ? `<button onclick="editCustomTableDiscord('${id}')" class="text-zinc-400 hover:text-white text-[13px] shrink-0 py-1">${t.discord ? 'Editar' : 'Definir'}</button>` : ''}
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="min-w-0"><span class="text-zinc-400">Contraseña</span>&nbsp; ${t.gamePassword
+            ? `<span id="${pwdId}-puntos" class="text-zinc-100 font-mono font-semibold">••••••</span><span id="${pwdId}" class="hidden text-zinc-100 font-mono font-semibold select-all break-all">${escapeHtml(t.gamePassword)}</span> <button id="${pwdId}-boton" onclick="togglePasswordView('gamepwd-${id}')" class="text-wine-300 hover:text-wine-100 font-semibold underline py-1 ml-1">Ver</button>`
+            : `<span class="text-zinc-500 italic">Sin contraseña</span>`}</span>
+          ${manage ? `<button onclick="editCustomTableGamePassword('${id}')" class="text-zinc-400 hover:text-white text-[13px] shrink-0 py-1">${t.gamePassword ? 'Editar' : 'Definir'}</button>` : ''}
+        </div>
       </div>
     `;
 
-    const gamePwdHtml = `
-      <div class="bg-blue-950/40 border border-blue-700/50 rounded-lg p-2 flex items-center justify-between text-xs text-blue-300">
-        <span class="font-medium flex items-center gap-1">
-          <span>🔑</span> <strong>Pass Partida:</strong>
-          ${t.gamePassword ? `<span id="gamepwd-${escapeHtml(t.id)}" class="hidden font-mono font-bold text-blue-200 bg-zinc-900 px-2 py-0.5 rounded border border-blue-500/30 select-all">${escapeHtml(t.gamePassword)}</span><button onclick="togglePasswordView('gamepwd-${id}')" class="text-blue-400 hover:text-white bg-zinc-700 hover:bg-zinc-600 px-2 py-0.5 rounded transition text-xs ml-1">👁️ Ver</button>` : `<span class="text-zinc-500 italic">Sin contraseña</span>`}
-        </span>
-        ${manage ? `<button onclick="editCustomTableGamePassword('${id}')" class="text-blue-400 hover:text-blue-200 bg-blue-900/60 border border-blue-700/50 px-2 py-0.5 rounded transition text-xs font-semibold ml-2 shrink-0">
-          ✏️ ${t.gamePassword ? 'Editar' : 'Definir'}
-        </button>` : ''}
-      </div>
-    `;
-
-    // Solo se muestra el botón de mapa si el link es un link real (http/https)
+    // Solo se muestra el enlace de mapa si el link es un link real (http/https)
     const hasValidMap = t.mapsLink && isValidHttpUrl(t.mapsLink);
     const venueHtml = `
-      <div class="bg-emerald-950/40 border border-emerald-700/50 rounded-lg p-2.5 text-xs text-emerald-300 space-y-1.5">
-        <div class="flex items-center gap-1.5">
-          <span>📍</span> <strong>${escapeHtml(t.venue || '')}</strong>
-        </div>
-        <div class="text-emerald-400/70 pl-4">${escapeHtml(t.city || '')}${t.country ? ', ' + escapeHtml(t.country) : ''}</div>
-        <div class="flex items-center justify-between pt-1">
+      <div class="bg-zinc-800 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3 text-sm">
+        <span class="min-w-0">
+          <span class="block text-zinc-100 font-semibold break-words">${escapeHtml(t.venue || '')}</span>
+          <span class="block text-zinc-400">${escapeHtml(t.city || '')}${t.country ? ', ' + escapeHtml(t.country) : ''}</span>
+        </span>
+        <span class="flex flex-col items-end gap-1 shrink-0">
           ${hasValidMap
-            ? `<a href="${escapeHtml(t.mapsLink)}" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-xs font-semibold">🗺️ Ver ubicación</a>`
-            : `<span class="text-zinc-500 italic">${t.mapsLink ? 'Link de mapa no válido' : 'Sin link de mapa'}</span>`}
-          ${manage ? `<button onclick="editCustomTableMapsLink('${id}')" class="text-emerald-400 hover:text-emerald-200 bg-emerald-900/60 border border-emerald-700/50 px-2 py-0.5 rounded transition text-xs font-semibold ml-2">
-            ✏️ ${t.mapsLink ? 'Editar' : 'Agregar'} link
-          </button>` : ''}
-        </div>
+            ? `<a href="${escapeHtml(t.mapsLink)}" target="_blank" rel="noopener" class="text-emerald-300 hover:text-emerald-100 font-semibold underline py-1">Ver mapa</a>`
+            : `<span class="text-zinc-500 italic text-[13px]">${t.mapsLink ? 'Link de mapa no válido' : 'Sin mapa'}</span>`}
+          ${manage ? `<button onclick="editCustomTableMapsLink('${id}')" class="text-zinc-400 hover:text-white text-[13px] py-1">${t.mapsLink ? 'Editar' : 'Agregar'} link</button>` : ''}
+        </span>
       </div>
     `;
 
@@ -281,7 +302,8 @@ function renderCustomTables(tables, container) {
           ${banBtn(p)}
         </span>
       `;
-    }).join('');
+    }).join('') + (isPresencial ? '' : Array.from({ length: Math.max(0, 5 - count) }, () =>
+      '<span class="inline-flex items-center border border-dashed border-zinc-600 text-zinc-500 text-sm px-2.5 py-1 rounded-lg">libre</span>').join(''));
 
     const subsHtml = subs.length === 0 ? '' : `
       <div class="space-y-2 bg-zinc-800/50 border border-dashed border-zinc-600 rounded-lg p-2.5">
@@ -309,108 +331,95 @@ function renderCustomTables(tables, container) {
     // Si ya estoy anotado (y no organizo), no hay botón para anotarme otra vez.
     // El organizador que ya está anotado ve "Anotar a otra persona".
     const joinLabel = alreadyIn
-      ? '➕ Anotar a otra persona'
-      : `➕ ${isPresencial ? '¡Confirmar asistencia!' : '¡Unirme a esta Mesa!'}`;
-    const openSimilarHtml = `
-              <button onclick="openSimilarTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
-                ➕ Abrir otra mesa a esta hora
-              </button>
-            `;
-    const mainActionHtml = (alreadyIn && !manage) ? ((isFull && subs.length >= SUBS_MAX) ? openSimilarHtml : '') : !isFull ? `
-              <button onclick="joinTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
-                ${joinLabel}
-              </button>
-            ` : subs.length < SUBS_MAX ? `
-              <button onclick="joinTable('${id}', true)" class="w-full bg-zinc-800 hover:bg-amber-900/60 text-amber-300 hover:text-white border border-amber-700/60 font-bold py-1.5 rounded-lg text-xs transition duration-150">
-                ⏳ Apuntarme como suplente
-              </button>
-            ` : `
-              <button onclick="openSimilarTable('${id}')" class="w-full bg-wine-600/20 hover:bg-wine-600 text-wine-300 hover:text-white border border-wine-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150">
-                ➕ Abrir otra mesa a esta hora
-              </button>
-            `;
+      ? 'Anotar a otra persona'
+      : (isPresencial ? '¡Confirmar asistencia!' : '¡Unirme a esta Mesa!');
+    const botonPrincipal = 'w-full bg-wine-600 hover:bg-wine-500 text-white font-bold h-11 rounded-lg text-[15px] transition duration-150';
+    const botonSecundario = 'flex-1 min-w-[6rem] bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-semibold h-10 px-2 rounded-lg text-[13px] transition';
+    const openSimilarHtml = `<button onclick="openSimilarTable('${id}')" class="${botonSecundario} w-full">Abrir otra mesa a esta hora</button>`;
+    const mainActionHtml = (alreadyIn && !manage) ? ((isFull && subs.length >= SUBS_MAX) ? openSimilarHtml : '')
+      : !isFull ? `<button onclick="joinTable('${id}')" class="${botonPrincipal}">${joinLabel}</button>`
+      : subs.length < SUBS_MAX ? `<button onclick="joinTable('${id}', true)" class="w-full bg-amber-700 hover:bg-amber-600 text-white font-bold h-11 rounded-lg text-[15px] transition duration-150">Apuntarme como suplente</button>`
+      : openSimilarHtml;
 
+    const botonSalir = 'flex-1 min-w-[8rem] bg-transparent hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-700 font-semibold h-10 px-2 rounded-lg text-[13px] transition';
     const leaveSubButtons = mySubs.map(s => `
-      <button onclick="leaveTable('${id}', '${escapeJsAttr(s.ref)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
-        🚪 Salir de suplentes${mySubs.length > 1 ? ` (${escapeHtml(s.nick)})` : ''}
-      </button>
+      <button onclick="leaveTable('${id}', '${escapeJsAttr(s.ref)}')" class="${botonSalir}">Salir de suplentes${mySubs.length > 1 ? ` (${escapeHtml(s.nick)})` : ''}</button>
     `).join('');
 
     const leaveButtons = myPlayers.map(p => `
-      <button onclick="leaveTable('${id}', '${escapeJsAttr(p.ref)}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-red-900/60 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">
-        🚪 Salir${myPlayers.length > 1 ? ` (${escapeHtml(p.nick)})` : isPresencial ? ' del evento' : ' de la mesa'}
-      </button>
+      <button onclick="leaveTable('${id}', '${escapeJsAttr(p.ref)}')" class="${botonSalir}">Salir${myPlayers.length > 1 ? ` (${escapeHtml(p.nick)})` : isPresencial ? ' del evento' : ' de la mesa'}</button>
     `).join('');
 
     const cardId = `card-custom-${escapeHtml(t.id)}`;
+    const zonaTexto = isPresencial ? `<span class="text-emerald-400">${t.city ? 'hora de ' + escapeHtml(t.city) : 'hora local'}</span>` : (userTimezone ? `hora de ${escapeHtml(nombreZona(userTimezone))}` : 'tu hora');
 
     return `
-      <div id="${cardId}" class="bg-zinc-900 border ${isPresencial ? 'border-emerald-600/50' : (isReady ? 'border-green-600/60' : 'border-wine-600/40')} rounded-xl p-4 shadow-md space-y-4 transition-shadow">
-        <!-- Encabezado con renglones fijos: 1) etiquetas + estado, 2) nombre, 3) fecha -->
-        <div class="space-y-1.5 border-b border-zinc-800 pb-2">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
-              ${isPresencial ? getLocationBadge() : getPlatformBadge(t.platform || 'Lackey')}
-              ${isPresencial ? '' : getFormatBadge(t.format)}
-              ${isPresencial && t.recurrence === 'weekly' ? `<span class="bg-emerald-950 text-emerald-200 border border-emerald-600/70 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">🔁 Cada ${escapeHtml(weekdayInZone(t.utcTime, t.originTz))}</span>` : ''}
-              ${iOwn ? `<span class="bg-purple-950 text-purple-200 border border-purple-600/70 text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap">👑 Organizas tú</span>` : ''}
-            </div>
-            <div class="shrink-0">${statusBadge}</div>
+      <div id="${cardId}" class="bg-zinc-900 border ${isPresencial ? 'border-emerald-600/50' : (isReady ? 'border-green-600/60' : 'border-wine-600/40')} rounded-xl p-4 shadow-md space-y-3.5 transition-shadow">
+        <!-- 1) Cuándo: fecha y hora grandes, con el cupo al lado -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-[17px] font-extrabold tracking-wide uppercase text-wine-300">${escapeHtml(formattedDate)}</span>
+            <span class="shrink-0">${statusBadge}</span>
           </div>
-          <h3 class="font-bold text-wine-300 text-base leading-snug break-words">${escapeHtml(t.name)}</h3>
-          <p class="text-xs text-zinc-400 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <span>${formattedDate} - <span class="font-mono text-white font-semibold">${formattedTime}</span> ${isPresencial ? '<span class="text-emerald-400">(hora local)</span>' : '<span class="text-zinc-400">(tu hora)</span>'}</span>
-            ${nightBadgeHtml(t)}
-            ${relativeBadgeHtml(t.utcTime)}
-          </p>
+          <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <span class="text-[24px] leading-none font-extrabold tracking-tight text-white tabular-nums">${escapeHtml(formattedTime)}</span>
+            <span class="text-sm text-zinc-400">${zonaTexto}${nocheDe ? ` · <span class="text-indigo-300">noche del ${escapeHtml(nocheDe)}</span>` : ''} · <span class="rel-time ${relativo.soon ? 'text-amber-300 font-semibold' : ''}" data-time="${escapeHtml(t.utcTime)}">${relativo.text}</span></span>
+          </div>
+        </div>
+
+        <!-- 2) Qué: nombre y datos en una línea -->
+        <div class="space-y-1">
+          <h3 class="font-bold text-wine-300 text-lg leading-snug break-words">${escapeHtml(t.name)}</h3>
+          <p class="text-sm text-zinc-300">${datosHtml}</p>
         </div>
 
         ${t.notes ? `
-        <div class="bg-zinc-800/70 border border-zinc-700 rounded-lg p-2 flex items-start justify-between gap-2 text-xs">
-          <p class="text-zinc-200 break-words min-w-0"><span class="mr-1">📝</span>${escapeHtml(t.notes)}</p>
-          ${manage ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-600 px-2 py-0.5 rounded transition text-xs font-semibold shrink-0">✏️ Editar</button>` : ''}
+        <div class="bg-zinc-800/70 border border-zinc-700 rounded-lg p-2 flex items-start justify-between gap-2 text-sm">
+          <p class="text-zinc-200 break-words min-w-0">${escapeHtml(t.notes)}</p>
+          ${manage ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white text-[13px] shrink-0 py-1">Editar</button>` : ''}
         </div>` : ''}
 
-        <div class="space-y-2">
-          ${isPresencial ? venueHtml : discordHtml + gamePwdHtml}
-        </div>
+        ${isPresencial ? venueHtml : ''}
 
-        <div class="space-y-2">
-          <p class="text-xs font-semibold text-zinc-400">${isPresencial ? `Asistentes confirmados (${count})` : `Jugadores confirmados (${count}/5)`}:</p>
-          <div class="flex flex-wrap gap-2">
-            ${playersHtml}
-          </div>
+        <!-- 3) Quién -->
+        <div class="flex flex-wrap gap-2">
+          ${playersHtml}
         </div>
 
         ${subsHtml}
 
-        <div class="space-y-2 pt-1">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-            ${mainActionHtml}
-            <button onclick="shareTableInvitation('${id}')" class="w-full bg-green-700/30 hover:bg-green-600 text-green-300 hover:text-white border border-green-600/50 font-bold py-1.5 rounded-lg text-xs transition duration-150 flex items-center justify-center gap-1.5">
-              📲 Invitar por WhatsApp
+        ${isPresencial ? '' : partidaHtml}
+
+        <!-- 4) Acciones -->
+        <div class="space-y-2 pt-0.5">
+          ${mainActionHtml}
+          <div class="flex flex-wrap gap-2">
+            <button id="invitar-boton-${escapeHtml(t.id)}" onclick="toggleInviteMenu('${id}')" class="${botonSecundario}" aria-haspopup="true" aria-expanded="false" aria-controls="invitar-${escapeHtml(t.id)}">Invitar</button>
+            <button onclick="openCalendarModal('${id}')" class="${botonSecundario}" title="Agregar a mi calendario">Calendario</button>
+          </div>
+          <div id="invitar-${escapeHtml(t.id)}" class="invite-menu hidden bg-zinc-800 border border-zinc-700 rounded-lg p-1.5 shadow-xl shadow-black/50">
+            <button onclick="closeInviteMenus(); shareTableInvitation('${id}')" class="w-full text-left px-3 py-2.5 rounded-md hover:bg-zinc-700 transition">
+              <span class="block text-[15px] font-semibold text-zinc-100">Mensaje por WhatsApp</span>
+              <span class="block text-[13px] text-zinc-400">Invitación completa con horarios de México, España y Chile</span>
+            </button>
+            <div class="h-px bg-zinc-700 mx-2 my-0.5"></div>
+            <button onclick="closeInviteMenus(); shareTableLink('${id}')" class="w-full text-left px-3 py-2.5 rounded-md hover:bg-zinc-700 transition">
+              <span class="block text-[15px] font-semibold text-zinc-100">Copiar enlace</span>
+              <span class="block text-[13px] text-zinc-400">Para pegarlo en Discord, Telegram o donde quieras</span>
             </button>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="shareTableLink('${id}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">🔗 Compartir</button>
-            <button onclick="openCalendarModal('${id}')" class="flex-1 min-w-[8rem] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-600 font-semibold py-1.5 px-2 rounded-lg text-xs transition">📅 Agregar a mi calendario</button>
-            ${leaveButtons}
-            ${leaveSubButtons}
-          </div>
+          ${leaveButtons || leaveSubButtons ? `<div class="flex flex-wrap gap-2">${leaveButtons}${leaveSubButtons}</div>` : ''}
         </div>
 
-        <!-- Fila fija de acciones pequeñas -->
-        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-zinc-800 pt-2 text-xs">
-          <span class="flex items-center gap-3">
-            ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-400 hover:text-red-400 transition py-1">🎲 Orden de Asientos</button>` : ''}
-            ${manage && isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-400 hover:text-emerald-300 transition py-1">⏭️ Saltar esta semana</button>` : ''}
-            ${manage && !t.notes ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white transition py-1">📝 Agregar nota</button>` : ''}
-          </span>
-          ${manage ? `<span class="flex items-center gap-3">
-            <button onclick="editTableSchedule('${id}')" class="text-zinc-400 hover:text-wine-400 transition py-1">✏️ Editar horario</button>
-            <button onclick="deleteEntry('${id}')" class="text-zinc-400 hover:text-red-400 transition py-1">${isPresencial ? 'Cerrar Evento' : 'Cerrar Mesa'}</button>
-          </span>` : ''}
-        </div>
+        <!-- 5) Gestión, pequeña y al final -->
+        ${manage || isPresencial ? `
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-zinc-800 pt-2 text-[13px]">
+          ${manage ? `<button onclick="editTableSchedule('${id}')" class="text-zinc-400 hover:text-wine-300 transition py-1">Editar horario</button>` : ''}
+          ${manage && !t.notes ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white transition py-1">Agregar nota</button>` : ''}
+          ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-400 hover:text-white transition py-1">Orden de Asientos</button>` : ''}
+          ${manage && isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-400 hover:text-emerald-300 transition py-1">Saltar esta semana</button>` : ''}
+          ${manage ? `<button onclick="deleteEntry('${id}')" class="ml-auto text-zinc-400 hover:text-red-400 transition py-1">${isPresencial ? 'Cerrar Evento' : 'Cerrar Mesa'}</button>` : ''}
+        </div>` : ''}
       </div>
     `;
   }).join('');
