@@ -101,7 +101,14 @@ function closeCreatedModal() {
   lastCreatedId = null;
 }
 
-function highlightCard(tableId) {
+function highlightCard(tableId, { desplegar = false } = {}) {
+  // Enlace directo a una mesa privada: se despliega. Al crearla se queda plegada
+  // (como la ven todos) y solo se resalta.
+  const t = currentGlobalData.find(item => item.id === tableId);
+  if (desplegar && t && t.privada === true && !mesasDesplegadas.has(tableId)) {
+    mesasDesplegadas.add(tableId);
+    renderAll(currentGlobalData);
+  }
   const card = document.getElementById(`card-custom-${tableId}`);
   if (!card) return;
   card.scrollIntoView({ behavior: 'smooth', block: 'center' });

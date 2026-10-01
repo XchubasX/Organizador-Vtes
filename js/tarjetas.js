@@ -95,6 +95,18 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeInviteMenus(); });
 
+// MESAS PRIVADAS (solo virtuales): plegadas al final de la lista.
+// mesasDesplegadas guarda las que la persona abrió en esta visita.
+const mesasDesplegadas = new Set();
+const esPrivada = t => t.privada === true && (t.modality || 'virtual') === 'virtual';
+function toggleMesaPrivada(tableId) {
+  if (mesasDesplegadas.has(tableId)) mesasDesplegadas.delete(tableId);
+  else mesasDesplegadas.add(tableId);
+  renderAll(currentGlobalData);
+  const card = document.getElementById(`card-custom-${tableId}`);
+  if (card && mesasDesplegadas.has(tableId)) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function platformLabel(platform) {
   return (platform || '').toLowerCase().includes('lackey') ? 'LackeyCCG' : 'Succubus Club';
 }
@@ -205,7 +217,8 @@ function renderCustomTables(tables, container) {
     return;
   }
 
-  tables.sort((a, b) => new Date(a.utcTime) - new Date(b.utcTime));
+  // Primero las públicas por hora; al final las privadas por hora
+  tables.sort((a, b) => (esPrivada(a) - esPrivada(b)) || (new Date(a.utcTime) - new Date(b.utcTime)));
 
   container.innerHTML = tables.map(t => {
     const roster = getRoster(t);
@@ -217,6 +230,25 @@ function renderCustomTables(tables, container) {
     const manage = canManage(t);
     const alreadyIn = roster.entries.some(isMine);
     const id = escapeJsAttr(t.id);
+    const privada = esPrivada(t);
+
+    // Mesa privada plegada: una sola línea que se despliega al tocarla
+    if (privada && !mesasDesplegadas.has(t.id)) {
+      const d = new Date(t.utcTime);
+      const fechaCorta = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/[.,]/g, '');
+      const horaCorta = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      return `
+      <button type="button" id="card-custom-${escapeHtml(t.id)}" onclick="toggleMesaPrivada('${id}')" aria-expanded="false" data-privada-plegada
+        class="w-full flex items-center gap-2.5 text-left bg-zinc-900 border border-zinc-700 hover:border-zinc-500 rounded-xl px-3.5 py-3 text-sm transition md:col-span-2"
+        aria-label="Mesa privada: ${escapeHtml(t.name)}, ${escapeHtml(fechaCorta)} ${escapeHtml(horaCorta)}. Toca para verla.">
+        <span class="shrink-0 text-xs font-bold text-zinc-300 bg-zinc-700 px-2 py-0.5 rounded-md">Privada</span>
+        <span class="flex-1 min-w-0">
+          <span class="block truncate text-wine-300 font-semibold">${escapeHtml(t.name)}</span>
+          <span class="block text-[13px] text-zinc-400">${escapeHtml(fechaCorta)} · <strong class="text-zinc-200">${escapeHtml(horaCorta)}</strong> · ${Math.min(count, 5)}/5</span>
+        </span>
+        <span class="shrink-0 text-zinc-500" aria-hidden="true">▸</span>
+      </button>`;
+    }
 
     const zonaTarjeta = isPresencial ? t.originTz : undefined;
     const formattedDate = fechaTarjeta(t.utcTime, zonaTarjeta);
@@ -354,7 +386,8 @@ function renderCustomTables(tables, container) {
     const zonaTexto = isPresencial ? `<span class="text-emerald-400">${t.city ? 'hora de ' + escapeHtml(t.city) : 'hora local'}</span>` : (userTimezone ? `hora de ${escapeHtml(nombreZona(userTimezone))}` : 'tu hora');
 
     return `
-      <div id="${cardId}" class="bg-zinc-900 border ${isPresencial ? 'border-emerald-600/50' : (isReady ? 'border-green-600/60' : 'border-wine-600/40')} rounded-xl p-4 shadow-md space-y-3.5 transition-shadow">
+      <div id="${cardId}" class="bg-zinc-900 border ${isPresencial ? 'border-emerald-600/50' : privada ? 'border-zinc-600' : (isReady ? 'border-green-600/60' : 'border-wine-600/40')} rounded-xl p-4 shadow-md space-y-3.5 transition-shadow">
+        ${privada ? `<div class="flex justify-end -mb-2"><button type="button" onclick="toggleMesaPrivada('${id}')" aria-expanded="true" class="text-[13px] text-zinc-400 hover:text-white py-1">Ocultar ▴</button></div>` : ''}
         <!-- 1) Cuándo: fecha y hora grandes, con el cupo al lado -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between gap-3">
@@ -369,7 +402,7 @@ function renderCustomTables(tables, container) {
 
         <!-- 2) Qué: nombre y datos en una línea -->
         <div class="space-y-1">
-          <h3 class="font-bold text-wine-300 text-lg leading-snug break-words">${escapeHtml(t.name)}</h3>
+          <h3 class="font-bold text-wine-300 text-lg leading-snug break-words">${privada ? '<span class="align-middle mr-1.5 text-xs font-bold text-zinc-300 bg-zinc-700 px-2 py-0.5 rounded-md">Privada</span>' : ''}${escapeHtml(t.name)}</h3>
           <p class="text-sm text-zinc-300">${datosHtml}</p>
         </div>
 
@@ -418,6 +451,7 @@ function renderCustomTables(tables, container) {
           ${manage && !t.notes ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white transition py-1">Agregar nota</button>` : ''}
           ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-400 hover:text-white transition py-1">Orden de Asientos</button>` : ''}
           ${manage && isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-400 hover:text-emerald-300 transition py-1">Saltar esta semana</button>` : ''}
+          ${manage && !isPresencial ? `<button onclick="cambiarPrivacidad('${id}', ${privada ? 'false' : 'true'})" class="text-zinc-400 hover:text-white transition py-1">${privada ? 'Hacer pública' : 'Hacer privada'}</button>` : ''}
           ${manage ? `<button onclick="deleteEntry('${id}')" class="ml-auto text-zinc-400 hover:text-red-400 transition py-1">${isPresencial ? 'Cerrar Evento' : 'Cerrar Mesa'}</button>` : ''}
         </div>` : ''}
       </div>

@@ -477,6 +477,8 @@ async function crearMesa(e) {
     saveFormat(recordData.format);
     recordData.discord = document.getElementById('tableDiscord').value.trim() || '';
     recordData.gamePassword = document.getElementById('tableGamePassword').value.trim() || '';
+    // Mesa privada: se muestra plegada al final de la lista (sección 5.37)
+    if (document.getElementById('tablePrivada').checked) recordData.privada = true;
   }
   recordData.signups = { [uid]: creatorEntry };
 
@@ -725,6 +727,7 @@ async function openSimilarTable(tableId) {
   document.getElementById('tableDiscord').value = '';
   document.getElementById('tableGamePassword').value = '';
   document.getElementById('tableNotes').value = '';
+  document.getElementById('tablePrivada').checked = false;
   const hint = document.getElementById('createCopyHint');
   hint.textContent = `Copiamos hora, plataforma y formato de "${t.name}". Pon tu Discord y tu contraseña.`;
   hint.classList.remove('hidden');
@@ -793,3 +796,24 @@ function deleteEntry(id) {
     }).catch(() => showToast('❌ No se pudo cerrar. Revisa tu conexión.', 'error'));
   });
 }
+
+// ---------------------------------------------------------------------
+// MESA PRIVADA / PÚBLICA (solo mesas virtuales; organizador o administrador)
+// Una mesa privada se muestra plegada al final de la lista; cualquiera
+// puede desplegarla y unirse. "privada" se guarda como true o se quita.
+// ---------------------------------------------------------------------
+async function cambiarPrivacidad(tableId, privada) {
+  const t = currentGlobalData.find(item => item.id === tableId);
+  if (!t) return showToast('❌ Esta mesa ya no existe.', 'error');
+  const ok = await authorizeTableAction(t, privada
+    ? { confirmTitle: 'Hacer privada', confirmMessage: 'La mesa se mostrará plegada al final de la lista. Quien quiera podrá abrirla y unirse.', confirmLabel: 'Hacer privada' }
+    : { confirmTitle: 'Hacer pública', confirmMessage: 'La mesa se mostrará completa, junto a las demás mesas abiertas.', confirmLabel: 'Hacer pública' });
+  if (!ok) return;
+  db.ref(`vtes_records/${tableId}`).update({ privada: privada ? true : null })
+    .then(() => {
+      if (privada) mesasDesplegadas.delete(tableId);
+      showToast(privada ? '✅ La mesa ahora es privada' : '✅ La mesa ahora es pública');
+    })
+    .catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
+}
+

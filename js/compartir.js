@@ -134,7 +134,7 @@ function openTableFromHash() {
   const modality = t.modality || 'virtual';
   if (currentTableModalityFilter !== modality) setTableModality(modality);
   if (modality === 'presencial' && !matchesPresencialFilters(t)) clearPresencialFilters();
-  setTimeout(() => highlightCard(tableId), 150);
+  setTimeout(() => highlightCard(tableId, { desplegar: true }), 150);
 }
 
 // ---------------------------------------------------------------------

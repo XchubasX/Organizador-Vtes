@@ -370,6 +370,12 @@
             <label class="block text-xs font-semibold text-blue-400 mb-1">🔑 Pass Partida</label>
             <input type="text" id="tableGamePassword" placeholder="ej. vtes123" class="w-full bg-zinc-800 border border-blue-700/60 rounded-lg px-3 py-1.5 text-blue-200 text-sm focus:outline-none focus:border-blue-400">
           </div>
+          <div class="col-span-full">
+            <label for="tablePrivada" class="flex items-start gap-2.5 cursor-pointer py-1">
+              <input type="checkbox" id="tablePrivada" class="w-4 h-4 mt-0.5 accent-wine-500 shrink-0">
+              <span class="text-sm text-zinc-200"><strong>Mesa privada</strong><span class="block text-[13px] text-zinc-400">Se muestra plegada al final de la lista. Quien quiera puede abrirla y unirse.</span></span>
+            </label>
+          </div>
         </div>
 
         <div id="presencialFieldsGroup" style="display: none;">
@@ -450,13 +456,13 @@
   <!-- Código de esta página, separado por tema (fase 2, 29 sep 2026).
        El orden importa: los primeros solo definen funciones; arranque.js va al
        final porque es el que ejecuta todo al abrir la página. -->
-  <script src="js/sesion.js?v=20261001e"></script>
-  <script src="js/fechas.js?v=20261001e"></script>
-  <script src="js/ventanas.js?v=20261001e"></script>
-  <script src="js/mesas.js?v=20261001e"></script>
-  <script src="js/compartir.js?v=20261001e"></script>
-  <script src="js/tarjetas.js?v=20261001e"></script>
-  <script src="js/arranque.js?v=20261001e"></script>
+  <script src="js/sesion.js?v=20261001d"></script>
+  <script src="js/fechas.js?v=20261001d"></script>
+  <script src="js/ventanas.js?v=20261001d"></script>
+  <script src="js/mesas.js?v=20261001d"></script>
+  <script src="js/compartir.js?v=20261001d"></script>
+  <script src="js/tarjetas.js?v=20261001d"></script>
+  <script src="js/arranque.js?v=20261001d"></script>
   <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
     <button type="button" onclick="openAboutModal()" class="underline underline-offset-2 hover:text-zinc-300 transition py-2">Acerca de · Aviso legal</button>
   </footer>
