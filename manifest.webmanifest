@@ -1,0 +1,17 @@
+{
+  "name": "VTES Matchmaking",
+  "short_name": "VTESMatch",
+  "description": "Mesas virtuales y eventos presenciales de Vampire: The Eternal Struggle",
+  "lang": "es",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "browser",
+  "background_color": "#18181B",
+  "theme_color": "#18181B",
+  "icons": [
+    { "src": "iconos/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
