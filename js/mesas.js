@@ -85,30 +85,55 @@ function editTableSchedule(tableId) {
     const table = snapshot.val();
 
     const ok = await authorizeTableAction(table);
-    if (ok) openEditScheduleModal(tableId, table.name, table.utcTime);
+    if (ok) openEditScheduleModal(tableId, table.name, table.utcTime, table.modality);
   });
 }
 
-function openEditScheduleModal(tableId, tableName, currentUtcTime) {
+let currentEditOriginal = null; // nombre y hora antes de editar (para saber qué cambió)
+
+function openEditScheduleModal(tableId, tableName, currentUtcTime, modality) {
   currentEditTableId = tableId;
-  document.getElementById('editScheduleTableName').textContent = `"${tableName}" — horario actual: ${new Date(currentUtcTime).toLocaleString()}`;
+  currentEditOriginal = { name: tableName || '', utcMs: new Date(currentUtcTime).getTime(), local: null };
+  document.getElementById('editScheduleTitle').textContent = modality === 'presencial' ? 'Editar evento' : 'Editar mesa';
+  document.getElementById('editScheduleName').value = tableName || '';
+  document.getElementById('editScheduleTableName').textContent = `Actual: ${new Date(currentUtcTime).toLocaleString()}`;
   const current = new Date(currentUtcTime);
   pickerEditSchedule.setDate(current);
   // Si la mesa es de madrugada, la pregunta ya viene con su noche marcada
   nightUiKey.edit = null;
   updateNightUI('edit', { preselect: current.getHours() < NIGHT_END_HOUR ? 'prev' : null });
+  currentEditOriginal.local = document.getElementById('editScheduleDateTime').value;
   document.getElementById('editScheduleModal').classList.remove('hidden');
 }
 
 function closeEditScheduleModal() {
   document.getElementById('editScheduleModal').classList.add('hidden');
   currentEditTableId = null;
+  currentEditOriginal = null;
 }
 
 function guardarHorario(e) {
   e.preventDefault();
   const newLocalInput = document.getElementById('editScheduleDateTime').value;
   if (!newLocalInput || !currentEditTableId) return;
+
+  // Nombre: obligatorio, máximo 60 caracteres (igual que al crear)
+  const newName = document.getElementById('editScheduleName').value.trim().slice(0, 60);
+  if (!newName) return showToast('❌ El nombre no puede quedar vacío.', 'error');
+  const nameChanged = !!currentEditOriginal && newName !== currentEditOriginal.name;
+
+  // Si la fecha y hora no se tocaron, solo se guarda el nombre
+  // (así se puede renombrar una mesa que ya empezó)
+  const timeTouched = !currentEditOriginal || newLocalInput !== currentEditOriginal.local;
+  if (!timeTouched) {
+    if (!nameChanged) { closeEditScheduleModal(); return; }
+    const id = currentEditTableId;
+    db.ref(`vtes_records/${id}`).update({ name: newName })
+      .then(() => showToast('✅ Nombre actualizado'))
+      .catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
+    closeEditScheduleModal();
+    return;
+  }
 
   const resolved = resolveChosenDate('edit');
   if (resolved.needsChoice) {
@@ -123,6 +148,7 @@ function guardarHorario(e) {
   const updates = {};
   updates[`vtes_records/${currentEditTableId}/utcTime`] = newDate.toISOString();
   updates[`vtes_records/${currentEditTableId}/utcMs`] = newDate.getTime();
+  if (nameChanged) updates[`vtes_records/${currentEditTableId}/name`] = newName;
   const editedTable = currentGlobalData.find(t => t.id === currentEditTableId);
   if (editedTable) {
     const newKey = addTableLogBase(updates, currentEditTableId, { ...editedTable, utcTime: newDate.toISOString() });
@@ -139,7 +165,7 @@ function guardarHorario(e) {
     }
   }
   updateWithStats(updates)
-    .then(() => showToast('✅ Horario actualizado'))
+    .then(() => showToast(nameChanged ? '✅ Nombre y horario actualizados' : '✅ Horario actualizado'))
     .catch(() => showToast('❌ No se pudo guardar. Revisa tu conexión.', 'error'));
   closeEditScheduleModal();
 }
@@ -737,7 +763,7 @@ async function openSimilarTable(tableId) {
 // ---------------------------------------------------------------------
 // SALTAR ESTA SEMANA (eventos semanales)
 // Mueve el evento una semana adelante sin detener la serie (por
-// ejemplo, un jueves festivo). Misma autorización que Editar horario.
+// ejemplo, un jueves festivo). Misma autorización que Editar mesa.
 // La ficha de estadísticas de la semana saltada se borra: no se jugó.
 // ---------------------------------------------------------------------
 function skipWeek(id) {

@@ -447,7 +447,7 @@ function renderCustomTables(tables, container) {
         <!-- 5) Gestión, pequeña y al final -->
         ${manage || isPresencial ? `
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-zinc-800 pt-2 text-[13px]">
-          ${manage ? `<button onclick="editTableSchedule('${id}')" class="text-zinc-400 hover:text-wine-300 transition py-1">Editar horario</button>` : ''}
+          ${manage ? `<button onclick="editTableSchedule('${id}')" class="text-zinc-400 hover:text-wine-300 transition py-1">${isPresencial ? 'Editar evento' : 'Editar mesa'}</button>` : ''}
           ${manage && !t.notes ? `<button onclick="editCustomTableNotes('${id}')" class="text-zinc-400 hover:text-white transition py-1">Agregar nota</button>` : ''}
           ${isPresencial ? `<button onclick="window.open('sorteo.html?tableId=${encodeURIComponent(t.id)}', '_blank')" class="text-zinc-400 hover:text-white transition py-1">Orden de Asientos</button>` : ''}
           ${manage && isPresencial && t.recurrence === 'weekly' ? `<button onclick="skipWeek('${id}')" class="text-zinc-400 hover:text-emerald-300 transition py-1">Saltar esta semana</button>` : ''}
