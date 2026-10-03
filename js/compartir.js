@@ -4,6 +4,22 @@
 // Parte del código de index.html (separado el 29 sep 2026, fase 2).
 // =====================================================================
 
+// ---------------------------------------------------------------------
+// ENLACE PARA ABRIR WHATSAPP CON UN MENSAJE YA ESCRITO
+// En computadora se abre WhatsApp Web directo: la página intermedia de
+// WhatsApp (api.whatsapp.com) daña los emojis (los cambia por "�") y
+// junta los renglones (probado por el usuario el 3 oct 2026). En el
+// celular se usa api.whatsapp.com, que abre la app sin problema.
+// ---------------------------------------------------------------------
+function esCelular() {
+  const ua = navigator.userAgent || '';
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+function whatsappShareUrl(msg) {
+  const texto = encodeURIComponent(msg);
+  return esCelular() ? `https://api.whatsapp.com/send?text=${texto}` : `https://web.whatsapp.com/send?text=${texto}`;
+}
+
 // HELPER: Función para Compartir Invitación por WhatsApp (Mantiene los husos horarios específicos)
 function shareTableInvitation(tableId) {
   const t = currentGlobalData.find(item => item.id === tableId);
@@ -62,9 +78,10 @@ function shareTableInvitation(tableId) {
       const night = nightOfName(t.utcTime, tz);
       return `${date.toLocaleTimeString(locale, { ...optionsTime, timeZone: tz })} (${date.toLocaleDateString(locale, { ...optionsDate, timeZone: tz })}${night ? `, noche del ${night}` : ''})`;
     };
-    const timeMex = timeIn('es-MX', 'America/Mexico_City');
+    // Mismo formato de fecha en los tres países ("jue, 8 oct"); antes México salía "jue 8 de oct"
+    const timeMex = timeIn('es-ES', 'America/Mexico_City');
     const timeEsp = timeIn('es-ES', 'Europe/Madrid');
-    const timeChi = timeIn('es-CL', 'America/Santiago');
+    const timeChi = timeIn('es-ES', 'America/Santiago');
 
     msg += `💻 *Plataforma:* ${t.platform || 'Lackey'}\n`;
     if (t.format) msg += `🃏 *Formato:* ${formatLabel(t.format)}\n`;
@@ -80,7 +97,7 @@ function shareTableInvitation(tableId) {
   msg += `\n👉 *Únete a ${modality === 'presencial' ? 'este evento' : 'esta mesa'}:* ${getTableUrl(t.id)}\n\n`;
   msg += `¡Únete a la partida! 🩸`;
 
-  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+  const whatsappUrl = whatsappShareUrl(msg);
   window.open(whatsappUrl, '_blank');
 }
 

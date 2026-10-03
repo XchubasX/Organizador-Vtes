@@ -726,7 +726,7 @@ async function offerSubstituteNotice(tableId, table, leftNick, promoted, isSelf)
   if (!ok) return;
   const who = isSelf ? 'Me bajo' : `*${leftNick}* se baja`;
   const msg = `🚪 ${who} de la mesa *${table.name}*. Entra *${promoted}* como suplente. 🩸\n\n👉 ${getTableUrl(tableId)}`;
-  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  window.open(whatsappShareUrl(msg), '_blank');
 }
 
 // "Abrir otra mesa a esta hora": formulario con hora, plataforma y formato
