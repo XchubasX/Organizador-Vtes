@@ -5,7 +5,7 @@
 
 let currentTableModalityFilter = 'virtual';
 
-// Ciudad indicada por la URL (ej. .../Organizador-Vtes/Zaragoza), o null si no aplica.
+// Ciudad indicada por la URL (ej. .../Zaragoza), o null si no aplica.
 // Tiene prioridad sobre el filtro manual de ciudad hasta que el usuario lo toque o
 // le dé clic a "Limpiar filtros".
 let urlCityFilter = null;
@@ -130,7 +130,7 @@ function matchesPresencialFilters(t) {
   const cityVal = document.getElementById('filterCity').value || '';
   const dateVal = document.getElementById('filterDate').value || '';
 
-  // Si la ciudad viene de la URL (ej. .../Organizador-Vtes/Zaragoza), manda sobre el
+  // Si la ciudad viene de la URL (ej. .../Zaragoza), manda sobre el
   // dropdown manual, y compara sin importar mayúsculas/acentos-caja.
   if (urlCityFilter) {
     if ((t.city || '').toLowerCase() !== urlCityFilter.toLowerCase()) return false;

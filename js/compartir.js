@@ -102,12 +102,12 @@ function shareTableInvitation(tableId) {
 }
 
 // ---------------------------------------------------------------------
-// ENLACE DIRECTO A UNA MESA: https://.../Organizador-Vtes/#mesa-<id>
+// ENLACE DIRECTO A UNA MESA: https://.../#mesa-<id>
 // Al abrirlo, la página cambia a la pestaña correcta, baja hasta la
 // mesa y la resalta (ver openTableFromHash más abajo).
 // ---------------------------------------------------------------------
 function getSiteBaseUrl() {
-  // Si la página se abrió con una ciudad en la URL (.../Organizador-Vtes/Zaragoza)
+  // Si la página se abrió con una ciudad en la URL (.../Zaragoza)
   // se quita esa parte para que el enlace funcione para cualquiera.
   let path = window.location.pathname;
   if (urlCityFilter) path = path.replace(/[^/]+\/?$/, '');

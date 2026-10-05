@@ -1,0 +1,11 @@
+// Configuración de Cloudflare Workers para el SITIO REAL (producción).
+// Es distinto en el sitio de pruebas (allá "name" es "elysium-uat"), igual que config.js: no copiarlo al pasar a producción.
+// Cloudflare corre "bash cloudflare-publicar.sh" y pone en línea la carpeta "publicado".
+{
+  "name": "elysium",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./publicado",
+    "not_found_handling": "404-page"
+  }
+}

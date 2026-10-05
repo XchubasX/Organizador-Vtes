@@ -95,8 +95,8 @@ document.getElementById('editScheduleForm').addEventListener('submit', guardarHo
 document.getElementById('joinForm').addEventListener('submit', enviarUnirse);
 
 // ---------------------------------------------------------------------
-// URL POR CIUDAD (ej. https://.../Organizador-Vtes/Zaragoza)
-// GitHub Pages no soporta rutas "bonitas" nativamente; el archivo
+// URL POR CIUDAD (ej. https://.../Zaragoza)
+// Ni GitHub Pages ni Cloudflare tienen la página /Zaragoza; el archivo
 // 404.html se encarga de redirigir aquí pasando la ciudad como
 // parámetro (?city=...). Esta función la lee, activa el modo
 // Presencial con esa ciudad filtrada, y deja la URL bonita de nuevo

@@ -29,7 +29,7 @@ if (window.tailwind) {
 // ---------------------------------------------------------------------
 // FIREBASE + APP CHECK (reCAPTCHA Enterprise)
 // App Check valida que las peticiones a la base de datos vengan de la
-// página publicada en xchubasx.github.io y no de una copia o un programa.
+// página publicada (dominios permitidos en la clave de reCAPTCHA) y no de una copia o un programa.
 // Los datos del proyecto están en config.js.
 // ---------------------------------------------------------------------
 firebase.initializeApp(VTES_CONFIG.firebase);
