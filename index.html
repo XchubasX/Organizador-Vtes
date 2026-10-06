@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Mudanza a eternalschedule.com: solo actúa en la dirección vieja de GitHub (ver mudanza.js) -->
+  <script src="mudanza.js?v=20261005a"></script>
   <!-- Ícono del sitio y datos para instalarlo en el celular ("Elysium") -->
   <link rel="icon" href="iconos/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="iconos/favicon-32.png" sizes="32x32" type="image/png">
@@ -272,6 +274,19 @@
     <section class="space-y-4">
 
       <!-- AVISO TEMPORAL DEL ÍCONO NUEVO (solo celular, hasta el 8 oct 2026; ver js/ventanas.js) -->
+      <!-- AVISO DE MUDANZA (solo en la dirección vieja de GitHub, hasta el 10 oct 2026; ver mudanza.js) -->
+      <div id="avisoMudanza" class="hidden bg-wine-950/70 border border-wine-600 rounded-xl p-3.5 space-y-2.5">
+        <div class="flex items-start gap-2.5">
+          <img src="iconos/apple-touch-icon.png" alt="" width="36" height="36" class="w-9 h-9 rounded-lg shrink-0">
+          <div class="flex-1">
+            <p class="text-[15px] font-extrabold text-white leading-snug">Elysium se mudó a <span id="avisoMudanzaDominio" class="text-wine-200">eternalschedule.com</span></p>
+            <p class="text-[13px] text-zinc-200 leading-snug mt-1">Esta dirección dejará de funcionar el <strong>domingo 11 de octubre</strong>. Las mesas y tu cuenta son las mismas.</p>
+          </div>
+        </div>
+        <a id="avisoMudanzaBoton" href="https://eternalschedule.com" class="block text-center bg-wine-600 hover:bg-wine-500 text-white font-bold text-sm py-2.5 rounded-lg transition">Ir a eternalschedule.com</a>
+        <p class="text-xs text-zinc-300 leading-relaxed border-t border-wine-600/50 pt-2">En la dirección nueva:<br>· Entra con Google <strong>una vez</strong> (es la misma cuenta).<br>· Si tienes Elysium en tu pantalla de inicio, bórralo y agrégalo de nuevo desde la dirección nueva.</p>
+      </div>
+
       <div id="avisoIcono" class="hidden flex items-center gap-3 bg-wine-950/60 border border-wine-600/60 rounded-xl px-3 py-2.5">
         <img src="iconos/apple-touch-icon.png" alt="" width="36" height="36" class="w-9 h-9 rounded-lg shrink-0">
         <p class="flex-1 text-[13px] leading-snug text-zinc-100"><strong>Nuevo ícono.</strong> Si tienes el organizador en tu pantalla con una letra "G" o "V", bórralo y vuelve a agregarlo.</p>
@@ -460,13 +475,13 @@
   <!-- Código de esta página, separado por tema (fase 2, 29 sep 2026).
        El orden importa: los primeros solo definen funciones; arranque.js va al
        final porque es el que ejecuta todo al abrir la página. -->
-  <script src="js/sesion.js?v=20261003b"></script>
-  <script src="js/fechas.js?v=20261003b"></script>
-  <script src="js/ventanas.js?v=20261003b"></script>
-  <script src="js/mesas.js?v=20261003b"></script>
-  <script src="js/compartir.js?v=20261003b"></script>
-  <script src="js/tarjetas.js?v=20261003b"></script>
-  <script src="js/arranque.js?v=20261003b"></script>
+  <script src="js/sesion.js?v=20261005a"></script>
+  <script src="js/fechas.js?v=20261005a"></script>
+  <script src="js/ventanas.js?v=20261005a"></script>
+  <script src="js/mesas.js?v=20261005a"></script>
+  <script src="js/compartir.js?v=20261005a"></script>
+  <script src="js/tarjetas.js?v=20261005a"></script>
+  <script src="js/arranque.js?v=20261005a"></script>
   <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
     <button type="button" onclick="openAboutModal()" class="underline underline-offset-2 hover:text-zinc-300 transition py-2">Acerca de · Aviso legal</button>
   </footer>
