@@ -9,6 +9,7 @@
 //    (#mesa-…) y página (sorteo, estadísticas).
 // Se carga primero en el <head> de las 3 páginas para saltar cuanto antes.
 // Para dar más tiempo, basta con cambiar MUDANZA_REDIRIGE_DESDE.
+// En la dirección vieja también cuenta visitas (Cloudflare Web Analytics, «xchubasx.github.io»).
 // =====================================================================
 var MUDANZA_DESTINOS = {
   'Organizador-Vtes': 'https://eternalschedule.com',
@@ -50,7 +51,26 @@ function mostrarAvisoMudanza(destino) {
   aviso.classList.remove('hidden');
 }
 
+// Contador de visitas a la dirección VIEJA (Cloudflare Web Analytics, sin cookies ni datos personales).
+// Solo en xchubasx.github.io; sirve para saber cuándo ya nadie la usa y se puede apagar.
+var MUDANZA_CONTADOR_TOKEN = 'ad00e9d4434c4fb195d0bfbcd033696a';
+function mudanzaPonerContador(alCargar) {
+  var s = document.createElement('script');
+  s.defer = true;
+  s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', JSON.stringify({ token: MUDANZA_CONTADOR_TOKEN }));
+  s.onload = s.onerror = function () { if (alCargar) alCargar(); };
+  (document.head || document.documentElement).appendChild(s);
+  return s;
+}
+
 (function () {
   var destino = mudanzaDestinoActual();
-  if (destino && mudanzaDebeRedirigir(Date.now())) window.location.replace(destino);
+  if (!destino) return; // eternalschedule.com: no hace nada
+  if (!mudanzaDebeRedirigir(Date.now())) { mudanzaPonerContador(); return; }
+  // Desde el 11 oct: se cuenta la visita y luego se salta (a lo mucho 1.5 s de espera)
+  var listo = false;
+  var saltar = function () { if (listo) return; listo = true; window.location.replace(destino); };
+  mudanzaPonerContador(function () { setTimeout(saltar, 300); });
+  setTimeout(saltar, 1500);
 })();
