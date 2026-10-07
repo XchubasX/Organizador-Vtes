@@ -28,6 +28,12 @@ function idAparato() {
 function esIPhone() {
   return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
+// Tipo de aparato, solo para contar en Estadísticas (tablero 25)
+function tipoAparato() {
+  if (esIPhone()) return 'iphone';
+  if (/Android/i.test(navigator.userAgent)) return 'android';
+  return 'pc';
+}
 function navegadorPermiteAvisos() {
   return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window && !!(window.firebase && firebase.messaging);
 }
@@ -129,7 +135,7 @@ async function registrarAparato() {
   const token = await firebase.messaging().getToken({ vapidKey: VTES_CONFIG.vapidKey, serviceWorkerRegistration: reg });
   if (!token) throw new Error('sin token');
   await db.ref(`avisos/${currentUser.uid}/${idAparato()}`).set({
-    token, minutos: minutosElegidos(), zona: userTimezone, at: firebase.database.ServerValue.TIMESTAMP
+    token, minutos: minutosElegidos(), zona: userTimezone, tipo: tipoAparato(), at: firebase.database.ServerValue.TIMESTAMP
   });
   avisosActivos = true;
   avisosUidActual = currentUser.uid;
@@ -211,8 +217,8 @@ async function revisarAvisos(user) {
     if (guardado.minutos === 15 || guardado.minutos === 30) guardarLocal(AVISOS_MIN_KEY, String(guardado.minutos));
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
     const token = await firebase.messaging().getToken({ vapidKey: VTES_CONFIG.vapidKey, serviceWorkerRegistration: reg });
-    if (token && (token !== guardado.token || guardado.zona !== userTimezone)) {
-      await db.ref(`avisos/${user.uid}/${idAparato()}`).update({ token, zona: userTimezone, at: firebase.database.ServerValue.TIMESTAMP });
+    if (token && (token !== guardado.token || guardado.zona !== userTimezone || guardado.tipo !== tipoAparato())) {
+      await db.ref(`avisos/${user.uid}/${idAparato()}`).update({ token, zona: userTimezone, tipo: tipoAparato(), at: firebase.database.ServerValue.TIMESTAMP });
     }
   } catch (e) { console.warn('Avisos:', e && e.message); }
 }

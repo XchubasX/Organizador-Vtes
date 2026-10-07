@@ -217,15 +217,35 @@ export function estable(v) {
   return JSON.stringify(v);
 }
 
+function stripFecha(v) { if (!v) return v; const { actualizado, ...resto } = v; return resto; }
+
+// Totales para la página de Estadísticas (tablero 25): solo números, nunca quién ni sus códigos
+export function resumenAvisos(avisos) {
+  const r = { personas: 0, aparatos: 0, tipos: { iphone: 0, android: 0, pc: 0, sinDato: 0 }, minutos: { m15: 0, m30: 0 } };
+  for (const aparatos of Object.values(avisos || {})) {
+    const lista = Object.values(aparatos || {}).filter(a => a && a.token);
+    if (!lista.length) continue;
+    r.personas++;
+    for (const a of lista) {
+      r.aparatos++;
+      r.tipos[['iphone', 'android', 'pc'].includes(a.tipo) ? a.tipo : 'sinDato']++;
+      if (Number(a.minutos) === 15) r.minutos.m15++; else r.minutos.m30++;
+    }
+  }
+  return r;
+}
+
 // Una vuelta del cron
 export async function vuelta(env, ahora = Date.now()) {
   const token = await tokenGoogle(JSON.parse(env.FIREBASE_CUENTA_SERVICIO));
   const { db, enviar } = conexion(env, token);
-  const [mesas, avisos, enviados] = await Promise.all([db('GET', 'vtes_records'), db('GET', 'avisos'), db('GET', 'avisosEnviados')]);
+  const [mesas, avisos, enviados, statsAvisos] = await Promise.all([db('GET', 'vtes_records'), db('GET', 'avisos'), db('GET', 'avisosEnviados'), db('GET', 'stats/avisos')]);
   const { eventos, estado } = planear(mesas, enviados, ahora);
   // Primero se guarda lo enviado (si algo falla después, no se repite en 5 minutos)
   const cambios = {};
   for (const [id, v] of Object.entries(estado)) if (estable(v) !== estable((enviados || {})[id])) cambios['avisosEnviados/' + id] = v;
+  const resumen = resumenAvisos(avisos);
+  if (estable(resumen) !== estable(stripFecha(statsAvisos))) cambios['stats/avisos'] = { ...resumen, actualizado: ahora };
   if (Object.keys(cambios).length) await db('PATCH', '', cambios);
   const { borrar, enviados: n } = await mandar(eventos, avisos, enviar, env.SITIO, ahora);
   if (Object.keys(borrar).length) await db('PATCH', '', borrar);

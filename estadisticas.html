@@ -209,6 +209,18 @@
         <p class="answer" id="ansSubs"></p>
       </section>
 
+      <!-- ¿SE USAN LOS AVISOS? (tablero 25) -->
+      <section class="panel" aria-labelledby="hAvisos">
+        <div>
+          <h2 id="hAvisos">¿Se usan los avisos?</h2>
+          <p class="sub">Avisos de mesas virtuales en el celular. Se actualiza cada 5 minutos.</p>
+        </div>
+        <div class="kpis" id="avisosKpis"></div>
+        <div id="avisosTipos"></div>
+        <div id="avisosMinutos"></div>
+        <p class="sub" id="avisosNotas"></p>
+      </section>
+
       <!-- 5. ¿QUÉ FORMATO JUEGA LA COMUNIDAD? -->
       <section class="panel" aria-labelledby="hFmt">
         <div>
@@ -472,6 +484,7 @@
 
         renderNotice(records);
         renderAll(records);
+        renderAvisos(stats.avisos, records);
         renderOldCounters(stats);
         pruneOldData(tablesLog, stats.presencialEventsLog || {});
       }).catch(() => {
@@ -737,6 +750,40 @@
       document.getElementById('ansSubs').innerHTML = signed
         ? `<b>${promoted}</b> de ${signed} suplente${signed === 1 ? '' : 's'} terminaron jugando: cubrieron una plaza que, sin ellos, se habría quedado vacía o desactualizada.`
         : 'Todavía nadie se ha apuntado como suplente.';
+    }
+
+    // ¿SE USAN LOS AVISOS? stats/avisos lo escribe el servidor de avisos (worker.js)
+    // cada 5 minutos: solo totales, nunca quién ni los códigos de los aparatos.
+    function barraPartes(titulo, partes) {
+      const tot = partes.reduce((a, p) => a + p[1], 0);
+      if (!tot) return '';
+      const seg = partes.filter(p => p[1]).map(p => `<div style="width:${(p[1] * 100 / tot).toFixed(1)}%;background:${p[2]}"></div>`).join('');
+      const ley = partes.map(p => `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:${p[2]}"></span>${p[0]} <b>${p[1]}</b> <span style="color:var(--dim)">(${Math.round(p[1] * 100 / tot)}%)</span></span>`).join('');
+      return `<div style="display:grid;gap:8px;margin-top:6px"><h3 style="font-size:14.5px;font-weight:700">${titulo}</h3><div style="display:flex;height:18px;border-radius:6px;overflow:hidden;gap:2px">${seg}</div><div style="font-size:13px;color:var(--text-2);line-height:1.9">${ley}</div></div>`;
+    }
+    function renderAvisos(av, records) {
+      const kpis = document.getElementById('avisosKpis');
+      if (!av || !av.aparatos) {
+        kpis.innerHTML = '';
+        document.getElementById('avisosTipos').innerHTML = '<p class="empty">Todavía nadie ha activado los avisos.</p>';
+        document.getElementById('avisosMinutos').innerHTML = '';
+        document.getElementById('avisosNotas').innerHTML = '';
+        return;
+      }
+      const desde = Date.now() - 30 * DAY_MS;
+      const jugaron = new Set();
+      records.filter(r => r.modality !== 'presencial' && r.start.getTime() >= desde && r.start.getTime() <= Date.now()).forEach(r => {
+        Object.keys(r.uids || {}).forEach(u => jugaron.add(u));
+        if (r.owner) jugaron.add(r.owner);
+      });
+      const base = jugaron.size;
+      kpis.innerHTML = `
+        <div class="kpi"><span class="q">Personas con avisos</span><span class="v">${av.personas}</span><span class="d">${base ? `de ${base} persona${base === 1 ? '' : 's'} que jugaron mesas virtuales en los últimos 30 días (${Math.min(100, Math.round(av.personas / base * 100))}%)` : 'todavía no hay datos de quién jugó en los últimos 30 días'}</span></div>
+        <div class="kpi"><span class="q">Aparatos con avisos</span><span class="v">${av.aparatos}</span><span class="d">algunas personas los tienen en celular y computadora</span></div>`;
+      const t = av.tipos || {}, m = av.minutos || {};
+      document.getElementById('avisosTipos').innerHTML = barraPartes('Tipo de aparato', [['Android', t.android || 0, '#199E70'], ['iPhone', t.iphone || 0, '#3987E5'], ['Computadora', t.pc || 0, '#D95926'], ['Sin dato', t.sinDato || 0, '#52525B']].filter(p => p[0] !== 'Sin dato' || p[1]));
+      document.getElementById('avisosMinutos').innerHTML = barraPartes('Aviso antes de empezar', [['30 minutos', m.m30 || 0, '#A8425A'], ['15 minutos', m.m15 || 0, '#D98FA0']]);
+      document.getElementById('avisosNotas').innerHTML = (t.sinDato ? '«Sin dato»: aparatos que activaron los avisos antes de que se empezara a guardar el tipo. Se completa solo la próxima vez que abran Elysium. ' : '') + 'No se guarda quién es quién: solo se cuentan.';
     }
 
     function renderFormats(virtualRecords, now, weekLabels, weekIndex) {
