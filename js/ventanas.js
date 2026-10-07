@@ -82,9 +82,11 @@ function savePlatform(platform) {
 // la página baja hasta la tarjeta nueva y la resalta unos segundos.
 // ---------------------------------------------------------------------
 let lastCreatedId = null;
+let lastCreatedVirtual = false;
 
 function showCreatedModal(newId, recordData) {
   lastCreatedId = newId;
+  lastCreatedVirtual = recordData.modality !== 'presencial';
   const isPresencial = recordData.modality === 'presencial';
   const f = formatPresencialDateTime(recordData.utcTime, recordData.originTz, { weekday: 'long', day: 'numeric', month: 'long' }, { hour: '2-digit', minute: '2-digit' });
   document.getElementById('createdModalTitle').textContent = isPresencial ? '¡Evento creado con éxito!' : '¡Mesa creada con éxito!';
@@ -98,7 +100,7 @@ function showCreatedModal(newId, recordData) {
 function closeCreatedModal() {
   document.getElementById('createdModal').classList.add('hidden');
   if (lastCreatedId) highlightCard(lastCreatedId);
-  ofrecerAvisos(); // «¿Te avisamos?» una sola vez por aparato (js/avisos.js)
+  if (lastCreatedVirtual) ofrecerAvisos(); // «¿Te avisamos?» una sola vez por aparato, solo mesas virtuales (js/avisos.js)
   lastCreatedId = null;
 }
 

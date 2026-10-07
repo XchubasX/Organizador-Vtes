@@ -11,6 +11,7 @@
 // · Aviso previo (15 o 30 min, lo elige cada quien por aparato): solo si
 //   en ese momento hay al menos 4 jugadores. Si hay menos, a nadie.
 // · Los suplentes no reciben nada mientras sean suplentes.
+// · SOLO mesas virtuales: los eventos presenciales no tienen avisos (decisión del 6 oct 2026).
 // Lo ya enviado se guarda en avisosEnviados/{mesa} para no repetir.
 // =====================================================================
 
@@ -51,7 +52,7 @@ export function planear(mesas, enviados, ahora) {
   for (const id of Object.keys(enviados)) if (!mesas[id] && !id.startsWith('_')) estado[id] = null;
 
   for (const [id, t] of Object.entries(mesas)) {
-    if (!t || !t.utcTime) continue;
+    if (!t || !t.utcTime || t.modality === 'presencial') continue; // presenciales: sin avisos
     const inicio = Date.parse(t.utcTime);
     if (!Number.isFinite(inicio)) continue;
     const previo = enviados[id] || {};
@@ -120,15 +121,15 @@ export function cuando(utcISO, zona, ahora) {
 
 export function mensaje(ev, aparato, ahora) {
   const t = ev.mesa;
-  const zona = t.modality === 'presencial' ? (t.originTz || aparato.zona) : aparato.zona;
+  const zona = aparato.zona;
   const nombre = (t.name || 'Tu mesa').slice(0, 60);
   const fecha = cuando(t.utcTime, zona, ahora);
   if (ev.tipo === 'completa') return { titulo: '¡Mesa completa! 🦇', texto: nombre + ' · ' + fecha + '. Ya están los 5.' };
   if (ev.tipo === 'entraste') return { titulo: '¡Entraste a la mesa! 🦇', texto: nombre + ' · ' + fecha + '.' + (ev.reemplazo ? ' Ocupas el lugar de ' + ev.reemplazo + ' (eras suplente).' : ' Eras suplente y ya juegas.') };
   const faltan = Math.max(1, Math.round((Date.parse(t.utcTime) - ahora) / 60000));
   const min = faltan >= ev.minutos - 5 ? ev.minutos : faltan;
-  const donde = t.modality === 'presencial' ? [t.venue, t.city].filter(Boolean).join(', ') : (t.platform || '');
-  const cupo = t.modality === 'presencial' ? ev.jugadores + ' confirmados' : ev.jugadores + ' de ' + MAX_JUGADORES + ' jugadores';
+  const donde = t.platform || '';
+  const cupo = ev.jugadores + ' de ' + MAX_JUGADORES + ' jugadores';
   return { titulo: 'En ' + min + ' minutos empieza tu mesa', texto: [nombre, fecha.replace(/^hoy /, ''), donde, cupo].filter(Boolean).join(' · ') + '. Toca para ver la mesa.' };
 }
 

@@ -5,6 +5,7 @@
 // · Menú «🔔 Avisos» junto al nombre de la cuenta: activar, 15/30 min,
 //   desactivar y «Mandarme un aviso de prueba».
 // · iPhone abierto en Safari (no desde el ícono): guía para instalar.
+// · SOLO mesas virtuales (los eventos presenciales no tienen avisos).
 // Se guarda en avisos/{uid}/{aparato}: token del aparato, minutos y zona
 // horaria. Nada de correo ni teléfono. Los manda worker.js cada 5 min.
 // =====================================================================
@@ -65,7 +66,7 @@ function ofrecerAvisos() {
   if ('Notification' in window && Notification.permission === 'denied') return; // ya los bloqueó
   ventanaAvisos(`<div id="avisosOferta" class="space-y-3">
     <div class="text-base font-bold">🔔 ¿Te avisamos?</div>
-    <div class="text-zinc-300">Te mandamos una notificación a este celular:</div>
+    <div class="text-zinc-300">Te mandamos una notificación a este celular para tus <b>mesas virtuales</b>:</div>
     <div class="text-zinc-300">• cuando tu mesa se <b>llene</b> (una sola vez),<br>• si eras suplente y <b>entras a jugar</b>,<br>• y antes de empezar, si ya hay <b>al menos 4</b> jugadores.</div>
     ${chipsMinutos(false)}
     <button type="button" onclick="activarAvisos()" class="${BOTON_AVISOS}">Activar avisos</button>
@@ -79,7 +80,7 @@ function abrirMenuAvisos() {
   ventanaAvisos(`<div id="avisosMenu" class="space-y-3">
     <div class="flex justify-between items-center"><span class="font-bold">🔔 Avisos en este celular</span>
       <span class="text-xs font-extrabold ${avisosActivos ? 'text-emerald-300' : 'text-zinc-500'}">${avisosActivos ? 'ACTIVADOS' : 'DESACTIVADOS'}</span></div>
-    ${avisosActivos ? '' : '<div class="text-zinc-300">Te avisamos cuando tu mesa se llene, si eras suplente y entras a jugar, y antes de empezar (si ya hay al menos 4).</div>'}
+    ${avisosActivos ? '' : '<div class="text-zinc-300">Para tus mesas virtuales: te avisamos cuando se llenen, si eras suplente y entras a jugar, y antes de empezar (si ya hay al menos 4).</div>'}
     ${chipsMinutos(avisosActivos)}
     ${avisosActivos
       ? `<button type="button" onclick="desactivarAvisos()" class="${BOTON_AVISOS_2}">Desactivar</button>
