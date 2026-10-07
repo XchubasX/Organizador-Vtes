@@ -68,11 +68,13 @@ function renderAuthBar() {
       <span class="block text-zinc-200 font-semibold truncate">${name}</span>`
     + (isAdmin ? '<span class="block text-amber-300 font-semibold">Administrador</span>' : '')
     + (isBanned ? '<span class="block text-red-400 font-semibold">Cuenta bloqueada</span>' : '')
+    + `<button type="button" onclick="abrirMenuAvisos()" class="text-zinc-400 hover:text-white underline py-0.5 mr-2">${avisosActivos ? '🔔' : '🔕'} Avisos</button>`
     + `<button type="button" onclick="signOutUser()" class="text-zinc-400 hover:text-white underline py-0.5">Cerrar sesión</button></div>`;
 }
 
 function signOutUser() {
-  auth.signOut().then(() => showToast('Sesión cerrada')).catch(() => {});
+  // Primero se quitan los avisos de esta cuenta en este aparato (js/avisos.js)
+  quitarAvisosAlSalir().then(() => auth.signOut()).then(() => showToast('Sesión cerrada')).catch(() => {});
 }
 
 // Navegadores "dentro de otra app" (WhatsApp, Instagram, Facebook...):
@@ -138,6 +140,22 @@ function closeLoginModal(result) {
   if (loginResolve) { const r = loginResolve; loginResolve = null; r(!!result); }
 }
 
+// ¿Elysium está abierto como app (desde el ícono de la pantalla de inicio)?
+function abiertoComoApp() {
+  return !!((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone);
+}
+
+// Al regresar de la página de Google (modo app): avisa si entró o qué falló
+function resultadoEntrarConGoogle() {
+  if (!auth.getRedirectResult) return;
+  auth.getRedirectResult().then((result) => {
+    if (result && result.user) showToast('✅ Sesión iniciada');
+  }).catch((e) => {
+    const code = (e && e.code) || '';
+    showToast(`❌ No se pudo iniciar sesión (${code || 'error desconocido'}). Inténtalo de nuevo.`, 'error');
+  });
+}
+
 // Se llama directo desde el clic del botón (los navegadores solo permiten
 // abrir la ventana de Google como respuesta inmediata a un clic).
 function doGoogleLogin() {
@@ -145,6 +163,16 @@ function doGoogleLogin() {
   const errorEl = document.getElementById('loginModalError');
   btn.disabled = true;
   errorEl.classList.add('hidden');
+  // Abierto como app desde el ícono (sobre todo iPhone): la ventanita de Google no
+  // funciona; se va a la página de Google y regresa (ver resultadoEntrarConGoogle).
+  if (abiertoComoApp()) {
+    auth.signInWithRedirect(googleProvider).catch(() => {
+      btn.disabled = false;
+      errorEl.textContent = 'No se pudo abrir Google. Revisa tu conexión e inténtalo de nuevo.';
+      errorEl.classList.remove('hidden');
+    });
+    return;
+  }
   auth.signInWithPopup(googleProvider).then(async (result) => {
     currentUser = result.user;
     await loadUserFlags(result.user);

@@ -98,6 +98,7 @@ function showCreatedModal(newId, recordData) {
 function closeCreatedModal() {
   document.getElementById('createdModal').classList.add('hidden');
   if (lastCreatedId) highlightCard(lastCreatedId);
+  ofrecerAvisos(); // «¿Te avisamos?» una sola vez por aparato (js/avisos.js)
   lastCreatedId = null;
 }
 

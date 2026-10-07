@@ -172,7 +172,14 @@ function closeAboutModal() {
 // ---------------------------------------------------------------------
 // AL TERMINAR DE CARGAR LA PÁGINA
 // ---------------------------------------------------------------------
+// Ligas y torneos del MISMO entorno: desde pruebas nunca se manda a producción
+function enlaceLigas() {
+  return VTES_CONFIG.esPruebas ? 'https://uat-ligas.eternalschedule.com' : 'https://ligas.eternalschedule.com';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  const tarjetaLigas = document.getElementById('tarjetaLigas');
+  if (tarjetaLigas) tarjetaLigas.href = enlaceLigas();
   // Franja naranja del sitio de pruebas
   if (VTES_CONFIG.esPruebas) {
     const franja = document.createElement('div');

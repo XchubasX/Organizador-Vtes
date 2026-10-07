@@ -32,6 +32,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <!-- Firebase Authentication (inicio de sesión con Google para crear o unirse) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <!-- Avisos de mesa en el celular (js/avisos.js y firebase-messaging-sw.js) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
   <!-- Firebase App Check (protege la base de datos: solo funciona desde el dominio autorizado) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 </head>
@@ -39,8 +41,8 @@
   <!-- Datos del sitio (Firebase y reCAPTCHA; distinto en pruebas) y código compartido.
        Van al inicio del <body>, no en el <head>: App Check (reCAPTCHA) necesita que ya
        exista el <body> para activarse. -->
-  <script src="config.js?v=20260929b"></script>
-  <script src="comun.js?v=20260929b"></script>
+  <script src="config.js?v=20261006a"></script>
+  <script src="comun.js?v=20261006a"></script>
 
 
   <!-- MODAL: ACERCA DE (botón "?" del encabezado) -->
@@ -475,13 +477,14 @@
   <!-- Código de esta página, separado por tema (fase 2, 29 sep 2026).
        El orden importa: los primeros solo definen funciones; arranque.js va al
        final porque es el que ejecuta todo al abrir la página. -->
-  <script src="js/sesion.js?v=20261005a"></script>
-  <script src="js/fechas.js?v=20261005a"></script>
-  <script src="js/ventanas.js?v=20261005a"></script>
-  <script src="js/mesas.js?v=20261005a"></script>
-  <script src="js/compartir.js?v=20261005a"></script>
-  <script src="js/tarjetas.js?v=20261005a"></script>
-  <script src="js/arranque.js?v=20261005a"></script>
+  <script src="js/sesion.js?v=20261006c"></script>
+  <script src="js/fechas.js?v=20261006c"></script>
+  <script src="js/ventanas.js?v=20261006c"></script>
+  <script src="js/mesas.js?v=20261006c"></script>
+  <script src="js/compartir.js?v=20261006c"></script>
+  <script src="js/tarjetas.js?v=20261006c"></script>
+  <script src="js/avisos.js?v=20261006c"></script>
+  <script src="js/arranque.js?v=20261006c"></script>
   <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
     <button type="button" onclick="openAboutModal()" class="underline underline-offset-2 hover:text-zinc-300 transition py-2">Acerca de · Aviso legal</button>
   </footer>

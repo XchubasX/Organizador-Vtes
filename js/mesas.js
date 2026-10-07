@@ -254,6 +254,7 @@ async function enviarUnirse(e) {
   if (result.substitute) showToast('✅ Te apuntaste como suplente');
   else if (result.presencial) showToast('✅ Asistencia confirmada');
   else showToast(askedAsSub ? '✅ Se liberó una plaza: te uniste a la mesa' : '✅ Te uniste a la mesa');
+  ofrecerAvisos(); // «¿Te avisamos?» una sola vez por aparato (js/avisos.js)
 }
 
 // Devuelve una promesa con { error } si algo impide unirse, o

@@ -1,11 +1,25 @@
 // Configuración de Cloudflare Workers para el SITIO REAL (producción).
-// Es distinto en el sitio de pruebas (allá "name" es "elysium-uat"), igual que config.js: no copiarlo al pasar a producción.
+// Es distinto en el sitio de pruebas (allá "name" es "elysium-uat" y las variables apuntan a vtes-uat), igual que config.js: no copiarlo al pasar a producción.
 // Cloudflare corre "bash cloudflare-publicar.sh" y pone en línea la carpeta "publicado".
 {
   "name": "elysium",
   "compatibility_date": "2026-10-01",
+  // worker.js reenvía /__/auth/ (Entrar con Google) a Firebase, atiende /api/ y cada 5 minutos manda los avisos de mesa
+  "main": "worker.js",
+  "vars": {
+    "FIREBASE_AUTH_HOST": "vtes-scheduler.firebaseapp.com",
+    "FIREBASE_DB_URL": "https://vtes-scheduler-default-rtdb.firebaseio.com",
+    "FIREBASE_API_KEY": "AIzaSyCDD_iUXTBpS89n4mtA4xbBeR6IxczRzEg",
+    "SITIO": "https://eternalschedule.com"
+  },
+  // El secreto FIREBASE_CUENTA_SERVICIO (llave de la cuenta de servicio) se guarda en Cloudflare, nunca aquí
+  "triggers": { "crons": ["*/5 * * * *"] },
+  // Guarda los mensajes del Worker (Cloudflare → elysium → Observability) para revisar los avisos
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./publicado",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/__/auth/*", "/api/*"]
   }
 }

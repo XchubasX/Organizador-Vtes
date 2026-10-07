@@ -9,7 +9,7 @@ rm -rf publicado
 mkdir publicado
 for f in *; do
   case "$f" in
-    publicado|pruebas|README.md|_config.yml|cloudflare-publicar.sh|wrangler.jsonc|node_modules) ;;
+    publicado|pruebas|README.md|_config.yml|cloudflare-publicar.sh|wrangler.jsonc|worker.js|avisos-servidor.js|node_modules) ;;
     *) cp -r "$f" publicado/ ;;
   esac
 done
