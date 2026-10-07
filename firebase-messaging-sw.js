@@ -31,7 +31,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 self.window = self; // config.js escribe en window.VTES_CONFIG
-importScripts('config.js?v=20261006a');
+importScripts('config.js?v=20261006p');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
               'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 firebase.initializeApp(self.VTES_CONFIG.firebase);
