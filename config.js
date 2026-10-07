@@ -23,7 +23,7 @@ window.VTES_CONFIG = {
 
   // Llave pública de avisos (Firebase → Configuración del proyecto → Cloud Messaging →
   // Certificados push web). Vacía = los avisos todavía no están configurados.
-  vapidKey: '',
+  vapidKey: 'BD3uE0I3bTchnglAKf02Bf-760emKNzaGw_exCni2Ll7uubRhqBNJugIegisB8AKUJ6IadkAZLjJPgEBsbX4a6g',
 
   // Site Key de reCAPTCHA Enterprise (App Check)
   recaptchaKey: '6Lc2QLYtAAAAAHI6pH3gABXBdG4m2X1rPKmegI0P'
