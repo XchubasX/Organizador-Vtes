@@ -18,7 +18,7 @@ var MUDANZA_DESTINOS = {
   'Organizador-Vtes': 'https://eternalschedule.com',
   'Vtes-UAT': 'https://uat.eternalschedule.com'
 };
-var MUDANZA_REDIRIGE_DESDE = Date.parse('2026-10-08T21:00:00Z'); // jueves 8 oct 2026, 15:00 en México (adelantado; antes domingo 11 oct)
+var MUDANZA_REDIRIGE_DESDE = Date.parse('2027-01-01T06:00:00Z'); // BOTÓN DE PÁNICO: salto pospuesto (antes jueves 8 oct 2026, 15:00 en México)
 
 // Calcula la dirección nueva equivalente, o null si no es la dirección vieja de GitHub.
 function mudanzaDestino(host, ruta, busqueda, ancla) {
