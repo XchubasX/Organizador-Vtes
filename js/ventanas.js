@@ -240,3 +240,44 @@ function cerrarAvisoIcono() {
   document.getElementById('avisoIcono').classList.add('hidden');
 }
 
+// ---------------------------------------------------------------------
+// AVISO «¿DESPERTANDO DEL TORPOR?» (8 oct 2026). Sale una sola vez por
+// aparato, cuando la persona llega desde la dirección vieja de GitHub
+// (mudanza.js deja la marca pendiente). «Cómo agregarla» abre los pasos
+// para iPhone o Android (en computadora, los dos). Cualquiera de los dos
+// botones lo cierra para siempre en ese aparato.
+// ---------------------------------------------------------------------
+function mostrarAvisoTorpor() {
+  const aviso = document.getElementById('avisoTorpor');
+  if (!aviso) return;
+  let pendiente = typeof mudanzaLlegoDeGithub !== 'undefined' && mudanzaLlegoDeGithub, visto = false;
+  try {
+    pendiente = pendiente || localStorage.getItem(MUDANZA_TORPOR_PENDIENTE_KEY) === '1';
+    visto = localStorage.getItem(MUDANZA_TORPOR_VISTO_KEY) === '1';
+  } catch (e) { /* sin almacenamiento */ }
+  aviso.classList.toggle('hidden', !pendiente || visto);
+}
+
+function cerrarAvisoTorpor() {
+  try { localStorage.setItem(MUDANZA_TORPOR_VISTO_KEY, '1'); localStorage.removeItem(MUDANZA_TORPOR_PENDIENTE_KEY); } catch (e) { /* solo se oculta ahora */ }
+  if (typeof mudanzaLlegoDeGithub !== 'undefined') mudanzaLlegoDeGithub = false;
+  const aviso = document.getElementById('avisoTorpor');
+  if (aviso) aviso.classList.add('hidden');
+}
+
+function guiaAgregarElysium() {
+  cerrarAvisoTorpor();
+  const paso = (n, t, d) => `<div class="flex gap-3"><span class="w-6 h-6 rounded-full bg-wine-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">${n}</span><span class="text-zinc-300"><b class="text-white">${t}</b><br>${d}</span></div>`;
+  const viejo = paso(3, 'Borra el ícono viejo', 'el que abría la dirección de antes.');
+  const iphone = `<div id="guiaAgregarIPhone" class="space-y-3"><div class="text-base font-bold">📱 Agrega Elysium a tu iPhone</div>
+    ${paso(1, 'Toca Compartir', 'el cuadrito con la flecha, abajo en Safari.')}
+    ${paso(2, '«Agregar a pantalla de inicio»', 'y luego «Agregar».')}${viejo}</div>`;
+  const android = `<div id="guiaAgregarAndroid" class="space-y-3"><div class="text-base font-bold">📱 Agrega Elysium a tu Android</div>
+    ${paso(1, 'Toca el menú ⋮', 'arriba a la derecha en Chrome.')}
+    ${paso(2, '«Agregar a la pantalla principal»', '(o «Instalar app») y confirma.')}${viejo}</div>`;
+  const tipo = tipoAparato();
+  const pasos = tipo === 'iphone' ? iphone : tipo === 'android' ? android : iphone + '<div class="border-t border-zinc-700"></div>' + android;
+  ventanaAvisos(`<div id="guiaAgregarElysium" class="space-y-3">${pasos}
+    <div class="text-xs text-zinc-400">La primera vez entra con Google: es la misma cuenta.</div>
+    <button type="button" onclick="cerrarVentanaAvisos()" class="${BOTON_AVISOS}">Entendido</button></div>`);
+}

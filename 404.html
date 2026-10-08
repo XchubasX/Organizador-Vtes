@@ -12,15 +12,18 @@
   // Funciona en los dos tipos de dirección:
   //  - GitHub Pages:   xchubasx.github.io/Organizador-Vtes/Zaragoza  (primero va el nombre del repositorio)
   //  - Dominio propio o Cloudflare: elysium-uat.pages.dev/Zaragoza   (la ciudad va directo)
-  function destino404(host, ruta) {
+  // Si llega con la marca ?desde=github (mudanza.js), se conserva para el aviso de mudanza.
+  function destino404(host, ruta, busqueda) {
     var partes = ruta.split('/').filter(Boolean);
     var base = '/';
     if (/\.github\.io$/i.test(host) && partes.length) base = '/' + partes.shift() + '/';
     var ciudad = partes.length ? partes[0] : '';
     try { ciudad = decodeURIComponent(ciudad); } catch (e) {}
-    return base + (ciudad ? ('?city=' + encodeURIComponent(ciudad)) : '');
+    var marca = /(^|[?&])desde=github(&|$)/.test(busqueda || '') ? 'desde=github' : '';
+    var q = (ciudad ? 'city=' + encodeURIComponent(ciudad) : '') + (ciudad && marca ? '&' : '') + marca;
+    return base + (q ? '?' + q : '');
   }
-  window.location.replace(destino404(window.location.hostname, window.location.pathname));
+  window.location.replace(destino404(window.location.hostname, window.location.pathname, window.location.search));
 </script>
 </head>
 <body>

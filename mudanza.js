@@ -11,6 +11,8 @@
 // Se carga primero en el <head> de las 3 páginas para saltar cuanto antes.
 // Para dar más tiempo, basta con cambiar MUDANZA_REDIRIGE_DESDE.
 // En la dirección vieja también cuenta visitas (Cloudflare Web Analytics, «xchubasx.github.io»).
+// Al saltar agrega la marca ?desde=github; en la dirección nueva se borra de la barra
+// y deja pendiente el aviso «¿Despertando del Torpor?» (js/ventanas.js, solo página principal).
 // =====================================================================
 var MUDANZA_DESTINOS = {
   'Organizador-Vtes': 'https://eternalschedule.com',
@@ -27,6 +29,30 @@ function mudanzaDestino(host, ruta, busqueda, ancla) {
   var resto = partes.join('/');
   if (resto === 'index.html') resto = '';
   return base + '/' + resto + (busqueda || '') + (ancla || '');
+}
+
+// Marca que dice "llegó desde la dirección vieja". Va antes del #mesa-… (si lo hay).
+var MUDANZA_MARCA = 'desde=github';
+var MUDANZA_TORPOR_PENDIENTE_KEY = 'elysium_torpor_pendiente';
+var MUDANZA_TORPOR_VISTO_KEY = 'elysium_torpor_visto';
+var mudanzaLlegoDeGithub = false; // por si el navegador no deja guardar
+function mudanzaConMarca(url) {
+  var i = url.indexOf('#');
+  var base = i < 0 ? url : url.slice(0, i);
+  var ancla = i < 0 ? '' : url.slice(i);
+  return base + (base.indexOf('?') < 0 ? '?' : '&') + MUDANZA_MARCA + ancla;
+}
+
+// En la dirección nueva: si trae la marca, la quita de la barra (para que el favorito
+// y los enlaces salgan limpios) y deja pendiente el aviso, salvo que ya lo haya visto.
+function mudanzaRecibirMarca() {
+  var q = location.search || '';
+  if (!/(^|[?&])desde=github(&|$)/.test(q)) return false;
+  var limpio = q.replace(/^\?/, '').split('&').filter(function (x) { return x && x !== MUDANZA_MARCA; }).join('&');
+  try { history.replaceState(history.state, '', location.pathname + (limpio ? '?' + limpio : '') + location.hash); } catch (e) { /* sin historial */ }
+  mudanzaLlegoDeGithub = true;
+  try { if (localStorage.getItem(MUDANZA_TORPOR_VISTO_KEY) !== '1') localStorage.setItem(MUDANZA_TORPOR_PENDIENTE_KEY, '1'); } catch (e) { /* sin almacenamiento */ }
+  return true;
 }
 
 function mudanzaDestinoActual() {
@@ -67,7 +93,8 @@ function mudanzaPonerContador(alCargar) {
 
 (function () {
   var destino = mudanzaDestinoActual();
-  if (!destino) return; // eternalschedule.com: no hace nada
+  if (!destino) { mudanzaRecibirMarca(); return; } // eternalschedule.com: solo recibe la marca
+  destino = mudanzaConMarca(destino);
   if (!mudanzaDebeRedirigir(Date.now())) { mudanzaPonerContador(); return; }
   // Desde la fecha del salto: se cuenta la visita y luego se salta (a lo mucho 1.5 s de espera)
   var listo = false;
