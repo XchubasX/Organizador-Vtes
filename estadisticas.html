@@ -213,7 +213,7 @@
       <section class="panel" aria-labelledby="hAvisos">
         <div>
           <h2 id="hAvisos">¿Se usan los avisos?</h2>
-          <p class="sub">Avisos de mesas virtuales en el celular. Se actualiza cada 5 minutos.</p>
+          <p class="sub">Avisos de mesas virtuales en el celular. Se actualiza cada 3 minutos.</p>
         </div>
         <div class="kpis" id="avisosKpis"></div>
         <div id="avisosTipos"></div>
@@ -753,7 +753,7 @@
     }
 
     // ¿SE USAN LOS AVISOS? stats/avisos lo escribe el servidor de avisos (worker.js)
-    // cada 5 minutos: solo totales, nunca quién ni los códigos de los aparatos.
+    // cada 3 minutos: solo totales, nunca quién ni los códigos de los aparatos.
     function barraPartes(titulo, partes) {
       const tot = partes.reduce((a, p) => a + p[1], 0);
       if (!tot) return '';

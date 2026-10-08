@@ -1,6 +1,6 @@
 // =====================================================================
 // avisos-servidor.js — AVISOS DE MESA EN EL CELULAR (lado del servidor)
-// Lo usa worker.js cada 5 minutos (cron de Cloudflare). NO se publica
+// Lo usa worker.js cada 3 minutos (cron de Cloudflare). NO se publica
 // como archivo del sitio.
 //
 // Reglas (tablero 24 del lienzo de diseño, aprobado 6 oct 2026):
@@ -241,7 +241,7 @@ export async function vuelta(env, ahora = Date.now()) {
   const { db, enviar } = conexion(env, token);
   const [mesas, avisos, enviados, statsAvisos] = await Promise.all([db('GET', 'vtes_records'), db('GET', 'avisos'), db('GET', 'avisosEnviados'), db('GET', 'stats/avisos')]);
   const { eventos, estado } = planear(mesas, enviados, ahora);
-  // Primero se guarda lo enviado (si algo falla después, no se repite en 5 minutos)
+  // Primero se guarda lo enviado (si algo falla después, no se repite en la siguiente vuelta)
   const cambios = {};
   for (const [id, v] of Object.entries(estado)) if (estable(v) !== estable((enviados || {})[id])) cambios['avisosEnviados/' + id] = v;
   const resumen = resumenAvisos(avisos);

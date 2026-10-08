@@ -7,7 +7,7 @@
 // · iPhone abierto en Safari (no desde el ícono): guía para instalar.
 // · SOLO mesas virtuales (los eventos presenciales no tienen avisos).
 // Se guarda en avisos/{uid}/{aparato}: token del aparato, minutos y zona
-// horaria. Nada de correo ni teléfono. Los manda worker.js cada 5 min.
+// horaria. Nada de correo ni teléfono. Los manda worker.js cada 3 min.
 // =====================================================================
 const AVISOS_DISP_KEY = 'elysium_avisos_disp';
 const AVISOS_MIN_KEY = 'elysium_avisos_min';

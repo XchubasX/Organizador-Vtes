@@ -2,7 +2,7 @@
 // worker.js — lo corre Cloudflare antes de servir el sitio.
 // 1) /__/auth/*  → se reenvía a Firebase («Entrar con Google» por nuestro dominio).
 // 2) /api/aviso-prueba → «Mandarme un aviso de prueba».
-// 3) Cada 5 minutos (cron) → avisos de mesa en el celular (avisos-servidor.js).
+// 3) Cada 3 minutos (cron) → avisos de mesa en el celular (avisos-servidor.js).
 // Todo lo demás es el sitio tal cual (carpeta "publicado").
 // =====================================================================
 import { vuelta, avisoPrueba } from './avisos-servidor.js';
