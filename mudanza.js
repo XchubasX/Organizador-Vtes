@@ -2,9 +2,10 @@
 // mudanza.js — MUDANZA A eternalschedule.com (octubre 2026)
 // Solo actúa cuando la página se abre desde la dirección vieja de GitHub
 // (xchubasx.github.io/...). En eternalschedule.com no hace nada.
-//  - Hasta el sábado 10 oct: la página principal muestra la franja
+//  - Antes de la fecha del salto: la página principal muestra la franja
 //    "Elysium se mudó a eternalschedule.com" (sin botón de cerrar).
-//  - Desde el domingo 11 oct, 00:00 hora de México: la página salta sola
+//  - Desde el jueves 8 oct 2026, 15:00 hora de México (se adelantó del
+//    domingo 11 oct): la página salta sola
 //    a la dirección nueva, conservando ciudad (/Zaragoza), enlace a mesa
 //    (#mesa-…) y página (sorteo, estadísticas).
 // Se carga primero en el <head> de las 3 páginas para saltar cuanto antes.
@@ -15,7 +16,7 @@ var MUDANZA_DESTINOS = {
   'Organizador-Vtes': 'https://eternalschedule.com',
   'Vtes-UAT': 'https://uat.eternalschedule.com'
 };
-var MUDANZA_REDIRIGE_DESDE = Date.parse('2026-10-11T06:00:00Z'); // domingo 11 oct 2026, 00:00 en México
+var MUDANZA_REDIRIGE_DESDE = Date.parse('2026-10-08T21:00:00Z'); // jueves 8 oct 2026, 15:00 en México (adelantado; antes domingo 11 oct)
 
 // Calcula la dirección nueva equivalente, o null si no es la dirección vieja de GitHub.
 function mudanzaDestino(host, ruta, busqueda, ancla) {
@@ -68,7 +69,7 @@ function mudanzaPonerContador(alCargar) {
   var destino = mudanzaDestinoActual();
   if (!destino) return; // eternalschedule.com: no hace nada
   if (!mudanzaDebeRedirigir(Date.now())) { mudanzaPonerContador(); return; }
-  // Desde el 11 oct: se cuenta la visita y luego se salta (a lo mucho 1.5 s de espera)
+  // Desde la fecha del salto: se cuenta la visita y luego se salta (a lo mucho 1.5 s de espera)
   var listo = false;
   var saltar = function () { if (listo) return; listo = true; window.location.replace(destino); };
   mudanzaPonerContador(function () { setTimeout(saltar, 300); });
