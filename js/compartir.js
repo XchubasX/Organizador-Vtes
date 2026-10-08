@@ -106,13 +106,25 @@ function shareTableInvitation(tableId) {
 // Al abrirlo, la página cambia a la pestaña correcta, baja hasta la
 // mesa y la resalta (ver openTableFromHash más abajo).
 // ---------------------------------------------------------------------
-function getSiteBaseUrl() {
+// Dirección base para los enlaces que se comparten (sin la ciudad).
+// Separada en una función pura para poder probarla con cualquier dirección.
+function siteBaseUrlFor(host, origin, path, hasCity) {
   // Si la página se abrió con una ciudad en la URL (.../Zaragoza)
   // se quita esa parte para que el enlace funcione para cualquiera.
-  let path = window.location.pathname;
-  if (urlCityFilter) path = path.replace(/[^/]+\/?$/, '');
+  if (hasCity) path = path.replace(/[^/]+\/?$/, '');
+  // Desde la dirección vieja de GitHub los enlaces ya salen con la nueva
+  // (eternalschedule.com), para que no dependan de GitHub Pages
+  // cuando se apague (ver mudanza.js; 8 oct 2026).
+  if (typeof mudanzaDestino === 'function') {
+    const nueva = mudanzaDestino(host, path, '', '');
+    if (nueva) return nueva;
+  }
   if (!path.endsWith('/')) path = path.replace(/[^/]*$/, '');
-  return window.location.origin + path;
+  return origin + path;
+}
+
+function getSiteBaseUrl() {
+  return siteBaseUrlFor(window.location.hostname, window.location.origin, window.location.pathname, !!urlCityFilter);
 }
 
 function getTableUrl(tableId) {
