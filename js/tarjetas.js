@@ -107,6 +107,24 @@ function toggleMesaPrivada(tableId) {
   if (card && mesasDesplegadas.has(tableId)) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// ---------------------------------------------------------------------
+// CUPO CON LA MESA DEL ÍCONO (9 oct 2026, tablero 26)
+// Dibuja la mesa del ícono de Elysium: un lugar iluminado por jugador y
+// los libres punteados. Con 4 o más jugadores el centro se pone verde.
+// Solo mesas virtuales (las presenciales siguen con «N confirmados»).
+// El texto de al lado («Faltan 2», «3 de 5») va siempre: el dibujo no
+// reemplaza al texto.
+// ---------------------------------------------------------------------
+const LUGARES_MESA = [[256, 86], [417.7, 203.5], [355.9, 393.5], [156.1, 393.5], [94.3, 203.5]];
+
+function mesaCupoSvg(count) {
+  const lista = count >= 4;
+  const lugares = LUGARES_MESA.map(([x, y], i) => i < count
+    ? `<circle class="lugar-ocupado" cx="${x}" cy="${y}" r="44" fill="#E7A3B3"/>`
+    : `<circle class="lugar-libre" cx="${x}" cy="${y}" r="38" fill="none" stroke="#71717A" stroke-width="11" stroke-dasharray="15 11"/>`).join('');
+  return `<svg width="40" height="40" viewBox="46 40 420 420" aria-hidden="true" class="shrink-0 block"><circle cx="256" cy="256" r="100" fill="${lista ? '#123D24' : '#3F141F'}" stroke="${lista ? '#22C55E' : '#8C2F45'}" stroke-width="16"/>${lugares}</svg>`;
+}
+
 function platformLabel(platform) {
   return (platform || '').toLowerCase().includes('lackey') ? 'LackeyCCG' : 'Succubus Club';
 }
@@ -276,9 +294,7 @@ function renderCustomTables(tables, container) {
     // Cupo, junto a la hora
     const statusBadge = isPresencial
       ? `<span class="bg-emerald-900/60 text-emerald-300 border border-emerald-700/70 text-[13px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap">${count} confirmado${count === 1 ? '' : 's'}</span>`
-      : isReady
-        ? `<span class="bg-green-900/70 text-green-300 border border-green-600 text-[13px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap">${count >= 5 ? 'Mesa llena' : 'Lista para jugar'} (${count}/5)</span>`
-        : `<span class="bg-wine-900/60 text-wine-200 border border-wine-600/70 text-[13px] px-3 py-1.5 rounded-full font-bold whitespace-nowrap">Faltan ${5 - count} · ${count}/5</span>`;
+      : `<span class="cupo-mesa flex items-center gap-2">${mesaCupoSvg(count)}<span class="text-sm font-bold whitespace-nowrap leading-tight ${isReady ? 'text-green-300' : 'text-wine-200'}">${count >= 5 ? 'Mesa llena' : isReady ? 'Lista para jugar' : `Faltan ${5 - count}`}<span class="block text-xs font-medium text-zinc-400">${Math.min(count, 5)} de 5</span></span></span>`;
 
     // Línea de datos: "LackeyCCG · V5 · Organizas tú" / "Presencial · cada jueves"
     const datos = isPresencial
