@@ -18,7 +18,6 @@ auth.onAuthStateChanged(async (user) => {
 escucharAvisosEnPagina();
 mostrarAvisoMudanza(); // franja de mudanza (solo en la dirección vieja de GitHub, ver mudanza.js)
 mostrarAvisoTorpor(); // «¿Despertando del Torpor?» al llegar desde la dirección vieja (ver mudanza.js)
-mostrarAvisoIcono(); // aviso temporal del ícono nuevo (hasta el 8 oct 2026)
 document.getElementById('userTimezone').innerText = `Tu zona horaria: ${nombreZona(userTimezone) || userTimezone}${nombreZona(userTimezone) && nombreZona(userTimezone) !== userTimezone ? ` (${userTimezone})` : ''}`;
 
 let pickerCustomTable = flatpickr("#tableDateTime", { ...configFlatpickr, onChange: () => updateNightUI('create') });

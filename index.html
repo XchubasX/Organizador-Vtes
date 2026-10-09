@@ -275,7 +275,6 @@
     <!-- MESAS Y EVENTOS: pestañas arriba, luego el botón para crear, luego la lista -->
     <section class="space-y-4">
 
-      <!-- AVISO TEMPORAL DEL ÍCONO NUEVO (solo celular, hasta el 8 oct 2026; ver js/ventanas.js) -->
       <!-- AVISO DE MUDANZA (solo en la dirección vieja de GitHub, hasta el 10 oct 2026; ver mudanza.js) -->
       <div id="avisoMudanza" class="hidden bg-wine-950/70 border border-wine-600 rounded-xl p-3.5 space-y-2.5">
         <div class="flex items-start gap-2.5">
@@ -302,12 +301,6 @@
           <button type="button" id="avisoTorporGuia" onclick="guiaAgregarElysium()" class="flex-1 bg-wine-600 hover:bg-wine-500 text-white font-bold text-sm py-2.5 rounded-lg transition">Cómo agregarla</button>
           <button type="button" id="avisoTorporCerrar" onclick="cerrarAvisoTorpor()" class="shrink-0 text-[13px] text-zinc-300 hover:text-white border border-zinc-600 px-3 py-2 rounded-lg transition">Entendido</button>
         </div>
-      </div>
-
-      <div id="avisoIcono" class="hidden flex items-center gap-3 bg-wine-950/60 border border-wine-600/60 rounded-xl px-3 py-2.5">
-        <img src="iconos/apple-touch-icon.png" alt="" width="36" height="36" class="w-9 h-9 rounded-lg shrink-0">
-        <p class="flex-1 text-[13px] leading-snug text-zinc-100"><strong>Nuevo ícono.</strong> Si tienes el organizador en tu pantalla con una letra "G" o "V", bórralo y vuelve a agregarlo.</p>
-        <button type="button" onclick="cerrarAvisoIcono()" class="shrink-0 text-[13px] text-zinc-300 hover:text-white border border-zinc-600 px-2.5 py-1.5 rounded-lg transition">Entendido</button>
       </div>
 
       <!-- AVISO DE BIENVENIDA AL INICIO DE SESIÓN (solo sin sesión, hasta que se cierre) -->
@@ -503,14 +496,14 @@
   <!-- Código de esta página, separado por tema (fase 2, 29 sep 2026).
        El orden importa: los primeros solo definen funciones; arranque.js va al
        final porque es el que ejecuta todo al abrir la página. -->
-  <script src="js/sesion.js?v=20261008b"></script>
-  <script src="js/fechas.js?v=20261008b"></script>
-  <script src="js/ventanas.js?v=20261008b"></script>
-  <script src="js/mesas.js?v=20261008b"></script>
-  <script src="js/compartir.js?v=20261008b"></script>
-  <script src="js/tarjetas.js?v=20261008b"></script>
-  <script src="js/avisos.js?v=20261008b"></script>
-  <script src="js/arranque.js?v=20261008b"></script>
+  <script src="js/sesion.js?v=20261009a"></script>
+  <script src="js/fechas.js?v=20261009a"></script>
+  <script src="js/ventanas.js?v=20261009a"></script>
+  <script src="js/mesas.js?v=20261009a"></script>
+  <script src="js/compartir.js?v=20261009a"></script>
+  <script src="js/tarjetas.js?v=20261009a"></script>
+  <script src="js/avisos.js?v=20261009a"></script>
+  <script src="js/arranque.js?v=20261009a"></script>
   <footer class="text-center text-xs text-zinc-500 pt-6 pb-24 px-4">
     <button type="button" onclick="openAboutModal()" class="underline underline-offset-2 hover:text-zinc-300 transition py-2">Acerca de · Aviso legal</button>
   </footer>

@@ -215,32 +215,6 @@ function escapeJsAttr(str) {
 }
 
 // ---------------------------------------------------------------------
-// AVISO TEMPORAL DEL ÍCONO NUEVO (1 oct 2026)
-// Pide a quien tiene el sitio en la pantalla del celular con la letra
-// genérica ("G" en Android, "V" en iPhone) que lo borre y lo vuelva a
-// agregar. Solo en pantallas de celular, hasta el 8 oct 2026 (hora de
-// México) y hasta que la persona toque "Entendido". Se puede borrar
-// este bloque, el <div id="avisoIcono"> y su llamada en arranque.js
-// después de esa fecha.
-// ---------------------------------------------------------------------
-const AVISO_ICONO_KEY = 'vtes_aviso_icono_visto';
-const AVISO_ICONO_HASTA = Date.parse('2026-10-09T06:00:00Z'); // fin del 8 oct en México
-
-function mostrarAvisoIcono() {
-  const aviso = document.getElementById('avisoIcono');
-  if (!aviso) return;
-  let visto = false;
-  try { visto = localStorage.getItem(AVISO_ICONO_KEY) === '1'; } catch (e) { /* sin almacenamiento */ }
-  const esCelular = window.matchMedia('(max-width: 767px)').matches;
-  aviso.classList.toggle('hidden', visto || !esCelular || Date.now() >= AVISO_ICONO_HASTA);
-}
-
-function cerrarAvisoIcono() {
-  try { localStorage.setItem(AVISO_ICONO_KEY, '1'); } catch (e) { /* sin almacenamiento: solo se oculta ahora */ }
-  document.getElementById('avisoIcono').classList.add('hidden');
-}
-
-// ---------------------------------------------------------------------
 // AVISO «¿DESPERTANDO DEL TORPOR?» (8 oct 2026). Sale una sola vez por
 // aparato, cuando la persona llega desde la dirección vieja de GitHub
 // (mudanza.js deja la marca pendiente). «Cómo agregarla» abre los pasos
