@@ -225,6 +225,14 @@ function renderAll(allData) {
   renderCustomTables(customTables, customTablesContainer);
 }
 
+// Nick de quien creó la mesa: la entrada anotada con la llave de su cuenta.
+// Vacío si ya no está anotado (salió de la mesa).
+function organizerNick(t) {
+  const su = (t && t.signups) || {};
+  const e = t && t.ownerUid ? su[t.ownerUid] : null;
+  return (e && e.nick) ? String(e.nick) : '';
+}
+
 function renderCustomTables(tables, container) {
   if (!dataLoaded) {
     container.innerHTML = '<p class="col-span-2 text-center text-zinc-400 py-4">Cargando mesas…</p>';
@@ -300,8 +308,12 @@ function renderCustomTables(tables, container) {
     const datos = isPresencial
       ? ['Presencial', t.recurrence === 'weekly' ? `cada ${escapeHtml(weekdayInZone(t.utcTime, t.originTz))}` : '']
       : [platformLabel(t.platform || 'Lackey'), t.format ? formatLabel(t.format) : ''];
+    // Mesas virtuales: quién la organiza (su propia entrada lleva la llave de su cuenta).
+    // Si el organizador ya salió de la mesa, no se muestra nombre.
+    const orgNick = (!isPresencial && !iOwn) ? organizerNick(t) : '';
     const datosHtml = datos.filter(Boolean).join(' · ')
-      + (iOwn ? ' · <span class="text-purple-300 font-semibold">Organizas tú</span>' : '');
+      + (iOwn ? ' · <span class="text-purple-300 font-semibold">Organizas tú</span>'
+        : orgNick ? ` · Organiza <span class="text-zinc-100 font-semibold">${escapeHtml(orgNick)}</span>` : '');
 
     // Discord y contraseña: siempre visibles (también para espectadores)
     const pwdId = `gamepwd-${escapeHtml(t.id)}`;
