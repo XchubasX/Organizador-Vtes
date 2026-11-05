@@ -315,28 +315,17 @@
         </div>
       </div>
 
-      <!-- JUEZ DE REGLAS: beta privada; la página /beta es donde se solicita acceso (31 oct 2026).
-           El juez no tiene sitio de pruebas, así que siempre lleva al real. -->
-      <a id="tarjetaJuez" href="https://juez.eternalschedule.com/beta" class="flex items-center gap-3 border border-wine-600/60 bg-wine-950/50 hover:border-wine-500 rounded-xl px-3.5 py-3 transition">
-        <span class="text-2xl" aria-hidden="true">⚖️</span>
-        <span class="flex-1 min-w-0">
-          <span class="block font-extrabold text-[15px] text-wine-200">Juez de reglas</span>
-          <span class="block text-xs text-zinc-300">Pregunta cómo se resuelve una interacción de cartas, con reglas y erratas vigentes.</span>
-          <span class="inline-block mt-1.5 text-xs font-extrabold text-violet-300 border border-violet-700 rounded-full px-2 py-0.5">BETA PRIVADA · SOLICITA ACCESO</span>
-        </span>
-        <span class="text-wine-300 font-bold" aria-hidden="true">›</span>
-      </a>
-
-      <!-- LIGAS Y TORNEOS: enlace al sitio de ligas del mismo entorno (comun.js pone la dirección) -->
-      <a id="tarjetaLigas" href="#" class="flex items-center gap-3 border border-wine-600/60 bg-wine-950/50 hover:border-wine-500 rounded-xl px-3.5 py-3 transition">
-        <span class="text-2xl" aria-hidden="true">🏆</span>
-        <span class="flex-1 min-w-0">
-          <span class="block font-extrabold text-[15px] text-wine-200">Ligas y torneos casuales</span>
-          <span class="block text-xs text-zinc-300">Sigue las ligas y torneos de tu ciudad u organiza el tuyo.</span>
-          <span class="inline-block mt-1.5 text-xs font-extrabold text-amber-300 border border-amber-700 rounded-full px-2 py-0.5">100% CASUAL · NO SANCIONADOS POR VEKN</span>
-        </span>
-        <span class="text-wine-300 font-bold" aria-hidden="true">›</span>
-      </a>
+      <!-- JUEZ Y LIGAS: una línea delgada para que las mesas queden a la vista (maqueta 27, 5 nov 2026).
+           El Juez no tiene sitio de pruebas, así que siempre lleva al real.
+           Ligas va al sitio del mismo entorno (comun.js pone la dirección). -->
+      <div class="grid grid-cols-2 gap-2">
+        <a id="tarjetaJuez" href="https://juez.eternalschedule.com/beta" class="flex items-center justify-center gap-1.5 min-h-[44px] border border-wine-600/60 bg-wine-950/50 hover:border-wine-500 rounded-lg px-2 text-sm font-bold text-wine-200 transition">
+          <span aria-hidden="true">⚖️</span> Juez de reglas
+        </a>
+        <a id="tarjetaLigas" href="#" class="flex items-center justify-center gap-1.5 min-h-[44px] border border-wine-600/60 bg-wine-950/50 hover:border-wine-500 rounded-lg px-2 text-sm font-bold text-wine-200 transition">
+          <span aria-hidden="true">🏆</span> Ligas y torneos
+        </a>
+      </div>
 
       <!-- PESTAÑAS VIRTUAL / PRESENCIAL (controlan la lista y el formulario, con contador) -->
       <div class="flex gap-2 bg-zinc-800 p-1.5 rounded-xl border border-zinc-700">
